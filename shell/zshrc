@@ -1,0 +1,104 @@
+# === BEGIN ZSH CONFIG ===
+# Exported from Ubuntu VM on 2026-01-17
+# Target: macOS with Homebrew
+
+# ============================================
+# !!! NOTE !!!
+# Add your OpenAI API key below if needed.
+# ============================================
+
+# OpenAI API key for Codex CLI (replace locally)
+# export OPENAI_API_KEY="your-api-key-here"  # Uncomment and add your key
+
+# Custom global npm installs (safe for nvm)
+export PATH="$HOME/.npm-global/bin:$PATH"
+
+# Homebrew (Apple Silicon paths - already correct for macOS)
+export PATH="/opt/homebrew/bin:$PATH"
+export PATH="/opt/homebrew/sbin:$PATH"
+
+# Python 3.13 unversioned shims (python, pip, etc.)
+export PATH="/opt/homebrew/opt/python@3.13/libexec/bin:$PATH"
+
+# Oh My Zsh
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="robbyrussell"
+plugins=(git)
+source $ZSH/oh-my-zsh.sh
+
+# nvm (installed via Homebrew on macOS)
+export NVM_DIR="$HOME/.nvm"
+[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"
+[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+
+# Activate (or auto-create) a Python virtual environment in the current dir or given folder
+venv() {
+    local project_dir="${1:-.}"
+    if [ ! -d "$project_dir" ]; then
+        echo "Error: Directory '$project_dir' not found."
+        return 1
+    fi
+
+    # Try common env names first
+    local activate_path=""
+    local candidates=(
+        "$project_dir/.venv/bin/activate"
+        "$project_dir/venv/bin/activate"
+        "$project_dir/env/bin/activate"
+        "$project_dir/.venv/Scripts/activate"
+        "$project_dir/venv/Scripts/activate"
+        "$project_dir/env/Scripts/activate"
+    )
+
+    for a in "${candidates[@]}"; do
+        [ -f "$a" ] && activate_path="$a" && break
+    done
+
+    # Fallback: search (skip heavy dirs)
+    if [ -z "$activate_path" ]; then
+        activate_path=$(find "$project_dir" \
+            -type d \( -name node_modules -o -name .git -o -name .direnv \) -prune -o \
+            -type f \( -path "*/bin/activate" -o -path "*/Scripts/activate" \) -print \
+            | head -n 1)
+    fi
+
+    # If still nothing, create a new .venv
+    if [ -z "$activate_path" ]; then
+        echo "No venv found in '$project_dir'. Creating .venv ..."
+        local py=""
+        for cmd in python3 /opt/homebrew/opt/python@3.13/libexec/bin/python3 python; do
+            if command -v "$cmd" >/dev/null 2>&1; then py="$cmd"; break; fi
+        done
+        if [ -z "$py" ]; then
+            echo "Error: No python interpreter found (looked for python3/python)."
+            return 1
+        fi
+        "$py" -m venv "$project_dir/.venv" || { echo "venv creation failed"; return 1; }
+        activate_path="$project_dir/.venv/bin/activate"
+    fi
+
+    echo "Activating: $activate_path"
+    # shellcheck disable=SC1090
+    source "$activate_path" || { echo "Failed to activate venv"; return 1; }
+
+    # Quality-of-life: upgrade pip and install requirements if present
+    if [ -f "$project_dir/requirements.txt" ]; then
+        echo "Installing dependencies from requirements.txt ..."
+        pip install --upgrade pip >/dev/null 2>&1
+        pip install -r "$project_dir/requirements.txt"
+    fi
+
+    # Show which Python got activated
+    echo "Python: $(python -V) @ $(python -c 'import sys,sysconfig;print(sys.prefix)')"
+}
+
+# Claude Code alias for skipping permissions
+alias cdsp='claude --dangerously-skip-permissions'
+
+# === END ZSH CONFIG ===
+
+# User local bin path
+export PATH="$HOME/.local/bin:$PATH"
+
+# Temporary directory
+export TMPDIR="$HOME/.tmp"

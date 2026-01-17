@@ -1,0 +1,38 @@
+# Sensitive files and directories
+env/
+*.env
+*.env.*
+.credentials.json
+*credentials*
+
+# Claude Code sensitive data
+.claude/.credentials.json
+.claude/history.jsonl
+
+# AWS credentials
+.aws/credentials
+
+# SSH keys
+.ssh/
+*.pem
+*.key
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Backup files
+*~
+*.bak
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+.tmp/
+
+# Archives
+*.zip
+*.tar.gz
+*.tgz

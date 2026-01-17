@@ -1,0 +1,28 @@
+{
+  // VSCodium/VS Code Settings
+  // Exported from Ubuntu VM on 2026-01-17
+  // Adapted for macOS
+  //
+  // Place at:
+  //   macOS: ~/Library/Application Support/VSCodium/User/settings.json
+  //   or for VS Code: ~/Library/Application Support/Code/User/settings.json
+
+  // Terminal configuration for macOS
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "terminal.integrated.profiles.osx": {
+    "zsh": {
+      "path": "/bin/zsh"
+    }
+  },
+
+  // ChatGPT extension setting
+  "chatgpt.openOnStartup": true,
+
+  // Workbench settings
+  "workbench.viewContainers.activitybar": {
+    "codexViewContainer": true
+  },
+
+  // Spell checker settings
+  "cSpell.languageSettings": []
+}

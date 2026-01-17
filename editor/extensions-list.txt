@@ -1,0 +1,42 @@
+# VSCodium/VS Code Extensions
+# Exported from Ubuntu VM on 2026-01-17
+#
+# Install all extensions with:
+#   cat extensions-list.txt | grep -v '^#' | xargs -L1 codium --install-extension
+# Or for VS Code:
+#   cat extensions-list.txt | grep -v '^#' | xargs -L1 code --install-extension
+
+# Claude Code integration
+anthropic.claude-code
+
+# Web development
+bradlc.vscode-tailwindcss
+esbenp.prettier-vscode
+dbaeumer.vscode-eslint
+stylelint.vscode-stylelint
+
+# Python development
+ms-python.python
+ms-python.debugpy
+charliermarsh.ruff
+ericsia.pythonsnippets3
+
+# Git integration
+eamodio.gitlens
+
+# Markdown
+davidanson.vscode-markdownlint
+shd101wyy.markdown-preview-enhanced
+
+# Testing
+hbenl.vscode-test-explorer
+ms-vscode.test-adapter-converter
+
+# Utilities
+christian-kohler.path-intellisense
+editorconfig.editorconfig
+redhat.vscode-yaml
+streetsidesoftware.code-spell-checker
+
+# AI assistants
+openai.chatgpt

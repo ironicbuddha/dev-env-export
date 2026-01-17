@@ -1,0 +1,48 @@
+# Git Configuration
+# Exported from Ubuntu VM on 2026-01-17
+# Adapted for macOS
+
+[user]
+  name = Carlo Kruger
+  email = ironicbuddha@gmail.com
+
+[core]
+  editor = subl -n -w
+  autocrlf = input
+  pager = less -FXR
+  # Path updated for macOS home directory
+  excludesfile = ~/.gitignore_global
+
+[color]
+  ui = auto
+
+[alias]
+  st = status
+  co = checkout
+  br = branch
+  ci = commit
+  cm = commit -m
+  lg = log --oneline --graph --decorate
+  last = log -1 HEAD
+
+[push]
+  default = simple
+
+[init]
+  defaultBranch = main
+
+[filter "lfs"]
+  process = git-lfs filter-process
+  required = true
+  clean = git-lfs clean -- %f
+  smudge = git-lfs smudge -- %f
+
+# GitHub credential helpers - uses gh CLI for authentication
+# Note: Run 'gh auth login' on new machine to authenticate
+[credential "https://github.com"]
+  helper =
+  helper = !/opt/homebrew/bin/gh auth git-credential
+
+[credential "https://gist.github.com"]
+  helper =
+  helper = !/opt/homebrew/bin/gh auth git-credential

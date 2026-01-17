@@ -1,0 +1,38 @@
+# Global Git Ignore
+# Exported from Ubuntu VM on 2026-01-17
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Thumbnails
+*.Trashes
+
+# Node.js
+node_modules/
+
+# Logs
+*.log
+
+# Environment files (should be project-specific)
+.env
+
+# IDE/Editor directories
+.vscode/
+.idea/
+
+# Python
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Byte-compiled / optimized files
+*.py[cod]
+*$py.class

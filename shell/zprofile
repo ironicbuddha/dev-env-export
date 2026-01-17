@@ -1,0 +1,20 @@
+# ~/.zprofile - Login shell configuration for macOS
+# Exported from Ubuntu ~/.profile on 2026-01-17
+# Adapted for macOS
+
+# Note: On macOS, the default shell is zsh and it reads ~/.zprofile for login shells
+# This file runs once at login, before ~/.zshrc
+
+# Set PATH to include user's private bin if it exists
+if [ -d "$HOME/bin" ] ; then
+    PATH="$HOME/bin:$PATH"
+fi
+
+# Set PATH to include user's private bin if it exists
+if [ -d "$HOME/.local/bin" ] ; then
+    PATH="$HOME/.local/bin:$PATH"
+fi
+
+# Note: The following line was removed as it's Linux-specific (snap/codium):
+# . "$HOME/snap/codium/496/.local/share/../bin/env"
+# VSCodium on macOS is installed via Homebrew and doesn't need this.

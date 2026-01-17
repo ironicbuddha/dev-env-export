@@ -1,0 +1,17 @@
+# AWS Configuration (profiles only - no credentials)
+# Exported from Ubuntu VM on 2026-01-17
+# Place at: ~/.aws/config
+#
+# IMPORTANT: You will need to run 'aws configure' to set up credentials
+# Or copy credentials from a secure source to ~/.aws/credentials
+
+[profile label-manager-setup]
+region = us-east-1
+output = json
+
+[default]
+region = af-south-1
+output = json
+
+[profile label-manager-deploy]
+region = us-east-1
