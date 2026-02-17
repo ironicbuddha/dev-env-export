@@ -4,6 +4,11 @@ env/
 *.env.*
 .credentials.json
 *credentials*
+secrets-export.txt
+keyrings/
+*.keyring
+*.keystore
+shadow-backup.txt
 
 # Claude Code sensitive data
 .claude/.credentials.json
