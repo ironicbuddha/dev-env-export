@@ -16,9 +16,24 @@ echo "Step 2: Installing Development CLI Tools"
 echo "========================================"
 echo ""
 
-# Ensure Homebrew is available
+# Ensure Homebrew is available (self-heal by running step 1 if needed)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! command -v brew &> /dev/null; then
-    echo "ERROR: Homebrew not found. Run 01-install-brew.sh first."
+    echo "Homebrew not found. Bootstrapping via 01-install-brew.sh..."
+    if [ -x "$SCRIPT_DIR/01-install-brew.sh" ]; then
+        "$SCRIPT_DIR/01-install-brew.sh"
+    else
+        bash "$SCRIPT_DIR/01-install-brew.sh"
+    fi
+
+    # Load Homebrew into current shell if installed by step 1
+    if [ -x "/opt/homebrew/bin/brew" ]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    fi
+fi
+
+if ! command -v brew &> /dev/null; then
+    echo "ERROR: Homebrew is still not available after bootstrap."
     exit 1
 fi
 
@@ -120,7 +135,7 @@ echo ""
 echo "Checking for Oh My Zsh..."
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
     echo "Installing Oh My Zsh..."
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+    RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 else
     echo "  [SKIP] Oh My Zsh already installed"
 fi

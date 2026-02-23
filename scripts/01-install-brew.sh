@@ -59,6 +59,29 @@ for tool in "${CORE_TOOLS[@]}"; do
     fi
 done
 
+# Set zsh as default shell
+echo ""
+echo "Configuring default shell..."
+TARGET_SHELL="/opt/homebrew/bin/zsh"
+if [ ! -x "$TARGET_SHELL" ]; then
+    TARGET_SHELL="$(command -v zsh)"
+fi
+
+if [ -n "$TARGET_SHELL" ] && [ "$SHELL" != "$TARGET_SHELL" ]; then
+    if grep -qx "$TARGET_SHELL" /etc/shells; then
+        if chsh -s "$TARGET_SHELL"; then
+            echo "  [OK] Default shell set to $TARGET_SHELL"
+        else
+            echo "  [WARN] Could not set default shell automatically. Run: chsh -s $TARGET_SHELL"
+        fi
+    else
+        echo "  [WARN] $TARGET_SHELL is not listed in /etc/shells."
+        echo "         Add it first, then run: chsh -s $TARGET_SHELL"
+    fi
+else
+    echo "  [SKIP] zsh is already the default shell"
+fi
+
 # Initialize Git LFS
 echo ""
 echo "Initializing Git LFS..."
