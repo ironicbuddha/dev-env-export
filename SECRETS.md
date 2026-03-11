@@ -65,7 +65,7 @@ Use the 1Password CLI where it improves repeatability:
 This repo includes:
 
 - `scripts/07-setup-1password.sh`
-- `scripts/09-op-inject-template.sh`
+- `scripts/08-op-inject-template.sh`
 - `onepassword/examples/project.env.tpl`
 
 ## Legacy Migration Material

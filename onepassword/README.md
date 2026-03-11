@@ -27,7 +27,7 @@ op run --env-file=onepassword/examples/project.env.tpl -- env | rg 'OPENAI|GITHU
 Render a local file from a template:
 
 ```bash
-./scripts/09-op-inject-template.sh \
+./scripts/08-op-inject-template.sh \
   --in-file onepassword/examples/project.env.tpl \
   --out-file .env
 ```

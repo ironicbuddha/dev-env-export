@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# 09-op-inject-template.sh - Render a Secret Template with 1Password CLI
+# 08-op-inject-template.sh - Render a Secret Template with 1Password CLI
 # =============================================================================
 # Renders a template file containing 1Password secret references into a local
 # output file using `op inject`.
@@ -28,14 +28,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         -h|--help)
             cat <<'EOF'
-Usage: ./scripts/09-op-inject-template.sh --in-file FILE --out-file FILE [--force]
+Usage: ./scripts/08-op-inject-template.sh --in-file FILE --out-file FILE [--force]
 
 Examples:
-  ./scripts/09-op-inject-template.sh \
+  ./scripts/08-op-inject-template.sh \
     --in-file onepassword/examples/project.env.tpl \
     --out-file .env
 
-  ./scripts/09-op-inject-template.sh \
+  ./scripts/08-op-inject-template.sh \
     --in-file config/app.yml.tpl \
     --out-file config/app.yml \
     --force
