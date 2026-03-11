@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# 08-setup-1password.sh - Verify 1Password App + CLI Setup
+# 07-setup-1password.sh - Verify 1Password App + CLI Setup
 # =============================================================================
 # Bootstrap helper for the current 1Password-backed secrets workflow.
 # =============================================================================

@@ -41,16 +41,9 @@ That means the repo should eventually cover:
 
 ## Transition State
 
-The repo is in a migration period.
-
-Older material still reflects:
-
-- Ubuntu VM inventories
-- merge documentation from VM1 and VM2
-
-Those files are useful as historical input, but they are not the desired end
-state. New work should treat them as source material to extract from, not as the
-authoritative design target.
+The repo has already been pulled away from the old Ubuntu export model. Some
+historical context remains in Git history, but the active tree is now aimed at
+a clean macOS/Parallels bootstrap workflow.
 
 ## What Needs To Be True Going Forward
 
@@ -69,7 +62,7 @@ authoritative design target.
 2. Modernize bootstrap scripts for current macOS usage.
 3. Add first-class support for Warp and Zed.
 4. Keep Codex and Claude setup central to the environment.
-5. Clean up inaccurate historical documentation as the new source of truth lands.
+5. Keep the repo clean, current, and easy to apply on a fresh machine.
 
 ## Near-Term Interpretation For Agents
 

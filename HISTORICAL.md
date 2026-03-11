@@ -20,6 +20,7 @@ Use them for reference only when you need to answer questions such as:
 - `MERGE-SUMMARY.md`
 - `FINAL-VERIFICATION.txt`
 - `SECRETS-WARNING.md`
+- `scripts/08-setup-1password.sh`
 - `scripts/07-import-secrets.sh`
 - `prompts/003-merge-vm-configs.md`
 - `prompts/004-capture-and-merge-vm2.md`

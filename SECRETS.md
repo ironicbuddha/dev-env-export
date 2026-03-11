@@ -1,6 +1,6 @@
 # Secrets Strategy
 
-## Current Policy
+## Policy
 
 1Password is the source of truth for secrets used with this development
 environment.
@@ -37,7 +37,7 @@ or per environment instead of scattering plaintext `.env` files across the repo.
 - Do not add new secret-export artifacts as part of the normal bootstrap flow.
 - If a bootstrap step needs a secret, the expected source is 1Password.
 
-## Current Workflow
+## Workflow
 
 On a fresh machine or Parallels VM:
 
@@ -64,19 +64,14 @@ Use the 1Password CLI where it improves repeatability:
 
 This repo includes:
 
-- `scripts/08-setup-1password.sh`
+- `scripts/07-setup-1password.sh`
 - `scripts/09-op-inject-template.sh`
 - `onepassword/examples/project.env.tpl`
 
 ## Legacy Migration Material
 
-This repo still contains legacy secret-migration artifacts from the old export
-workflow:
-
-- `scripts/07-import-secrets.sh`
-- `SECRETS-WARNING.md`
-
-Those are historical or one-off migration aids. They are not the preferred
+Older secret-migration artifacts were removed from the active tree and are now
+recoverable through Git history only. They are not part of the preferred
 workflow going forward.
 
 ## Future Option

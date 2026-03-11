@@ -2,7 +2,7 @@
 
 This directory documents how this repo expects 1Password CLI to be used.
 
-## Current Workflow
+## Workflow
 
 - keep secrets in 1Password
 - store project `.env` values as secret references or structured items

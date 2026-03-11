@@ -1,6 +1,6 @@
 # Dev Environment Bootstrap
 
-Bootstrap repository for Carlo's development environment on macOS.
+macOS bootstrap kit for Carlo's development environment.
 
 This project is meant to bring up a fresh machine or Parallels macOS VM with
 the core coding workflow already in place:
@@ -33,8 +33,8 @@ Use this repo to provision:
 - a fresh Parallels macOS VM
 - a disposable development VM that should still feel like the main workstation
 
-The target experience is a modern macOS setup centered on Zed, Warp, Codex, and
-Claude, with older Ubuntu-era material retained only as archive reference.
+The target experience is a modern macOS setup centered on Zed, Warp, Codex,
+Claude, and 1Password.
 
 ## What This Repo Owns
 
@@ -81,7 +81,7 @@ chmod +x scripts/*.sh
 ./scripts/04-install-pip-packages.sh
 ./scripts/05-setup-dotfiles.sh
 ./scripts/06-setup-claude.sh
-./scripts/08-setup-1password.sh
+./scripts/07-setup-1password.sh
 ```
 
 ### 3. Complete Manual Setup
@@ -95,8 +95,8 @@ codex login
 claude auth login
 ```
 
-Desktop apps such as Warp, Zed, Docker, Claude, and Codex may still require
-normal first-launch/login steps.
+Desktop apps such as 1Password, Warp, Zed, Docker, Claude, and Codex may still
+require normal first-launch/login steps.
 
 Before those auth steps, sign in to 1Password and use it as the source of truth
 for credentials, API keys, and project `.env` values.
@@ -108,7 +108,7 @@ Recommended follow-up:
 - In Warp, open `Dev Env Bootstrap` from Launch Configurations
 - In Claude, review plugins and enable only the ones you still use
 
-## Current Tooling Focus
+## Stack
 
 ### Core CLI
 
@@ -124,6 +124,7 @@ Recommended follow-up:
 
 ### Primary GUI Tools
 
+- 1Password
 - Warp
 - Zed
 - Claude desktop
@@ -137,7 +138,7 @@ Recommended follow-up:
 
 These can remain installed if useful, but they are not the primary workflow.
 
-## Historical Material
+## History
 
 Legacy Ubuntu VM inventories, merge reports, old prompts, and migration helper
 files were removed from the active tree to keep this repo focused. Start with

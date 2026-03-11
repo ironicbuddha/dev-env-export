@@ -13,7 +13,7 @@ historical reference material only. The current direction is:
 - Apple Silicon / Homebrew-first setup
 - Zed and Warp as primary editor + terminal
 - Codex and Claude desktop apps plus CLI workflows
-- reusable dotfiles, shell config, editor settings, and install scripts
+- reusable dotfiles, tracked app config, and bootstrap scripts
 
 ## Source Of Truth
 
@@ -45,9 +45,7 @@ the target state anymore.
 - AI tools: Codex CLI/app, Claude CLI/app
 - Supporting CLIs: GitHub CLI, AWS CLI, Node/npm, Python, Docker as needed
 
-Legacy Ubuntu-specific material can remain temporarily as archive reference, but
-new work should move the repo toward the current stack instead of deepening the
-old one.
+Legacy Ubuntu-specific material belongs in history, not in the active setup.
 
 ## Repo Areas
 
@@ -79,6 +77,7 @@ Agents working here should typically do one or more of the following:
 
 - modernize install scripts for current macOS behavior
 - add setup support for Zed and Warp
+- keep 1Password integration practical and explicit
 - keep Codex and Claude setup current
 - remove or downgrade stale references to Ubuntu where appropriate
 - improve bootstrap safety, backups, and rerun behavior
