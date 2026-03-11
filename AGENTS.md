@@ -59,6 +59,7 @@ Legacy Ubuntu-specific material belongs in history, not in the active setup.
 - `warp/`: tracked Warp launch configurations
 - `codex/`: tracked Codex CLI defaults
 - `onepassword/`: 1Password CLI usage docs and secret template examples
+- `AI-STACK.md`: current AI-tooling inventory and Git-tracking policy
 - `PERSONALITY.md`: default interaction style and mode switch rules
 - `HISTORICAL.md`: guide to removed legacy material recoverable from Git history
 
@@ -84,6 +85,8 @@ Agents working here should typically do one or more of the following:
 - add setup support for Zed and Warp
 - keep 1Password integration practical and explicit
 - keep Codex and Claude setup current
+- keep the AI tooling layer honest about current plugins, skills, agents, and
+  extensions
 - remove or downgrade stale references to Ubuntu where appropriate
 - improve bootstrap safety, backups, and rerun behavior
 - keep README-level setup instructions aligned with the actual repo contents

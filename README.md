@@ -24,6 +24,8 @@ active tree. Use [HISTORICAL.md](/Users/carlo/dev/dev-env-export/HISTORICAL.md)
 for a guide to what was removed and how to recover it from Git history.
 Use [SECRETS.md](/Users/carlo/dev/dev-env-export/SECRETS.md) for the current
 secret-management policy.
+Use [AI-STACK.md](/Users/carlo/dev/dev-env-export/AI-STACK.md) for the current
+AI-tooling inventory and tracking policy.
 
 ## Current Goal
 
@@ -57,6 +59,7 @@ Claude, and 1Password.
 | `warp/` | Warp launch configurations and related tracked files |
 | `codex/` | Codex CLI configuration tracked for bootstrap |
 | `onepassword/` | 1Password CLI usage docs and secret template examples |
+| `AI-STACK.md` | AI tooling inventory, drift notes, and tracking policy |
 
 ## Quick Start
 
@@ -107,6 +110,7 @@ Recommended follow-up:
 - In Zed, run `Cmd+Shift+P` and execute `cli: install`
 - In Warp, open `Dev Env Bootstrap` from Launch Configurations
 - In Claude, review plugins and enable only the ones you still use
+- Run `./scripts/09-inventory-ai-tooling.sh` to snapshot the local AI layer
 
 ## Stack
 
@@ -164,6 +168,8 @@ files were removed from the active tree to keep this repo focused. Start with
   export files.
 - Use `zed/`, `warp/`, and `codex/` only for portable config you intentionally
   want to recreate on new machines.
+- Use `AI-STACK.md` and `scripts/09-inventory-ai-tooling.sh` to audit plugin,
+  skill, extension, and agent drift before copying anything into Git.
 - See `SECRETS.md` for the current secrets workflow.
 - See `onepassword/README.md` for practical `op` usage in this repo.
 - Review scripts before running them on a new machine, especially while the

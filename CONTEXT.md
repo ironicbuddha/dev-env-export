@@ -37,6 +37,8 @@ That means the repo should eventually cover:
 - core CLI installation
 - shell and dotfile setup
 - Codex and Claude configuration
+- AI tooling inventory and drift control for plugins, skills, agents, and MCP
+  adjacent tooling
 - editor and terminal setup for Zed and Warp
 - documented 1Password-backed secret handling and post-install auth steps
 
