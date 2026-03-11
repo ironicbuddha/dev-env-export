@@ -59,7 +59,7 @@ old one.
 - `warp/`: tracked Warp launch configurations
 - `codex/`: tracked Codex CLI defaults
 - `onepassword/`: 1Password CLI usage docs and secret template examples
-- `mo/` and historical docs: background material, not the primary target state
+- `HISTORICAL.md`: guide to removed legacy material recoverable from Git history
 
 ## Working Rules
 

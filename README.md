@@ -19,10 +19,9 @@ For the current direction of the repo, start here:
 2. `AGENTS.md`
 3. current repository contents
 
-Historical inventory and merge documents are still present, but they describe
-where the repo came from, not the target state it should optimize for now.
-Use [HISTORICAL.md](/Users/carlo/dev/dev-env-export/HISTORICAL.md) as the index
-for those archive files.
+Older Ubuntu-era inventory and merge artifacts have been removed from the
+active tree. Use [HISTORICAL.md](/Users/carlo/dev/dev-env-export/HISTORICAL.md)
+for a guide to what was removed and how to recover it from Git history.
 Use [SECRETS.md](/Users/carlo/dev/dev-env-export/SECRETS.md) for the current
 secret-management policy.
 
@@ -58,7 +57,6 @@ Claude, with older Ubuntu-era material retained only as archive reference.
 | `warp/` | Warp launch configurations and related tracked files |
 | `codex/` | Codex CLI configuration tracked for bootstrap |
 | `onepassword/` | 1Password CLI usage docs and secret template examples |
-| `mo/` | notes and historical project material |
 
 ## Quick Start
 
@@ -141,16 +139,9 @@ These can remain installed if useful, but they are not the primary workflow.
 
 ## Historical Material
 
-The following files are retained as reference:
-
-- `INVENTORY.md`
-- `INVENTORY-VM2.md`
-- `MERGE-REPORT.md`
-- `MERGE-SUMMARY.md`
-- `FINAL-VERIFICATION.txt`
-
-Treat them as migration background, not as the active design spec. Start with
-`HISTORICAL.md` if you need that material.
+Legacy Ubuntu VM inventories, merge reports, old prompts, and migration helper
+files were removed from the active tree to keep this repo focused. Start with
+`HISTORICAL.md` if you need to recover any of that material from Git history.
 
 ## Security Notes
 

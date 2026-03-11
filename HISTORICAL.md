@@ -1,10 +1,10 @@
 # Historical Archive
 
-These files are retained as background material from the repo's earlier life as
-an Ubuntu VM export and merge project.
+This repo used to contain a larger set of Ubuntu VM inventory, merge, prompt,
+and migration artifacts from its earlier life as a VM export project.
 
-They are not the active source of truth for the current macOS/Parallels
-bootstrap workflow.
+Those files have been removed from the active tree so the repo stays focused on
+the current macOS/Parallels bootstrap workflow.
 
 Use them for reference only when you need to answer questions such as:
 
@@ -12,18 +12,30 @@ Use them for reference only when you need to answer questions such as:
 - how the first merged export was assembled
 - which older tools or settings may still need to be migrated or removed
 
-## Archive Files
+## Removed Legacy Files
 
 - `INVENTORY.md`
-  VM1 inventory from the earlier Ubuntu-based workflow.
 - `INVENTORY-VM2.md`
-  VM2 inventory from the earlier Ubuntu-based workflow.
 - `MERGE-REPORT.md`
-  Detailed comparison and merge analysis for the two Ubuntu VM exports.
 - `MERGE-SUMMARY.md`
-  High-level summary of the original VM merge work.
 - `FINAL-VERIFICATION.txt`
-  Verification snapshot for the original VM merge deliverable.
+- `SECRETS-WARNING.md`
+- `scripts/07-import-secrets.sh`
+- `prompts/003-merge-vm-configs.md`
+- `prompts/004-capture-and-merge-vm2.md`
+- `mo/001-inventory-dev-environment.md`
+- `mo/002-export-dev-environment.md`
+- `mo/ralph-wiggum.md`
+
+They remain recoverable through Git history.
+
+Useful commands:
+
+```bash
+git log --stat -- INVENTORY.md
+git show HEAD~1:INVENTORY.md
+git show <commit>:scripts/07-import-secrets.sh
+```
 
 ## Current Source Of Truth
 
@@ -36,6 +48,5 @@ For the repo's active direction, use:
 
 ## Maintenance Rule
 
-If a historical file disagrees with the current repo state, treat the
-historical file as an artifact to annotate or archive further, not as a reason
-to drag the repo back toward the old Ubuntu setup.
+If a legacy file disagrees with the current repo state, treat it as recoverable
+history, not as a reason to drag the repo back toward the old Ubuntu setup.
