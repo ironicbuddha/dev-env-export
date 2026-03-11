@@ -2,10 +2,10 @@
 # =============================================================================
 # 03-install-npm-globals.sh - Install Global npm Packages
 # =============================================================================
-# Exported from Ubuntu VM on 2026-01-17
-# Target: macOS with Apple Silicon (arm64)
+# Bootstrap script for current macOS workflow
+# Target: macOS with Homebrew
 #
-# This script installs global npm packages including Claude Code.
+# This script installs global npm packages for the current AI CLI workflow.
 # Safe to run multiple times (idempotent).
 # =============================================================================
 
@@ -53,12 +53,12 @@ echo "Installing global npm packages..."
 echo ""
 
 NPM_PACKAGES=(
-    corepack                    # Package manager manager (Both VMs)
-    @anthropic-ai/claude-code   # Claude Code CLI (Both VMs)
+    corepack                    # Package manager manager
+    @anthropic-ai/claude-code   # Claude Code CLI
+    @openai/codex              # Codex CLI
 )
 
 for package in "${NPM_PACKAGES[@]}"; do
-    package_name=$(echo "$package" | sed 's/@.*//' | sed 's/.*\///')
     if npm list -g "$package" &> /dev/null; then
         echo "  [SKIP] $package is already installed"
     else
@@ -81,8 +81,9 @@ echo "Installed packages:"
 npm list -g --depth=0 2>/dev/null || true
 echo ""
 echo "Claude Code version: $(claude --version 2>/dev/null || echo 'not in PATH yet')"
+echo "Codex version: $(codex --version 2>/dev/null || echo 'not in PATH yet')"
 echo ""
-echo "Note: If claude command not found, ensure ~/.npm-global/bin is in your PATH"
+echo "Note: If claude or codex is not found, ensure ~/.npm-global/bin is in your PATH"
 echo "      This is configured in the exported zshrc file."
 echo ""
 echo "Next: Run 04-install-pip-packages.sh"

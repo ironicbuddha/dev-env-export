@@ -2,8 +2,8 @@
 # =============================================================================
 # 02-install-cli-tools.sh - Install Development CLI Tools
 # =============================================================================
-# Exported from Ubuntu VM on 2026-01-17
-# Target: macOS with Apple Silicon (arm64)
+# Bootstrap script for current macOS workflow
+# Target: macOS with Homebrew
 #
 # This script installs development tools, cloud CLIs, and applications.
 # Safe to run multiple times (idempotent).
@@ -90,12 +90,20 @@ echo "Installing applications via Homebrew Cask..."
 echo ""
 
 CASK_APPS=(
+    # Current primary tools
+    1password     # 1Password desktop app
+    1password-cli # 1Password CLI (op)
+    warp           # Warp terminal
+    zed            # Zed editor
+
+    # Supporting tools
     docker         # Docker Desktop for Mac (VM1)
-    vscodium       # VSCodium (open-source VS Code) (Both VMs)
     chromium       # Chromium browser (Both VMs)
     firefox        # Firefox browser (Both VMs)
-    sublime-text   # Sublime Text editor (used in gitconfig) (VM1)
-    gitkraken      # GitKraken Git GUI client (VM2)
+
+    # Optional supporting tools
+    sublime-text   # Legacy editor currently referenced by gitconfig
+    gitkraken      # Legacy Git GUI from earlier VM export
 )
 
 for app in "${CASK_APPS[@]}"; do
@@ -152,6 +160,7 @@ echo "  - Python: $(python3 --version 2>/dev/null || echo 'not in PATH yet')"
 echo "  - AWS CLI: $(aws --version 2>/dev/null | cut -d' ' -f1 || echo 'not in PATH yet')"
 echo "  - Terraform: $(terraform version 2>/dev/null | head -1 || echo 'not in PATH yet')"
 echo "  - GitHub CLI: $(gh --version 2>/dev/null | head -1 || echo 'not in PATH yet')"
+echo "  - 1Password CLI: $(op --version 2>/dev/null || echo 'not in PATH yet')"
 echo ""
 echo "Note: You may need to restart your terminal for all tools to be available."
 echo ""

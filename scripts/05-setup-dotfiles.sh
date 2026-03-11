@@ -1,9 +1,9 @@
 #!/bin/bash
 # =============================================================================
-# 05-setup-dotfiles.sh - Copy Dotfiles to Home Directory
+# 05-setup-dotfiles.sh - Copy User Configuration Files
 # =============================================================================
-# Exported from Ubuntu VM on 2026-01-17
-# Target: macOS with Apple Silicon (arm64)
+# Bootstrap script for current macOS workflow
+# Target: macOS with Homebrew
 #
 # This script copies configuration files to their proper locations.
 # Backs up existing files before overwriting.
@@ -24,19 +24,33 @@ EXPORT_DIR="$(dirname "$SCRIPT_DIR")"
 # Backup directory
 BACKUP_DIR="$HOME/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)"
 
+# Turn a destination path into a stable backup path under BACKUP_DIR.
+backup_target_for() {
+    local dest="$1"
+    local relative_path="${dest#"$HOME"/}"
+
+    if [ "$relative_path" = "$dest" ]; then
+        relative_path="$(basename "$dest")"
+    fi
+
+    printf "%s/%s" "$BACKUP_DIR" "$relative_path"
+}
+
 # Function to copy file with backup
 copy_with_backup() {
     local src="$1"
     local dest="$2"
     local dest_dir="$(dirname "$dest")"
+    local backup_target
 
     # Create destination directory if needed
     mkdir -p "$dest_dir"
 
     # Backup existing file if it exists
     if [ -f "$dest" ]; then
-        mkdir -p "$BACKUP_DIR"
-        cp "$dest" "$BACKUP_DIR/$(basename "$dest")"
+        backup_target="$(backup_target_for "$dest")"
+        mkdir -p "$(dirname "$backup_target")"
+        cp "$dest" "$backup_target"
         echo "  [BACKUP] Backed up existing $dest"
     fi
 
@@ -99,6 +113,54 @@ if [ -f "$EXPORT_DIR/dotfiles/gh-config.yml" ]; then
 fi
 
 # -----------------------------------------------------------------------------
+# Codex Configuration
+# -----------------------------------------------------------------------------
+echo ""
+echo "Setting up Codex configuration..."
+
+CODEX_CONFIG_DIR="$HOME/.codex"
+mkdir -p "$CODEX_CONFIG_DIR"
+
+if [ -f "$EXPORT_DIR/codex/config.toml" ]; then
+    copy_with_backup "$EXPORT_DIR/codex/config.toml" "$CODEX_CONFIG_DIR/config.toml"
+fi
+
+# -----------------------------------------------------------------------------
+# Zed Configuration
+# -----------------------------------------------------------------------------
+echo ""
+echo "Setting up Zed configuration..."
+
+ZED_CONFIG_DIR="$HOME/Library/Application Support/Zed"
+mkdir -p "$ZED_CONFIG_DIR"
+
+if [ -f "$EXPORT_DIR/zed/settings.json" ]; then
+    copy_with_backup "$EXPORT_DIR/zed/settings.json" "$ZED_CONFIG_DIR/settings.json"
+fi
+
+if [ -f "$EXPORT_DIR/zed/keymap.json" ]; then
+    copy_with_backup "$EXPORT_DIR/zed/keymap.json" "$ZED_CONFIG_DIR/keymap.json"
+fi
+
+# -----------------------------------------------------------------------------
+# Warp Configuration
+# -----------------------------------------------------------------------------
+echo ""
+echo "Setting up Warp configuration..."
+
+WARP_CONFIG_DIR="$HOME/.warp"
+WARP_LAUNCH_DIR="$WARP_CONFIG_DIR/launch_configurations"
+mkdir -p "$WARP_LAUNCH_DIR"
+
+if [ -d "$EXPORT_DIR/warp/launch_configurations" ]; then
+    for launch_config in "$EXPORT_DIR/warp/launch_configurations"/*.yaml "$EXPORT_DIR/warp/launch_configurations"/*.yml; do
+        if [ -f "$launch_config" ]; then
+            copy_with_backup "$launch_config" "$WARP_LAUNCH_DIR/$(basename "$launch_config")"
+        fi
+    done
+fi
+
+# -----------------------------------------------------------------------------
 # Create necessary directories
 # -----------------------------------------------------------------------------
 echo ""
@@ -132,8 +194,8 @@ echo "  - ~/.gitconfig (Git configuration)"
 echo "  - ~/.gitignore_global (Global git ignore)"
 echo "  - ~/.aws/config (AWS profiles)"
 echo "  - ~/.config/gh/config.yml (GitHub CLI config)"
-echo ""
-echo "IMPORTANT: Review ~/.zshrc for the OPENAI_API_KEY"
-echo "           You should rotate this key after migration!"
+echo "  - ~/.codex/config.toml (Codex config, if tracked in repo)"
+echo "  - ~/Library/Application Support/Zed/* (if tracked in repo)"
+echo "  - ~/.warp/launch_configurations/* (if tracked in repo)"
 echo ""
 echo "Next: Run 06-setup-claude.sh"

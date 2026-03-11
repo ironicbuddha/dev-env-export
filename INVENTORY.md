@@ -1,5 +1,9 @@
 # Dev Environment Inventory - VM1
 
+> Archive note: This file describes an older Ubuntu VM inventory and is kept for
+> historical reference only. For the current repo direction, start with
+> `CONTEXT.md`, `AGENTS.md`, and `README.md`.
+
 **Generated:** 2026-01-17
 **Source:** Ubuntu 25.10 VM (aarch64, Kernel 6.17.0-8-generic)
 **Target:** MacOS VM with Homebrew

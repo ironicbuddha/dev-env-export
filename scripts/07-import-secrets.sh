@@ -2,6 +2,9 @@
 # =============================================================================
 # 07-import-secrets.sh - Import Secrets from secrets-export.txt
 # =============================================================================
+# Legacy migration helper. The preferred workflow is to keep secrets in
+# 1Password and retrieve them from there during machine setup.
+#
 # Safely imports selected secrets into the current user account:
 # - ~/.aws/credentials
 # - ~/.ssh/id_ed25519 (+ derived public key)
@@ -34,6 +37,10 @@ while [[ $# -gt 0 ]]; do
         -h|--help)
             cat <<'EOF'
 Usage: ./scripts/07-import-secrets.sh [options]
+
+Legacy note:
+  This script exists for one-off migration from plaintext secret exports.
+  The preferred workflow is now 1Password-backed secret management.
 
 Options:
   --source FILE      Path to secrets export file (default: secrets-export.txt)
@@ -224,4 +231,3 @@ log "Next suggested checks:"
 log "  - aws sts get-caller-identity"
 log "  - ssh-keygen -lf ~/.ssh/id_ed25519.pub"
 log "  - claude auth login"
-

@@ -1,0 +1,88 @@
+# CONTEXT.md
+
+## Project Snapshot
+
+This repository captures the baseline configuration for Carlo's development
+environment so a new machine or dev VM can be brought online quickly.
+
+The project started as an export/merge of Ubuntu VM environments, but the live
+workflow has changed. The current target is a macOS development environment,
+typically running inside Parallels, with modern coding tools configured from the
+start.
+
+## Current Reality
+
+- Primary virtualization path: Parallels
+- Primary guest OS for this repo: macOS
+- Preferred terminal: Warp
+- Preferred editor: Zed
+- Preferred secret store: 1Password
+- AI coding tools in active use:
+  - Codex desktop app / CLI
+  - Claude desktop app / CLI
+- Shell baseline: `zsh`
+- Package management baseline: Homebrew
+
+## Repository Goal
+
+Turn this repo into a reliable bootstrap package for:
+
+- a fresh macOS laptop
+- a fresh Parallels macOS VM
+- a disposable dev VM that should still feel like Carlo's real workstation
+
+That means the repo should eventually cover:
+
+- core CLI installation
+- shell and dotfile setup
+- Codex and Claude configuration
+- editor and terminal setup for Zed and Warp
+- documented 1Password-backed secret handling and post-install auth steps
+
+## Transition State
+
+The repo is in a migration period.
+
+Older material still reflects:
+
+- Ubuntu VM inventories
+- merge documentation from VM1 and VM2
+
+Those files are useful as historical input, but they are not the desired end
+state. New work should treat them as source material to extract from, not as the
+authoritative design target.
+
+## What Needs To Be True Going Forward
+
+- The repo should describe the machine Carlo uses now, not the machine Carlo
+  used several months ago.
+- Setup instructions should match files that actually exist in the repo.
+- Scripts should be safe to rerun and explicit about destructive behavior.
+- Machine-specific secrets should stay outside versioned config.
+- 1Password should be treated as the canonical home for `.env` values, API
+  keys, AWS credentials, GitHub credentials, and similar secrets.
+- Legacy tooling should be clearly marked as legacy.
+
+## Current Priority Areas
+
+1. Establish top-level project guidance and current context.
+2. Modernize bootstrap scripts for current macOS usage.
+3. Add first-class support for Warp and Zed.
+4. Keep Codex and Claude setup central to the environment.
+5. Clean up inaccurate historical documentation as the new source of truth lands.
+
+## Near-Term Interpretation For Agents
+
+If an agent is deciding how to frame a change, assume:
+
+- macOS is the target unless explicitly stated otherwise
+- Parallels VMs matter as much as physical machines
+- Zed/Warp are the preferred local editor and terminal defaults
+- Codex and Claude are primary tools, not optional extras
+- older Ubuntu merge docs are reference material only
+
+## Success Condition
+
+This repo is successful when Carlo can use it to provision a new macOS machine
+or VM and quickly end up with a familiar, AI-assisted coding environment without
+having to rediscover setup decisions by hand.

@@ -1,6 +1,9 @@
 ================================================================================
 VM1 + VM2 MERGE - FINAL VERIFICATION
 ================================================================================
+ARCHIVE NOTE: This file verifies the original Ubuntu VM merge deliverable.
+It is historical reference material, not the current source of truth.
+
 Generated: 2026-01-17
 Status: COMPLETE ✅
 

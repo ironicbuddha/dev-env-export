@@ -2,8 +2,8 @@
 # =============================================================================
 # 01-install-brew.sh - Install Homebrew and Core CLI Tools
 # =============================================================================
-# Exported from Ubuntu VM on 2026-01-17
-# Target: macOS with Apple Silicon (arm64)
+# Bootstrap script for current macOS workflow
+# Target: macOS with Homebrew
 #
 # This script installs Homebrew and essential CLI tools needed for development.
 # Safe to run multiple times (idempotent).
@@ -24,13 +24,28 @@ fi
 
 # Install Homebrew if not present
 if ! command -v brew &> /dev/null; then
+    BREW_BIN=""
+
     echo "Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-    # Add Homebrew to PATH for Apple Silicon Macs
+    if [ -x "/opt/homebrew/bin/brew" ]; then
+        BREW_BIN="/opt/homebrew/bin/brew"
+    elif [ -x "/usr/local/bin/brew" ]; then
+        BREW_BIN="/usr/local/bin/brew"
+    fi
+
+    if [ -z "$BREW_BIN" ]; then
+        echo "ERROR: Homebrew installation completed but brew was not found."
+        exit 1
+    fi
+
+    # Add Homebrew to PATH for future login shells
     echo "Adding Homebrew to PATH..."
-    echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
-    eval "$(/opt/homebrew/bin/brew shellenv)"
+    if ! grep -Fq "brew shellenv" "$HOME/.zprofile" 2>/dev/null; then
+        echo "eval \"\$($BREW_BIN shellenv)\"" >> "$HOME/.zprofile"
+    fi
+    eval "$("$BREW_BIN" shellenv)"
 else
     echo "Homebrew is already installed."
     brew update
@@ -62,7 +77,7 @@ done
 # Set zsh as default shell
 echo ""
 echo "Configuring default shell..."
-TARGET_SHELL="/opt/homebrew/bin/zsh"
+TARGET_SHELL="$(brew --prefix)/bin/zsh"
 if [ ! -x "$TARGET_SHELL" ]; then
     TARGET_SHELL="$(command -v zsh)"
 fi

@@ -2,11 +2,11 @@
 # =============================================================================
 # 06-setup-claude.sh - Set Up Claude Code Configuration
 # =============================================================================
-# Exported from Ubuntu VM on 2026-01-17
-# Target: macOS with Apple Silicon (arm64)
+# Bootstrap script for current macOS workflow
+# Target: macOS with Homebrew
 #
 # This script sets up Claude Code configuration files and custom commands.
-# Safe to run multiple times (idempotent).
+# It preserves previous files by backing them up before overwriting.
 # =============================================================================
 
 set -e  # Exit on any error
@@ -21,10 +21,46 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXPORT_DIR="$(dirname "$SCRIPT_DIR")"
 CLAUDE_EXPORT="$EXPORT_DIR/claude"
 CLAUDE_HOME="$HOME/.claude"
+BACKUP_DIR="$HOME/.claude-backup-$(date +%Y%m%d-%H%M%S)"
 
 echo "Source: $CLAUDE_EXPORT"
 echo "Target: $CLAUDE_HOME"
 echo ""
+
+backup_target_for() {
+    local dest="$1"
+    local relative_path="${dest#"$HOME"/}"
+
+    if [ "$relative_path" = "$dest" ]; then
+        relative_path="$(basename "$dest")"
+    fi
+
+    printf "%s/%s" "$BACKUP_DIR" "$relative_path"
+}
+
+copy_with_backup() {
+    local src="$1"
+    local dest="$2"
+    local backup_target
+    local dest_dir="$(dirname "$dest")"
+
+    mkdir -p "$dest_dir"
+
+    if [ -f "$dest" ] && ! cmp -s "$src" "$dest"; then
+        backup_target="$(backup_target_for "$dest")"
+        mkdir -p "$(dirname "$backup_target")"
+        cp "$dest" "$backup_target"
+        echo "  [BACKUP] $dest"
+    fi
+
+    if [ -f "$dest" ] && cmp -s "$src" "$dest"; then
+        echo "  [SKIP] $(basename "$dest") is unchanged"
+        return
+    fi
+
+    cp "$src" "$dest"
+    echo "  [COPY] $(basename "$dest")"
+}
 
 # -----------------------------------------------------------------------------
 # Create Claude Code directories
@@ -46,13 +82,11 @@ echo ""
 echo "Copying Claude Code settings..."
 
 if [ -f "$CLAUDE_EXPORT/settings/settings.json" ]; then
-    cp "$CLAUDE_EXPORT/settings/settings.json" "$CLAUDE_HOME/settings.json"
-    echo "  [COPY] settings.json"
+    copy_with_backup "$CLAUDE_EXPORT/settings/settings.json" "$CLAUDE_HOME/settings.json"
 fi
 
 if [ -f "$CLAUDE_EXPORT/settings/settings.local.json" ]; then
-    cp "$CLAUDE_EXPORT/settings/settings.local.json" "$CLAUDE_HOME/settings.local.json"
-    echo "  [COPY] settings.local.json"
+    copy_with_backup "$CLAUDE_EXPORT/settings/settings.local.json" "$CLAUDE_HOME/settings.local.json"
 fi
 
 # -----------------------------------------------------------------------------
@@ -62,9 +96,9 @@ echo ""
 echo "Copying statusline script..."
 
 if [ -f "$CLAUDE_EXPORT/statusline-command.sh" ]; then
-    cp "$CLAUDE_EXPORT/statusline-command.sh" "$CLAUDE_HOME/statusline-command.sh"
+    copy_with_backup "$CLAUDE_EXPORT/statusline-command.sh" "$CLAUDE_HOME/statusline-command.sh"
     chmod +x "$CLAUDE_HOME/statusline-command.sh"
-    echo "  [COPY] statusline-command.sh (made executable)"
+    echo "  [UPDATE] statusline-command.sh permissions"
 fi
 
 # -----------------------------------------------------------------------------
@@ -78,8 +112,7 @@ echo "  (Merged from both VMs: 24 main commands + 12 consider commands)"
 if [ -d "$CLAUDE_EXPORT/commands" ]; then
     for cmd in "$CLAUDE_EXPORT/commands"/*.md; do
         if [ -f "$cmd" ]; then
-            cp "$cmd" "$CLAUDE_HOME/commands/"
-            echo "  [COPY] $(basename "$cmd")"
+            copy_with_backup "$cmd" "$CLAUDE_HOME/commands/$(basename "$cmd")"
         fi
     done
 fi
@@ -88,8 +121,7 @@ fi
 if [ -d "$CLAUDE_EXPORT/commands/consider" ]; then
     for cmd in "$CLAUDE_EXPORT/commands/consider"/*.md; do
         if [ -f "$cmd" ]; then
-            cp "$cmd" "$CLAUDE_HOME/commands/consider/"
-            echo "  [COPY] consider/$(basename "$cmd")"
+            copy_with_backup "$cmd" "$CLAUDE_HOME/commands/consider/$(basename "$cmd")"
         fi
     done
 fi
@@ -118,6 +150,10 @@ echo "========================================"
 echo "Step 6 Complete: Claude Code configured"
 echo "========================================"
 echo ""
+if [ -d "$BACKUP_DIR" ]; then
+    echo "Backups: $BACKUP_DIR"
+    echo ""
+fi
 echo "Custom commands installed:"
 ls -1 "$CLAUDE_HOME/commands/" 2>/dev/null | sed 's/^/  - /' || echo "  (none)"
 echo ""
@@ -128,22 +164,8 @@ echo "   claude auth login"
 echo ""
 echo "2. Install plugins (run inside Claude Code):"
 echo "   /plugins"
-echo "   Then enable the plugins listed in INVENTORY.md"
+echo "   No plugins are enabled by default in the tracked settings."
+echo "   Add only the plugins you actually use."
 echo ""
 echo "3. Verify statusline works:"
 echo "   The statusline script requires 'jq' (should be installed)"
-echo ""
-echo "Enabled plugins from original config:"
-echo "  - taches-cc-resources"
-echo "  - frontend-design"
-echo "  - github"
-echo "  - feature-dev"
-echo "  - context7"
-echo "  - code-review"
-echo "  - typescript-lsp"
-echo "  - security-guidance"
-echo "  - playwright"
-echo "  - pyright-lsp"
-echo "  - vercel"
-echo "  - code-simplifier"
-echo "  - ralph-loop"

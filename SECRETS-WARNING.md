@@ -1,5 +1,8 @@
 # SECRETS WARNING
 
+> Archive note: This file reflects the older export-based secret migration
+> workflow. For the current policy, use `SECRETS.md`.
+
 ## THIS EXPORT CONTAINS SENSITIVE INFORMATION
 
 This export was created with the understanding that sensitive files would be included. Review ALL files carefully before using on the new machine.

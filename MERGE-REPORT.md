@@ -1,5 +1,8 @@
 # VM1 + VM2 Configuration Merge Report
 
+> Archive note: This report documents the original Ubuntu VM merge work. It is
+> no longer the active design target for this repository.
+
 **Generated:** 2026-01-17
 **Purpose:** Merge development environment configurations from two machines
 

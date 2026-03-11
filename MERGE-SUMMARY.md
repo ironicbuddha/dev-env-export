@@ -1,5 +1,8 @@
 # VM1 + VM2 Merge Summary
 
+> Archive note: This summary describes the original Ubuntu VM merge milestone.
+> It is retained as historical context only.
+
 **Date:** 2026-01-17
 **Task:** Capture VM2 configuration and intelligently merge with VM1
 

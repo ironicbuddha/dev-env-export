@@ -1,5 +1,9 @@
 # Dev Environment Inventory - VM2
 
+> Archive note: This file describes an older Ubuntu VM inventory and is kept for
+> historical reference only. For the current repo direction, start with
+> `CONTEXT.md`, `AGENTS.md`, and `README.md`.
+
 **Generated:** 2026-01-17
 **Source:** Ubuntu 25.04 (Plucky Puffin) - aarch64, Kernel 6.14.0-36-generic
 **Machine:** This Machine (VM2)
