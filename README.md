@@ -130,6 +130,15 @@ Recommended follow-up:
 - Claude desktop
 - Codex desktop
 
+### Quality-Of-Life Apps
+
+- Raycast
+- BetterDisplay
+- Hidden Bar
+- Hammerspoon
+- GitHub Desktop
+- Obsidian
+
 ### Secondary Or Legacy GUI Tools
 
 - GitKraken

@@ -96,6 +96,14 @@ CASK_APPS=(
     warp           # Warp terminal
     zed            # Zed editor
 
+    # Quality-of-life mac utilities
+    raycast        # Launcher, snippets, clipboard, shortcuts
+    betterdisplay  # Display control and virtual display management
+    hiddenbar      # Menu bar cleanup
+    hammerspoon    # Keyboard automation and window scripting
+    github         # GitHub Desktop
+    obsidian       # Notes and local knowledge base
+
     # Supporting tools
     docker         # Docker Desktop for Mac (VM1)
     chromium       # Chromium browser (Both VMs)
@@ -161,6 +169,12 @@ echo "  - AWS CLI: $(aws --version 2>/dev/null | cut -d' ' -f1 || echo 'not in P
 echo "  - Terraform: $(terraform version 2>/dev/null | head -1 || echo 'not in PATH yet')"
 echo "  - GitHub CLI: $(gh --version 2>/dev/null | head -1 || echo 'not in PATH yet')"
 echo "  - 1Password CLI: $(op --version 2>/dev/null || echo 'not in PATH yet')"
+echo "  - Raycast: $(brew list --cask raycast >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
+echo "  - BetterDisplay: $(brew list --cask betterdisplay >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
+echo "  - Hidden Bar: $(brew list --cask hiddenbar >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
+echo "  - Hammerspoon: $(brew list --cask hammerspoon >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
+echo "  - GitHub Desktop: $(brew list --cask github >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
+echo "  - Obsidian: $(brew list --cask obsidian >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
 echo ""
 echo "Note: You may need to restart your terminal for all tools to be available."
 echo ""
