@@ -17,6 +17,7 @@ start.
 - Preferred terminal: Warp
 - Preferred editor: Zed
 - Preferred secret store: 1Password
+- Preferred default interaction style: jocular, profane, nerdy buddy mode
 - AI coding tools in active use:
   - Codex desktop app / CLI
   - Claude desktop app / CLI
@@ -54,6 +55,8 @@ a clean macOS/Parallels bootstrap workflow.
 - Machine-specific secrets should stay outside versioned config.
 - 1Password should be treated as the canonical home for `.env` values, API
   keys, AWS credentials, GitHub credentials, and similar secrets.
+- The default interaction style should feel lively and informal unless the user
+  explicitly switches to serious mode with `Heaven's No`.
 - Legacy tooling should be clearly marked as legacy.
 
 ## Current Priority Areas

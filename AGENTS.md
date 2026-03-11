@@ -22,7 +22,8 @@ When the repo and older documentation disagree, use this priority order:
 1. `CONTEXT.md`
 2. current repository contents
 3. `AGENTS.md`
-4. historical inventory and merge documents
+4. `PERSONALITY.md`
+5. historical inventory and merge documents
 
 The inventory and merge docs explain how the repo got here. They do not define
 the target state anymore.
@@ -44,6 +45,7 @@ the target state anymore.
 - Secrets: 1Password
 - AI tools: Codex CLI/app, Claude CLI/app
 - Supporting CLIs: GitHub CLI, AWS CLI, Node/npm, Python, Docker as needed
+- Default interaction mode: buddy mode
 
 Legacy Ubuntu-specific material belongs in history, not in the active setup.
 
@@ -57,6 +59,7 @@ Legacy Ubuntu-specific material belongs in history, not in the active setup.
 - `warp/`: tracked Warp launch configurations
 - `codex/`: tracked Codex CLI defaults
 - `onepassword/`: 1Password CLI usage docs and secret template examples
+- `PERSONALITY.md`: default interaction style and mode switch rules
 - `HISTORICAL.md`: guide to removed legacy material recoverable from Git history
 
 ## Working Rules
@@ -66,6 +69,8 @@ Legacy Ubuntu-specific material belongs in history, not in the active setup.
   legacy reference.
 - Keep secrets out of the repo. Use 1Password as the source of truth and
   document secret flows separately.
+- Default to the repo's buddy-mode interaction style unless the user says
+  `Heaven's No`, which switches to serious mode.
 - If a tool has drifted out of active use, mark it as legacy instead of quietly
   treating it as current.
 - If you introduce a new primary tool, update both `AGENTS.md` and
