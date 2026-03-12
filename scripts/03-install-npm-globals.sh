@@ -100,6 +100,7 @@ NPM_PACKAGES=(
     corepack                    # Package manager manager
     @anthropic-ai/claude-code   # Claude Code CLI
     @openai/codex              # Codex CLI
+    vercel                     # Vercel CLI
 )
 
 for package in "${NPM_PACKAGES[@]}"; do
@@ -126,6 +127,7 @@ npm list -g --depth=0 2>/dev/null || true
 echo ""
 echo "Claude Code version: $(claude --version 2>/dev/null || echo 'not in PATH yet')"
 echo "Codex version: $(codex --version 2>/dev/null || echo 'not in PATH yet')"
+echo "Vercel version: $(vercel --version 2>/dev/null | head -1 || echo 'not in PATH yet')"
 echo ""
 echo "Note: These CLIs are installed under the active nvm-managed Node version."
 echo "      If they are not found in a new shell, make sure nvm loads correctly."

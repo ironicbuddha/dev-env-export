@@ -23,6 +23,11 @@ start.
   - Claude desktop app / CLI
 - Shell baseline: `zsh`
 - Package management baseline: Homebrew
+- Primary dev languages: TypeScript and Python
+- Primary frontend stack: Next.js, Vite, Tailwind CSS, shadcn/ui
+- Primary backend stack: Django and Flask
+- Primary cloud and hosting targets: AWS and Vercel
+- Supporting package tools expected to matter: `uv`, `bun`, and `vercel`
 
 ## Repository Goal
 
@@ -78,6 +83,8 @@ If an agent is deciding how to frame a change, assume:
 - Zed/Warp are the preferred local editor and terminal defaults
 - Codex and Claude are primary tools, not optional extras
 - older Ubuntu merge docs are reference material only
+- the target dev stack is TypeScript and Python with Next.js, Vite, Tailwind,
+  shadcn/ui, Django, Flask, AWS, and Vercel
 
 ## Success Condition
 

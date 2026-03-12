@@ -45,6 +45,8 @@ the target state anymore.
 - Secrets: 1Password
 - AI tools: Codex CLI/app, Claude CLI/app
 - Supporting CLIs: GitHub CLI, AWS CLI, Node/npm, Python, Docker as needed
+- Primary dev stack: TypeScript, Python, Next.js, Vite, Tailwind CSS,
+  shadcn/ui, Django, Flask, AWS, Vercel
 - Default interaction mode: buddy mode
 
 Legacy Ubuntu-specific material belongs in history, not in the active setup.
@@ -59,6 +61,7 @@ Legacy Ubuntu-specific material belongs in history, not in the active setup.
 - `warp/`: tracked Warp launch configurations
 - `codex/`: tracked Codex CLI defaults
 - `onepassword/`: 1Password CLI usage docs and secret template examples
+- `DEV-STACK.md`: current language, framework, and hosting targets
 - `AI-STACK.md`: current AI-tooling inventory and Git-tracking policy
 - `PERSONALITY.md`: default interaction style and mode switch rules
 - `HISTORICAL.md`: guide to removed legacy material recoverable from Git history

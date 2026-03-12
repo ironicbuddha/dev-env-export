@@ -11,7 +11,7 @@ workflow also depends on:
 - Codex CLI and desktop app
 - Claude Code CLI and desktop app
 - Zed agent settings and external agents
-- optional AI-adjacent tooling such as `opencode`
+- optional GSD runtimes such as `opencode`
 - plugins, skills, hooks, commands, and MCP-aware integrations
 
 That layer drifts faster than dotfiles do. This file is meant to stop the repo
@@ -47,6 +47,7 @@ Observed on this machine on March 12, 2026.
   - `claude/settings/settings.local.json`
   - `claude/statusline-command.sh`
   - `claude/commands/`
+  - `claude/PLUGIN-MANIFEST.md`
 - Current local footprint:
   - 76 command files
   - 3 hook files
@@ -67,6 +68,9 @@ Observed on this machine on March 12, 2026.
   - `taches-cc-resources@taches-cc-resources`
   - `typescript-lsp@claude-plugins-official`
   - `vercel@claude-plugins-official`
+- Curated repo policy:
+  - tracked settings still enable no plugins by default
+  - plugin choices should follow `claude/PLUGIN-MANIFEST.md`
 
 ### Zed
 
@@ -106,13 +110,23 @@ Observed on this machine on March 12, 2026.
   - GSD agent definitions
   - hooks and statusline helpers
   - permission config allowing access to its own GSD bundle
-- This repo does not currently track `opencode`, but it is clearly part of the
-  broader local AI workflow.
+- Treat `opencode` as an optional runtime for
+  `gsd-build/get-shit-done`, not as a required base-machine tool.
+- This repo does not currently track `opencode`, but it is a legitimate
+  candidate for optional GSD workflow support.
+
+### GSD Workflow Position
+
+- `get-shit-done` is compatible with multiple runtimes, including Claude,
+  Codex, and OpenCode.
+- For this repo, Claude and Codex remain the primary AI runtimes.
+- OpenCode should be treated as optional experimentation or future GSD support,
+  not as a required baseline dependency.
 
 ### Gaps On This Machine
 
-The repo already assumes some tools that are not currently available in `PATH`
-on this machine:
+The inventory found some tools missing in `PATH` on this machine. Those gaps
+should be interpreted deliberately:
 
 - `op`
 - `warp`
@@ -122,8 +136,18 @@ on this machine:
 - `vercel`
 - `docker`
 
-That does not necessarily mean the repo is wrong. It does mean machine state
-has drifted and should be checked after the next clean bootstrap run.
+Repo stance:
+
+- `op`, `warp`, and `docker` are already first-class bootstrap targets
+- `uv` and `bun` should be first-class bootstrap targets because the dev stack
+  is TypeScript and Python heavy
+- `vercel` should be first-class bootstrap support because Vercel is part of
+  the current hosting workflow
+- `playwright` should be treated as a project-local tool by default, typically
+  invoked with `npx playwright`, not as a mandatory global install
+
+So the right interpretation is not "these gaps are fine." It is "the bootstrap
+and docs need to account for each one on purpose."
 
 ## What To Track In Git
 
@@ -145,7 +169,7 @@ the repo:
 - Codex skill inventory
 - Zed extension inventory
 - external agent package names and versions
-- optional `opencode` usage
+- optional `opencode` and GSD runtime usage
 - MCP servers, once there is a deliberate list worth keeping
 
 These are good candidates for inventory scripts and Markdown docs. They are bad
@@ -194,10 +218,10 @@ Until that exists, the right move is:
 
 ## Recommended Next Additions
 
-- add a curated Claude plugin manifest after pruning the current enabled set
 - decide whether any Codex skills should be vendored here or only documented
 - add a small `mcp/README.md` once the always-install server list is clear
-- decide whether `opencode` belongs in this repo or should stay local-only
+- decide whether GSD support should stay Claude/Codex-only or also document an
+  optional OpenCode path
 - run the inventory script after each major toolchain change to catch drift
 
 ## Inventory Script

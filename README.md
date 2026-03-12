@@ -26,6 +26,8 @@ Use [SECRETS.md](/Users/carlo/dev/dev-env-export/SECRETS.md) for the current
 secret-management policy.
 Use [SECRETS-CHECKLIST.md](/Users/carlo/dev/dev-env-export/SECRETS-CHECKLIST.md)
 for the recommended 1Password population checklist.
+Use [DEV-STACK.md](/Users/carlo/dev/dev-env-export/DEV-STACK.md) for the
+current language, framework, and hosting stack this machine should support.
 Use [AI-STACK.md](/Users/carlo/dev/dev-env-export/AI-STACK.md) for the current
 AI-tooling inventory and tracking policy.
 
@@ -56,12 +58,13 @@ Claude, and 1Password.
 | `scripts/` | bootstrap and setup scripts |
 | `shell/` | zsh configuration |
 | `dotfiles/` | Git, GitHub CLI, AWS, and related user config |
-| `claude/` | Claude settings, commands, and helper scripts |
+| `claude/` | Claude settings, commands, helper scripts, and plugin manifest |
 | `zed/` | Zed user configuration tracked for bootstrap |
 | `warp/` | Warp launch configurations and related tracked files |
 | `codex/` | Codex CLI configuration tracked for bootstrap |
 | `onepassword/` | 1Password CLI usage docs and secret template examples |
 | `manifest/` | install manifests and review buckets for bootstrap tooling |
+| `DEV-STACK.md` | current languages, frameworks, and hosting targets |
 | `AI-STACK.md` | AI tooling inventory, drift notes, and tracking policy |
 
 ## Quick Start
@@ -138,19 +141,29 @@ Recommended follow-up:
 - In 1Password, sign in and confirm `op account list` works
 - In Zed, run `Cmd+Shift+P` and execute `cli: install`
 - In Warp, open `Dev Env Bootstrap` from Launch Configurations
-- In Claude, review plugins and enable only the ones you still use
+- In Claude, use `claude/PLUGIN-MANIFEST.md` to install only the plugins you still use
 - Run `./scripts/09-inventory-ai-tooling.sh` to snapshot the local AI layer
 
 ## Stack
+
+The framework and hosting stack is documented in
+`DEV-STACK.md`. At a glance, this repo is being shaped around:
+
+- TypeScript and Python
+- Next.js and Vite
+- Tailwind CSS and shadcn/ui
+- Django and Flask
+- AWS and Vercel
 
 ### Core CLI
 
 - Homebrew
 - git, git-lfs, jq, curl, wget
-- node, npm, nvm
-- python3
+- node, npm, nvm, bun
+- python3, uv
 - codex
 - claude
+- vercel
 - gh
 - awscli
 - docker-related local tooling where needed

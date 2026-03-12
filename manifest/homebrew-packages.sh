@@ -9,6 +9,8 @@ CLI_TOOLS=(
     node
     nvm
     python@3.13
+    uv
+    bun
 
     # Cloud and infrastructure
     awscli
