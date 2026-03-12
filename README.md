@@ -160,6 +160,19 @@ Recommended follow-up:
 - Run `./scripts/10-check-paths.sh` to verify the expected CLIs are actually visible
 - Run `./scripts/12-smoke-test.sh` to verify the post-bootstrap baseline end to end
 
+## Known Niggles
+
+These are known non-blocking rough edges, not current show-stoppers:
+
+- `scripts/10-check-paths.sh` is still a lighter check than
+  `scripts/12-smoke-test.sh` and does not yet assert that `node` and `npm` are
+  actually coming from `nvm`
+- `scripts/09-inventory-ai-tooling.sh` still treats Warp as a version-style
+  CLI check even though Warp is mainly an app-first tool in this repo
+- `AI-STACK.md` is still partly a dated snapshot of one machine's observed tool
+  state and should be refreshed after the fresh-VM validation pass if the
+  current baseline changes
+
 ## Stack
 
 The framework and hosting stack is documented in
