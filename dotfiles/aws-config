@@ -1,5 +1,4 @@
 # AWS Configuration (profiles only - no credentials)
-# Exported from Ubuntu VM on 2026-01-17
 # Place at: ~/.aws/config
 #
 # IMPORTANT: You will need to run 'aws configure' to set up credentials

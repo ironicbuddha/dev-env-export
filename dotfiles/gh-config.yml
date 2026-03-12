@@ -1,5 +1,4 @@
 # GitHub CLI Configuration
-# Exported from Ubuntu VM on 2026-01-17
 # Place at: ~/.config/gh/config.yml
 #
 # IMPORTANT: Run 'gh auth login' on new machine to authenticate

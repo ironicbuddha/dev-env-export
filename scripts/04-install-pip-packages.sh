@@ -83,20 +83,20 @@ echo "Installing pip packages..."
 echo ""
 
 PIP_PACKAGES=(
-    # Data validation & typing (VM1 only)
+    # Data validation and typing
     pydantic            # Data validation using Python type annotations
     annotated-types     # Type annotations support
     typing-inspection   # Type inspection utilities
 
-    # Database (VM1 only)
+    # Database
     psycopg2-binary     # PostgreSQL adapter
     sqlalchemy          # SQL toolkit and ORM
 
-    # CLI development (VM1 only)
+    # CLI development
     typer               # CLI framework (based on Click)
     shellingham         # Shell detection
 
-    # Concurrency (VM1 only)
+    # Concurrency
     greenlet            # Lightweight in-process concurrent programming
 )
 

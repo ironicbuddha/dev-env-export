@@ -152,6 +152,7 @@ Recommended follow-up:
 - Run `./scripts/11-create-1password-stubs.sh --vault Private` to scaffold secret items in 1Password
 - Run `./scripts/09-inventory-ai-tooling.sh` to snapshot the local AI layer
 - Run `./scripts/10-check-paths.sh` to verify the expected CLIs are actually visible
+- Run `./scripts/12-smoke-test.sh` to verify the post-bootstrap baseline end to end
 
 ## Stack
 

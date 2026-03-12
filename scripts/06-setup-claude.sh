@@ -106,9 +106,9 @@ fi
 # -----------------------------------------------------------------------------
 echo ""
 echo "Copying custom commands..."
-echo "  (Merged from both VMs: 24 main commands + 12 consider commands)"
+echo "  (Installing tracked main and consider command sets)"
 
-# Copy main commands (VM1 + VM2 merged)
+# Copy main commands
 if [ -d "$CLAUDE_EXPORT/commands" ]; then
     for cmd in "$CLAUDE_EXPORT/commands"/*.md; do
         if [ -f "$cmd" ]; then
@@ -117,7 +117,7 @@ if [ -d "$CLAUDE_EXPORT/commands" ]; then
     done
 fi
 
-# Copy consider subdirectory commands (VM2 only - thinking frameworks)
+# Copy consider subdirectory commands
 if [ -d "$CLAUDE_EXPORT/commands/consider" ]; then
     for cmd in "$CLAUDE_EXPORT/commands/consider"/*.md; do
         if [ -f "$cmd" ]; then
@@ -132,11 +132,9 @@ fi
 echo ""
 echo "Updating paths in settings.json for macOS..."
 
-# The settings.json uses $HOME which should work, but let's verify
+# Normalize legacy absolute home paths if they still appear in an existing file.
 if [ -f "$CLAUDE_HOME/settings.json" ]; then
-    # Check if path uses hardcoded Linux path
     if grep -q "/home/carlo" "$CLAUDE_HOME/settings.json"; then
-        # Replace with $HOME variable
         sed -i.bak 's|/home/carlo/|$HOME/|g' "$CLAUDE_HOME/settings.json"
         rm -f "$CLAUDE_HOME/settings.json.bak"
         echo "  [UPDATE] Fixed hardcoded paths in settings.json"

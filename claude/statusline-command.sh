@@ -1,6 +1,5 @@
 #!/bin/bash
 # Claude Code Custom Statusline Script
-# Exported from Ubuntu VM on 2026-01-17
 # Dependencies: jq (install via: brew install jq)
 
 # Read JSON input from stdin
