@@ -34,6 +34,34 @@ EOF
     esac
 done
 
+resolve_python_bin() {
+    local brew_prefix=""
+
+    if command -v brew >/dev/null 2>&1; then
+        brew_prefix="$(brew --prefix python@3.13 2>/dev/null || true)"
+        if [ -n "$brew_prefix" ] && [ -x "$brew_prefix/bin/python3.13" ]; then
+            printf '%s\n' "$brew_prefix/bin/python3.13"
+            return
+        fi
+        if [ -n "$brew_prefix" ] && [ -x "$brew_prefix/libexec/bin/python3" ]; then
+            printf '%s\n' "$brew_prefix/libexec/bin/python3"
+            return
+        fi
+    fi
+
+    if command -v python3.13 >/dev/null 2>&1; then
+        command -v python3.13
+        return
+    fi
+
+    if command -v python3 >/dev/null 2>&1; then
+        command -v python3
+        return
+    fi
+
+    return 1
+}
+
 emit() {
     if [[ -n "$OUT_FILE" ]]; then
         printf '%s\n' "$1" >> "$OUT_FILE"
@@ -76,8 +104,8 @@ list_or_none() {
     fi
 }
 
-python3_parse() {
-    python3 - "$@"
+python_parse() {
+    "$PYTHON_BIN" - "$@"
 }
 
 if [[ -n "$OUT_FILE" ]]; then
@@ -88,9 +116,14 @@ fi
 TODAY="$(date '+%Y-%m-%d %H:%M:%S %Z')"
 HOME_DIR="$HOME"
 
+if ! PYTHON_BIN="$(resolve_python_bin)"; then
+    echo "ERROR: Python not found. Run scripts/02-install-cli-tools.sh first." >&2
+    exit 1
+fi
+
 CODEX_CONFIG="$HOME_DIR/.codex/config.toml"
 CLAUDE_SETTINGS="$HOME_DIR/.claude/settings.json"
-ZED_SETTINGS="$HOME_DIR/.config/zed/settings.json"
+ZED_SETTINGS="$HOME_DIR/Library/Application Support/Zed/settings.json"
 ZED_EXTENSIONS="$HOME_DIR/Library/Application Support/Zed/extensions/index.json"
 ZED_EXTERNAL_AGENTS="$HOME_DIR/Library/Application Support/Zed/external_agents"
 OPENCODE_DIR="$HOME_DIR/.config/opencode"
@@ -103,7 +136,7 @@ CODEX_TRUSTED_PROJECTS="0"
 CODEX_FEATURES="(none)"
 
 if [[ -f "$CODEX_CONFIG" ]]; then
-    IFS='|' read -r CODEX_MODEL CODEX_REASONING CODEX_APPROVAL CODEX_SANDBOX CODEX_TRUSTED_PROJECTS CODEX_FEATURES <<< "$(python3_parse <<'PY'
+    IFS='|' read -r CODEX_MODEL CODEX_REASONING CODEX_APPROVAL CODEX_SANDBOX CODEX_TRUSTED_PROJECTS CODEX_FEATURES <<< "$(python_parse <<'PY'
 import pathlib
 import tomllib
 
@@ -122,7 +155,7 @@ PY
 )"
 fi
 
-CLAUDE_PLUGINS="$(python3_parse <<'PY'
+CLAUDE_PLUGINS="$(python_parse <<'PY'
 import json
 import pathlib
 
@@ -138,7 +171,7 @@ PY
 
 CLAUDE_PLUGIN_COUNT="$(printf '%s\n' "$CLAUDE_PLUGINS" | awk 'NF && $0 != "(none)" {count++} END {print count+0}')"
 
-ZED_EXT_LIST="$(python3_parse <<'PY'
+ZED_EXT_LIST="$(python_parse <<'PY'
 import json
 import pathlib
 
@@ -166,11 +199,11 @@ ZED_SINGLE_FILE_REVIEW="unknown"
 ZED_THEME="unknown"
 
 if [[ -f "$ZED_SETTINGS" ]]; then
-    IFS='|' read -r ZED_AGENT_MODEL ZED_TRUST_ALL_WORKTREES ZED_SINGLE_FILE_REVIEW ZED_THEME <<< "$(python3_parse <<'PY'
+    IFS='|' read -r ZED_AGENT_MODEL ZED_TRUST_ALL_WORKTREES ZED_SINGLE_FILE_REVIEW ZED_THEME <<< "$(python_parse <<'PY'
 import json
 import pathlib
 
-p = pathlib.Path.home() / ".config" / "zed" / "settings.json"
+p = pathlib.Path.home() / "Library" / "Application Support" / "Zed" / "settings.json"
 lines = []
 for line in p.read_text().splitlines():
     if line.lstrip().startswith("//"):
@@ -204,6 +237,8 @@ CLAUDE_HOOK_COUNT="$(count_files "$HOME_DIR/.claude/hooks" f)"
 emit "# AI Tooling Inventory"
 emit ""
 emit "Generated: $TODAY"
+emit ""
+emit "Python parser: $PYTHON_BIN"
 emit ""
 emit "## Versions"
 emit ""

@@ -76,7 +76,7 @@ Observed on this machine on March 12, 2026.
 
 - App version: `Zed 0.227.1`
 - Live config paths:
-  - `~/.config/zed/settings.json`
+  - `~/Library/Application Support/Zed/settings.json`
   - `~/Library/Application Support/Zed/extensions/index.json`
   - `~/Library/Application Support/Zed/external_agents/`
 - Current tracked repo targets:

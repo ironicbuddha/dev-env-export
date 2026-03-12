@@ -58,7 +58,8 @@ Examples:
 Use the 1Password CLI where it improves repeatability:
 
 - `op account list` to confirm access
-- `op signin` if CLI auth still needs to be established
+- `eval "$(op signin)"` if CLI auth still needs to be established
+- prefer desktop-app integration before falling back to terminal-only sign-in
 - `op run --env-file=...` for ephemeral secret-backed commands
 - `op inject --in-file ... --out-file ...` when a rendered local file is required
 

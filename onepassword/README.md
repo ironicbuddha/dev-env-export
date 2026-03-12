@@ -15,8 +15,12 @@ Sign in or confirm account access:
 
 ```bash
 op account list
-op signin
+eval "$(op signin)"
 ```
+
+If the desktop app is already signed in, prefer app integration and use
+`op account list` as the first check. Use `op signin -f` only if you explicitly
+want terminal-only sign-in behavior.
 
 Run a command with secrets loaded from an env file containing secret references:
 
