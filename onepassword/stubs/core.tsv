@@ -1,0 +1,14 @@
+# category	title	tags
+API Credential	github / personal access token	dev-env,github
+API Credential	aws / main account	dev-env,aws
+API Credential	openai / api credential	dev-env,openai
+API Credential	anthropic / api credential	dev-env,anthropic
+API Credential	vercel / personal token	dev-env,vercel
+API Credential	npm / automation token	dev-env,npm
+API Credential	figma / personal access token	dev-env,figma
+API Credential	google / gemini api key	dev-env,google
+Secure Note	ssh / primary developer key	dev-env,ssh
+Secure Note	recovery / github	dev-env,recovery
+Secure Note	recovery / aws	dev-env,recovery
+Secure Note	recovery / openai	dev-env,recovery
+Secure Note	recovery / anthropic	dev-env,recovery

@@ -32,6 +32,12 @@ Render a local file from a template:
   --out-file .env
 ```
 
+Create missing item stubs in a vault from the repo manifest:
+
+```bash
+./scripts/11-create-1password-stubs.sh --vault Private
+```
+
 ## Secret Reference Pattern
 
 Typical secret references look like:
@@ -48,3 +54,4 @@ op://${VAULT:-Private}/openai/api credential
 ```
 
 See `onepassword/examples/project.env.tpl` for a practical example.
+See `onepassword/stubs/core.tsv` for the default item-stub scaffold.

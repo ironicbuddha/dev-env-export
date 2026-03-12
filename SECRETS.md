@@ -66,7 +66,9 @@ This repo includes:
 
 - `scripts/07-setup-1password.sh`
 - `scripts/08-op-inject-template.sh`
+- `scripts/11-create-1password-stubs.sh`
 - `onepassword/examples/project.env.tpl`
+- `onepassword/stubs/core.tsv`
 - `SECRETS-CHECKLIST.md`
 
 ## Legacy Migration Material
@@ -82,3 +84,6 @@ If secret automation becomes part of this repo later, prefer integrating with
 
 For a practical list of what to load into 1Password first, use
 `SECRETS-CHECKLIST.md`.
+
+If you want to pre-create empty items before filling real values, use
+`scripts/11-create-1password-stubs.sh`.

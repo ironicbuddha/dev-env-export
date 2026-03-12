@@ -149,6 +149,7 @@ Recommended follow-up:
 - In Zed, run `Cmd+Shift+P` and execute `cli: install`
 - In Warp, open `Dev Env Bootstrap` from Launch Configurations
 - In Claude, use `claude/PLUGIN-MANIFEST.md` to install only the plugins you still use
+- Run `./scripts/11-create-1password-stubs.sh --vault Private` to scaffold secret items in 1Password
 - Run `./scripts/09-inventory-ai-tooling.sh` to snapshot the local AI layer
 - Run `./scripts/10-check-paths.sh` to verify the expected CLIs are actually visible
 
