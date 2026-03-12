@@ -11,13 +11,16 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+MANIFEST_FILE="$REPO_ROOT/manifest/homebrew-packages.sh"
+
 echo "========================================"
 echo "Step 2: Installing Development CLI Tools"
 echo "========================================"
 echo ""
 
 # Ensure Homebrew is available (self-heal by running step 1 if needed)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! command -v brew &> /dev/null; then
     echo "Homebrew not found. Bootstrapping via 01-install-brew.sh..."
     if [ -x "$SCRIPT_DIR/01-install-brew.sh" ]; then
@@ -36,6 +39,14 @@ if ! command -v brew &> /dev/null; then
     echo "ERROR: Homebrew is still not available after bootstrap."
     exit 1
 fi
+
+if [ ! -f "$MANIFEST_FILE" ]; then
+    echo "ERROR: Homebrew manifest not found: $MANIFEST_FILE"
+    exit 1
+fi
+
+# shellcheck disable=SC1090
+source "$MANIFEST_FILE"
 
 strip_npmrc_conflicts() {
     local npmrc_path="$HOME/.npmrc"
@@ -115,22 +126,6 @@ echo ""
 echo "Installing CLI tools via Homebrew..."
 echo ""
 
-CLI_TOOLS=(
-    # Development tools (Both VMs)
-    node           # Node.js (includes npm)
-    nvm            # Node Version Manager
-    python@3.13    # Python 3.13
-
-    # Cloud & Infrastructure (VM1 only)
-    awscli         # AWS CLI v2
-    terraform      # Infrastructure as code
-    gh             # GitHub CLI
-
-    # Build tools (Both VMs)
-    make           # GNU Make (macOS has BSD make)
-    gcc            # GNU Compiler Collection
-)
-
 for tool in "${CLI_TOOLS[@]}"; do
     if brew list "$tool" &> /dev/null; then
         echo "  [SKIP] $tool is already installed"
@@ -148,28 +143,9 @@ echo "Installing applications via Homebrew Cask..."
 echo ""
 
 CASK_APPS=(
-    # Current primary tools
-    1password     # 1Password desktop app
-    1password-cli # 1Password CLI (op)
-    warp           # Warp terminal
-    zed            # Zed editor
-
-    # Quality-of-life mac utilities
-    raycast        # Launcher, snippets, clipboard, shortcuts
-    betterdisplay  # Display control and virtual display management
-    hiddenbar      # Menu bar cleanup
-    hammerspoon    # Keyboard automation and window scripting
-    github         # GitHub Desktop
-    obsidian       # Notes and local knowledge base
-
-    # Supporting tools
-    docker         # Docker Desktop for Mac (VM1)
-    chromium       # Chromium browser (Both VMs)
-    firefox        # Firefox browser (Both VMs)
-
-    # Optional supporting tools
-    sublime-text   # Legacy editor currently referenced by gitconfig
-    gitkraken      # Legacy Git GUI from earlier VM export
+    "${PRIMARY_CASK_APPS[@]}"
+    "${UTILITY_CASK_APPS[@]}"
+    "${SUPPORTING_CASK_APPS[@]}"
 )
 
 for app in "${CASK_APPS[@]}"; do
@@ -233,6 +209,8 @@ echo "  - Hidden Bar: $(brew list --cask hiddenbar >/dev/null 2>&1 && echo 'inst
 echo "  - Hammerspoon: $(brew list --cask hammerspoon >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
 echo "  - GitHub Desktop: $(brew list --cask github >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
 echo "  - Obsidian: $(brew list --cask obsidian >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
+echo ""
+echo "Review bucket (not installed by default): ${REVIEW_CASK_APPS[*]}"
 echo ""
 echo "Note: You may need to restart your terminal for all tools to be available."
 echo ""

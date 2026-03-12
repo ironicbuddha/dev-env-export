@@ -61,6 +61,7 @@ Claude, and 1Password.
 | `warp/` | Warp launch configurations and related tracked files |
 | `codex/` | Codex CLI configuration tracked for bootstrap |
 | `onepassword/` | 1Password CLI usage docs and secret template examples |
+| `manifest/` | install manifests and review buckets for bootstrap tooling |
 | `AI-STACK.md` | AI tooling inventory, drift notes, and tracking policy |
 
 ## Quick Start
@@ -98,6 +99,10 @@ DEV_ENV_REFRESH_BREW=1 ./scripts/01-install-brew.sh
 The npm steps are designed for `nvm`. If you have old `prefix` or
 `globalconfig` settings in `~/.npmrc`, the bootstrap scripts will remove those
 so Node 22 globals install under the active nvm-managed runtime.
+
+The active Homebrew install set lives in
+`manifest/homebrew-packages.sh`. Use that file to cull stale apps from the
+default bootstrap and keep a visible review bucket for stuff you no longer use.
 
 To run the steps manually instead:
 
@@ -167,13 +172,16 @@ Recommended follow-up:
 - GitHub Desktop
 - Obsidian
 
-### Secondary Or Legacy GUI Tools
+### Supporting GUI Tools
 
-- GitKraken
+- Firefox
+
+### Review Bucket
+
 - Sublime Text
-- Chromium / Firefox
 
-These can remain installed if useful, but they are not the primary workflow.
+The review bucket stays visible in the manifest but is not installed by
+default.
 
 ## History
 
