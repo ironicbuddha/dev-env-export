@@ -23,6 +23,7 @@ start.
   - Claude desktop app / CLI
 - Shell baseline: `zsh`
 - Package management baseline: Homebrew
+- Node runtime baseline: `nvm` installed by Homebrew
 - JavaScript package-manager stance: keep `npm`, prefer `pnpm` for new
   TypeScript-heavy repos
 - Primary dev languages: TypeScript and Python

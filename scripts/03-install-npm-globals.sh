@@ -75,18 +75,30 @@ load_nvm() {
 
 strip_npmrc_conflicts
 
-if load_nvm; then
-    nvm use default >/dev/null 2>&1 || nvm use 22 >/dev/null 2>&1 || true
+if ! load_nvm; then
+    echo "ERROR: nvm is required for this step and could not be loaded."
+    echo "       Run 02-install-cli-tools.sh first and make sure nvm installed cleanly."
+    exit 1
 fi
 
-# Ensure Node.js is available after loading nvm
+nvm use default >/dev/null 2>&1 || nvm use 22 >/dev/null 2>&1 || true
+
+# Ensure Node.js is available from nvm after loading it.
 if ! command -v node &> /dev/null; then
-    echo "ERROR: Node.js not found. Run 02-install-cli-tools.sh first."
+    echo "ERROR: Node.js not found under nvm. Run 02-install-cli-tools.sh first."
+    exit 1
+fi
+
+NODE_PATH="$(command -v node)"
+if [[ "$NODE_PATH" != "$NVM_DIR"/versions/node/* ]]; then
+    echo "ERROR: Active Node is not coming from nvm: $NODE_PATH"
+    echo "       This step intentionally refuses to install globals into a non-nvm Node."
     exit 1
 fi
 
 echo "Using Node.js: $(node --version)"
 echo "Using npm: $(npm --version)"
+echo "Using Node binary: $NODE_PATH"
 echo ""
 
 # -----------------------------------------------------------------------------

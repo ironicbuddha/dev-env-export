@@ -168,7 +168,7 @@ The framework and hosting stack is documented in
 
 - Homebrew
 - git, git-lfs, jq, curl, wget
-- node, npm, nvm, corepack, bun
+- nvm-managed node, npm, corepack, bun
 - python3, uv
 - codex
 - claude
@@ -212,6 +212,7 @@ installed by default.
 ## Package Manager Policy
 
 - Homebrew stays the primary machine-level package manager.
+- Homebrew installs `nvm`, and `nvm` owns the active Node runtime.
 - `npm` stays installed for compatibility and global CLIs.
 - `pnpm` is the preferred project package manager for new TS-heavy repos.
 - `uv` is the preferred fast Python package tool where it fits.

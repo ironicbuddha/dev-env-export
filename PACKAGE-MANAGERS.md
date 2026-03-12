@@ -8,7 +8,7 @@ to keep each layer boring and reliable.
 ## Source Of Truth
 
 - Homebrew is the primary machine-level package manager.
-- `nvm` manages the active Node runtime.
+- Homebrew installs `nvm`, and `nvm` manages the active Node runtime.
 - `npm` remains available for compatibility and global CLI installs.
 - `pnpm` is the preferred package manager for new TypeScript-heavy projects.
 - `uv` is the preferred fast package tool for modern Python workflows when it
@@ -20,12 +20,26 @@ Use Homebrew for machine bootstrap:
 
 - CLI tools
 - GUI apps
-- language runtimes where the repo intentionally manages them
+- runtime managers such as `nvm`
+- language runtimes where the repo intentionally manages them outside `nvm`
 
 Do not try to replace Homebrew with `pnpm`, `npm`, or random curl-pipe
 installers just because a tool technically supports it.
 
 ## Node And JavaScript Policy
+
+### Let `nvm` Own Node
+
+Do not install Node from Homebrew in the default bootstrap path.
+
+In this repo:
+
+- Homebrew owns `nvm`
+- `nvm` owns the active Node versions
+- `npm` global CLIs should install under the active `nvm` Node
+
+That keeps Node versioning boring and avoids a split-brain fight between
+Homebrew Node and `nvm` Node.
 
 ### Keep `npm`
 
@@ -95,7 +109,7 @@ preferences into a global-runtime mess.
 Use these defaults unless a project gives you a good reason not to:
 
 - machine bootstrap: Homebrew
-- Node runtime: `nvm`
+- Node runtime manager: `nvm` (installed by Homebrew)
 - global Node CLIs: `npm`
 - new TypeScript app: `pnpm`
 - existing `npm` project: leave it on `npm`

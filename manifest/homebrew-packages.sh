@@ -6,7 +6,6 @@
 
 CLI_TOOLS=(
     # Development
-    node
     nvm
     python@3.13
     uv

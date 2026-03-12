@@ -15,6 +15,25 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 MANIFEST_FILE="$REPO_ROOT/manifest/homebrew-packages.sh"
 
+load_homebrew() {
+    if command -v brew >/dev/null 2>&1; then
+        eval "$(brew shellenv)"
+        return 0
+    fi
+
+    if [ -x "/opt/homebrew/bin/brew" ]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+        return 0
+    fi
+
+    if [ -x "/usr/local/bin/brew" ]; then
+        eval "$(/usr/local/bin/brew shellenv)"
+        return 0
+    fi
+
+    return 1
+}
+
 echo "========================================"
 echo "Step 2: Installing Development CLI Tools"
 echo "========================================"
@@ -29,10 +48,8 @@ if ! command -v brew &> /dev/null; then
         bash "$SCRIPT_DIR/01-install-brew.sh"
     fi
 
-    # Load Homebrew into current shell if installed by step 1
-    if [ -x "/opt/homebrew/bin/brew" ]; then
-        eval "$(/opt/homebrew/bin/brew shellenv)"
-    fi
+    # Load Homebrew into the current shell if step 1 just installed it.
+    load_homebrew || true
 fi
 
 if ! command -v brew &> /dev/null; then
@@ -164,18 +181,39 @@ echo ""
 echo "Setting up NVM..."
 strip_npmrc_conflicts
 
-if load_nvm; then
-    # Install Node.js v22 via nvm and make it the default CLI runtime.
-    if ! nvm ls 22 &> /dev/null; then
-        echo "Installing Node.js v22 via nvm..."
-        nvm install 22
-    else
-        echo "  [SKIP] Node.js v22 already installed via nvm"
-        nvm use 22 >/dev/null 2>&1 || true
-    fi
-    nvm alias default 22 >/dev/null 2>&1 || true
+if ! load_nvm; then
+    echo "ERROR: nvm could not be loaded after installation."
+    echo "       Homebrew owns nvm in this repo, and nvm owns the Node runtime."
+    exit 1
+fi
+
+# Install Node.js v22 via nvm and make it the default CLI runtime.
+if ! nvm ls 22 &> /dev/null; then
+    echo "Installing Node.js v22 via nvm..."
+    nvm install 22
 else
-    echo "  [WARN] nvm is installed but could not be loaded in this shell"
+    echo "  [SKIP] Node.js v22 already installed via nvm"
+fi
+
+nvm alias default 22 >/dev/null 2>&1 || true
+nvm use default >/dev/null 2>&1 || nvm use 22 >/dev/null 2>&1
+
+if ! command -v node >/dev/null 2>&1; then
+    echo "ERROR: Node.js is still not available after nvm setup."
+    exit 1
+fi
+
+NODE_PATH="$(command -v node)"
+if [[ "$NODE_PATH" != "$NVM_DIR"/versions/node/* ]]; then
+    echo "ERROR: Active Node is not coming from nvm: $NODE_PATH"
+    echo "       This repo expects nvm to own the Node runtime."
+    exit 1
+fi
+
+if brew list node >/dev/null 2>&1; then
+    echo "  [WARN] Homebrew node is still installed."
+    echo "         This repo no longer uses Homebrew to own the Node runtime."
+    echo "         Consider removing it with: brew uninstall node"
 fi
 
 # -----------------------------------------------------------------------------
@@ -196,7 +234,7 @@ echo "Step 2 Complete: Development tools installed"
 echo "========================================"
 echo ""
 echo "Installed tools:"
-echo "  - Node.js: $(node --version 2>/dev/null || echo 'not in PATH yet')"
+echo "  - Node.js (via nvm): $(node --version 2>/dev/null || echo 'not in PATH yet')"
 echo "  - npm: $(npm --version 2>/dev/null || echo 'not in PATH yet')"
 echo "  - Python: $(python3 --version 2>/dev/null || echo 'not in PATH yet')"
 echo "  - AWS CLI: $(aws --version 2>/dev/null | cut -d' ' -f1 || echo 'not in PATH yet')"
@@ -208,6 +246,8 @@ echo "  - Hidden Bar: $(brew list --cask hiddenbar >/dev/null 2>&1 && echo 'inst
 echo "  - Hammerspoon: $(brew list --cask hammerspoon >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
 echo "  - GitHub Desktop: $(brew list --cask github >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
 echo "  - Obsidian: $(brew list --cask obsidian >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
+echo ""
+echo "Node runtime policy: Homebrew installs nvm; nvm installs and owns Node."
 echo ""
 echo "Optional CLI review bucket (not installed by default): ${OPTIONAL_CLI_TOOLS[*]}"
 echo "Review bucket (not installed by default): ${REVIEW_CASK_APPS[*]}"

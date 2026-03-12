@@ -40,6 +40,7 @@ the target state anymore.
 
 - Shell: `zsh`
 - Package manager: Homebrew
+- Node runtime manager: `nvm` via Homebrew
 - JS package-manager stance: keep `npm`, prefer `pnpm` for new TypeScript-heavy
   repos
 - Terminal: Warp
