@@ -201,8 +201,12 @@ The framework and hosting stack is documented in
 
 - Sublime Text
 
-The review bucket stays visible in the manifest but is not installed by
-default.
+### Optional Infra Tooling
+
+- Terraform
+
+The review and optional buckets stay visible in the manifest but are not
+installed by default.
 
 ## Package Manager Policy
 

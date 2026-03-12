@@ -14,12 +14,16 @@ CLI_TOOLS=(
 
     # Cloud and infrastructure
     awscli
-    terraform
     gh
 
     # Build tools
     make
     gcc
+)
+
+OPTIONAL_CLI_TOOLS=(
+    # Optional infrastructure tooling
+    terraform
 )
 
 PRIMARY_CASK_APPS=(
