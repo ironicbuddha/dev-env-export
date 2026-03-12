@@ -67,6 +67,7 @@ This repo includes:
 - `scripts/07-setup-1password.sh`
 - `scripts/08-op-inject-template.sh`
 - `onepassword/examples/project.env.tpl`
+- `SECRETS-CHECKLIST.md`
 
 ## Legacy Migration Material
 
@@ -78,3 +79,6 @@ workflow going forward.
 
 If secret automation becomes part of this repo later, prefer integrating with
 1Password directly rather than reintroducing plaintext export files.
+
+For a practical list of what to load into 1Password first, use
+`SECRETS-CHECKLIST.md`.
