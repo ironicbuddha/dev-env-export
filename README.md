@@ -94,6 +94,12 @@ If you want to run the primary flow end-to-end, the master bootstrap script
 will execute steps 1 through 7 in order and stop cleanly if macOS still needs
 you to finish Xcode Command Line Tools installation.
 
+Each bootstrap run writes timestamped logs under `logs/bootstrap-*` by default.
+If a step blows up on a fresh VM, keep that log directory around so the failure
+can be diagnosed without guessing.
+If you want the logs somewhere else, set `DEV_ENV_LOG_DIR=/path/to/logs`
+before running `./scripts/00-bootstrap.sh`.
+
 The scripts are intended to be rerunnable. Re-running them should skip
 already-installed packages and unchanged config where practical. If you want
 to force a Homebrew metadata refresh before installs, run:
