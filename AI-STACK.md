@@ -149,6 +149,9 @@ Repo stance:
 So the right interpretation is not "these gaps are fine." It is "the bootstrap
 and docs need to account for each one on purpose."
 
+Use `./scripts/10-check-paths.sh` after bootstrap to verify whether these tools
+are actually visible in the intended shell environment.
+
 ## What To Track In Git
 
 Track only portable, intentionally recreated defaults:
