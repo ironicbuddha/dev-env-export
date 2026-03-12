@@ -29,15 +29,6 @@ load_homebrew() {
     fi
 }
 
-load_local_paths() {
-    if [ -d "$HOME/.npm-global/bin" ]; then
-        case ":$PATH:" in
-            *":$HOME/.npm-global/bin:"*) ;;
-            *) export PATH="$HOME/.npm-global/bin:$PATH" ;;
-        esac
-    fi
-}
-
 run_step() {
     local script_name="$1"
     local script_path="$SCRIPT_DIR/$script_name"
@@ -88,9 +79,6 @@ for step in "${STEPS[@]}"; do
                 echo "  - Re-run ./scripts/00-bootstrap.sh after the install completes."
                 exit 0
             fi
-            ;;
-        "03-install-npm-globals.sh")
-            load_local_paths
             ;;
     esac
 done

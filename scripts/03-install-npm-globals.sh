@@ -9,41 +9,85 @@
 # Safe to run multiple times (idempotent).
 # =============================================================================
 
-set -e  # Exit on any error
+set -euo pipefail
 
 echo "========================================"
 echo "Step 3: Installing Global npm Packages"
 echo "========================================"
 echo ""
 
-# Ensure Node.js is available
+strip_npmrc_conflicts() {
+    local npmrc_path="$HOME/.npmrc"
+    local tmp_path=""
+
+    if [ ! -f "$npmrc_path" ]; then
+        return
+    fi
+
+    tmp_path="$(mktemp)"
+    awk '
+        /^[[:space:]]*prefix[[:space:]]*=/ { next }
+        /^[[:space:]]*globalconfig[[:space:]]*=/ { next }
+        { print }
+    ' "$npmrc_path" > "$tmp_path"
+
+    if ! cmp -s "$tmp_path" "$npmrc_path"; then
+        mv "$tmp_path" "$npmrc_path"
+        echo "  [UPDATE] Removed nvm-incompatible prefix/globalconfig from ~/.npmrc"
+    else
+        rm -f "$tmp_path"
+    fi
+
+    if [ -f "$npmrc_path" ] && [ ! -s "$npmrc_path" ]; then
+        rm -f "$npmrc_path"
+        echo "  [CLEANUP] Removed empty ~/.npmrc"
+    fi
+}
+
+load_nvm() {
+    local nvm_prefix=""
+
+    export NVM_DIR="$HOME/.nvm"
+
+    if command -v brew >/dev/null 2>&1; then
+        nvm_prefix="$(brew --prefix nvm 2>/dev/null || true)"
+        if [ -n "$nvm_prefix" ] && [ -s "$nvm_prefix/nvm.sh" ]; then
+            # shellcheck disable=SC1090
+            . "$nvm_prefix/nvm.sh"
+            return 0
+        fi
+    fi
+
+    if [ -s "/opt/homebrew/opt/nvm/nvm.sh" ]; then
+        # shellcheck disable=SC1091
+        . "/opt/homebrew/opt/nvm/nvm.sh"
+        return 0
+    fi
+
+    if [ -s "/usr/local/opt/nvm/nvm.sh" ]; then
+        # shellcheck disable=SC1091
+        . "/usr/local/opt/nvm/nvm.sh"
+        return 0
+    fi
+
+    return 1
+}
+
+strip_npmrc_conflicts
+
+if load_nvm; then
+    nvm use default >/dev/null 2>&1 || nvm use 22 >/dev/null 2>&1 || true
+fi
+
+# Ensure Node.js is available after loading nvm
 if ! command -v node &> /dev/null; then
     echo "ERROR: Node.js not found. Run 02-install-cli-tools.sh first."
     exit 1
 fi
 
-# Source nvm if available to ensure correct Node version
-export NVM_DIR="$HOME/.nvm"
-if [ -s "/opt/homebrew/opt/nvm/nvm.sh" ]; then
-    source "/opt/homebrew/opt/nvm/nvm.sh"
-fi
-
 echo "Using Node.js: $(node --version)"
 echo "Using npm: $(npm --version)"
 echo ""
-
-# -----------------------------------------------------------------------------
-# Set up npm global directory (avoids permission issues)
-# -----------------------------------------------------------------------------
-echo "Setting up npm global directory..."
-NPM_GLOBAL_DIR="$HOME/.npm-global"
-mkdir -p "$NPM_GLOBAL_DIR"
-npm config set prefix "$NPM_GLOBAL_DIR"
-
-# Ensure PATH includes npm global bin
-if [[ ":$PATH:" != *":$NPM_GLOBAL_DIR/bin:"* ]]; then
-    export PATH="$NPM_GLOBAL_DIR/bin:$PATH"
-fi
 
 # -----------------------------------------------------------------------------
 # Install global npm packages
@@ -83,7 +127,7 @@ echo ""
 echo "Claude Code version: $(claude --version 2>/dev/null || echo 'not in PATH yet')"
 echo "Codex version: $(codex --version 2>/dev/null || echo 'not in PATH yet')"
 echo ""
-echo "Note: If claude or codex is not found, ensure ~/.npm-global/bin is in your PATH"
-echo "      This is configured in the exported zshrc file."
+echo "Note: These CLIs are installed under the active nvm-managed Node version."
+echo "      If they are not found in a new shell, make sure nvm loads correctly."
 echo ""
 echo "Next: Run 04-install-pip-packages.sh"

@@ -170,12 +170,10 @@ echo ""
 echo "Creating necessary directories..."
 
 mkdir -p "$HOME/.local/bin"
-mkdir -p "$HOME/.npm-global/bin"
 mkdir -p "$HOME/.tmp"
 mkdir -p "$HOME/bin"
 
 echo "  [CREATE] ~/.local/bin"
-echo "  [CREATE] ~/.npm-global/bin"
 echo "  [CREATE] ~/.tmp"
 echo "  [CREATE] ~/bin"
 

@@ -95,6 +95,10 @@ to force a Homebrew metadata refresh before installs, run:
 DEV_ENV_REFRESH_BREW=1 ./scripts/01-install-brew.sh
 ```
 
+The npm steps are designed for `nvm`. If you have old `prefix` or
+`globalconfig` settings in `~/.npmrc`, the bootstrap scripts will remove those
+so Node 22 globals install under the active nvm-managed runtime.
+
 To run the steps manually instead:
 
 ```bash

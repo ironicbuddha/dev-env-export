@@ -9,7 +9,7 @@
 # Safe to run multiple times (idempotent).
 # =============================================================================
 
-set -e  # Exit on any error
+set -euo pipefail
 
 echo "========================================"
 echo "Step 2: Installing Development CLI Tools"
@@ -36,6 +36,64 @@ if ! command -v brew &> /dev/null; then
     echo "ERROR: Homebrew is still not available after bootstrap."
     exit 1
 fi
+
+strip_npmrc_conflicts() {
+    local npmrc_path="$HOME/.npmrc"
+    local tmp_path=""
+
+    if [ ! -f "$npmrc_path" ]; then
+        return
+    fi
+
+    tmp_path="$(mktemp)"
+    awk '
+        /^[[:space:]]*prefix[[:space:]]*=/ { next }
+        /^[[:space:]]*globalconfig[[:space:]]*=/ { next }
+        { print }
+    ' "$npmrc_path" > "$tmp_path"
+
+    if ! cmp -s "$tmp_path" "$npmrc_path"; then
+        mv "$tmp_path" "$npmrc_path"
+        echo "  [UPDATE] Removed nvm-incompatible prefix/globalconfig from ~/.npmrc"
+    else
+        rm -f "$tmp_path"
+    fi
+
+    if [ -f "$npmrc_path" ] && [ ! -s "$npmrc_path" ]; then
+        rm -f "$npmrc_path"
+        echo "  [CLEANUP] Removed empty ~/.npmrc"
+    fi
+}
+
+load_nvm() {
+    local nvm_prefix=""
+
+    export NVM_DIR="$HOME/.nvm"
+    mkdir -p "$NVM_DIR"
+
+    if command -v brew >/dev/null 2>&1; then
+        nvm_prefix="$(brew --prefix nvm 2>/dev/null || true)"
+        if [ -n "$nvm_prefix" ] && [ -s "$nvm_prefix/nvm.sh" ]; then
+            # shellcheck disable=SC1090
+            . "$nvm_prefix/nvm.sh"
+            return 0
+        fi
+    fi
+
+    if [ -s "/opt/homebrew/opt/nvm/nvm.sh" ]; then
+        # shellcheck disable=SC1091
+        . "/opt/homebrew/opt/nvm/nvm.sh"
+        return 0
+    fi
+
+    if [ -s "/usr/local/opt/nvm/nvm.sh" ]; then
+        # shellcheck disable=SC1091
+        . "/usr/local/opt/nvm/nvm.sh"
+        return 0
+    fi
+
+    return 1
+}
 
 # -----------------------------------------------------------------------------
 # Install Xcode Command Line Tools (provides build-essential equivalent)
@@ -128,20 +186,20 @@ done
 # -----------------------------------------------------------------------------
 echo ""
 echo "Setting up NVM..."
-export NVM_DIR="$HOME/.nvm"
-mkdir -p "$NVM_DIR"
+strip_npmrc_conflicts
 
-# Source nvm if Homebrew installed it
-if [ -s "/opt/homebrew/opt/nvm/nvm.sh" ]; then
-    source "/opt/homebrew/opt/nvm/nvm.sh"
-
-    # Install Node.js v22 via nvm (matches Linux environment)
+if load_nvm; then
+    # Install Node.js v22 via nvm and make it the default CLI runtime.
     if ! nvm ls 22 &> /dev/null; then
         echo "Installing Node.js v22 via nvm..."
         nvm install 22
     else
         echo "  [SKIP] Node.js v22 already installed via nvm"
+        nvm use 22 >/dev/null 2>&1 || true
     fi
+    nvm alias default 22 >/dev/null 2>&1 || true
+else
+    echo "  [WARN] nvm is installed but could not be loaded in this shell"
 fi
 
 # -----------------------------------------------------------------------------
