@@ -24,6 +24,8 @@ active tree. Use [HISTORICAL.md](/Users/carlo/dev/dev-env-export/HISTORICAL.md)
 for a guide to what was removed and how to recover it from Git history.
 Use [SECRETS.md](/Users/carlo/dev/dev-env-export/SECRETS.md) for the current
 secret-management policy.
+Use [SECRETS-CHECKLIST.md](/Users/carlo/dev/dev-env-export/SECRETS-CHECKLIST.md)
+for the recommended 1Password population checklist.
 Use [AI-STACK.md](/Users/carlo/dev/dev-env-export/AI-STACK.md) for the current
 AI-tooling inventory and tracking policy.
 
@@ -78,6 +80,16 @@ the project root before running scripts.
 ```bash
 chmod +x scripts/*.sh
 
+./scripts/00-bootstrap.sh
+```
+
+If you want to run the primary flow end-to-end, the master bootstrap script
+will execute steps 1 through 7 in order and stop cleanly if macOS still needs
+you to finish Xcode Command Line Tools installation.
+
+To run the steps manually instead:
+
+```bash
 ./scripts/01-install-brew.sh
 ./scripts/02-install-cli-tools.sh
 ./scripts/03-install-npm-globals.sh

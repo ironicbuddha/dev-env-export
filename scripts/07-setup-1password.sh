@@ -8,7 +8,7 @@
 set -euo pipefail
 
 echo "========================================"
-echo "Step 8: Setting Up 1Password"
+echo "Step 7: Setting Up 1Password"
 echo "========================================"
 echo ""
 
