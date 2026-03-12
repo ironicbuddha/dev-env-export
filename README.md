@@ -28,6 +28,8 @@ Use [SECRETS-CHECKLIST.md](/Users/carlo/dev/dev-env-export/SECRETS-CHECKLIST.md)
 for the recommended 1Password population checklist.
 Use [DEV-STACK.md](/Users/carlo/dev/dev-env-export/DEV-STACK.md) for the
 current language, framework, and hosting stack this machine should support.
+Use [PACKAGE-MANAGERS.md](/Users/carlo/dev/dev-env-export/PACKAGE-MANAGERS.md)
+for the package-manager policy across Homebrew, npm, pnpm, and uv.
 Use [AI-STACK.md](/Users/carlo/dev/dev-env-export/AI-STACK.md) for the current
 AI-tooling inventory and tracking policy.
 
@@ -65,6 +67,7 @@ Claude, and 1Password.
 | `onepassword/` | 1Password CLI usage docs and secret template examples |
 | `manifest/` | install manifests and review buckets for bootstrap tooling |
 | `DEV-STACK.md` | current languages, frameworks, and hosting targets |
+| `PACKAGE-MANAGERS.md` | package-manager policy for machine and project layers |
 | `AI-STACK.md` | AI tooling inventory, drift notes, and tracking policy |
 
 ## Quick Start
@@ -102,6 +105,10 @@ DEV_ENV_REFRESH_BREW=1 ./scripts/01-install-brew.sh
 The npm steps are designed for `nvm`. If you have old `prefix` or
 `globalconfig` settings in `~/.npmrc`, the bootstrap scripts will remove those
 so Node 22 globals install under the active nvm-managed runtime.
+
+This repo keeps Homebrew as the primary machine-level package manager. For
+project-level JavaScript workflows, keep `npm` available but prefer `pnpm` for
+new TypeScript-heavy repos. See `PACKAGE-MANAGERS.md`.
 
 The active Homebrew install set lives in
 `manifest/homebrew-packages.sh`. Use that file to cull stale apps from the
@@ -160,7 +167,7 @@ The framework and hosting stack is documented in
 
 - Homebrew
 - git, git-lfs, jq, curl, wget
-- node, npm, nvm, bun
+- node, npm, nvm, corepack, bun
 - python3, uv
 - codex
 - claude
@@ -196,6 +203,15 @@ The framework and hosting stack is documented in
 
 The review bucket stays visible in the manifest but is not installed by
 default.
+
+## Package Manager Policy
+
+- Homebrew stays the primary machine-level package manager.
+- `npm` stays installed for compatibility and global CLIs.
+- `pnpm` is the preferred project package manager for new TS-heavy repos.
+- `uv` is the preferred fast Python package tool where it fits.
+
+See `PACKAGE-MANAGERS.md` for the detailed policy.
 
 ## History
 

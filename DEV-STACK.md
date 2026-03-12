@@ -33,6 +33,7 @@ defaults.
 The bootstrap should stay friendly to this stack by default:
 
 - solid Node.js and npm or nvm support for TypeScript, Next.js, and Vite work
+- `pnpm` preferred for new TypeScript-heavy repos
 - `bun` available for modern JS or TS workflows where it is the better fit
 - strong Python support for Django and Flask work
 - `uv` available as a fast Python package and environment tool

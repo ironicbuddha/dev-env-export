@@ -40,6 +40,8 @@ the target state anymore.
 
 - Shell: `zsh`
 - Package manager: Homebrew
+- JS package-manager stance: keep `npm`, prefer `pnpm` for new TypeScript-heavy
+  repos
 - Terminal: Warp
 - Editor: Zed
 - Secrets: 1Password
@@ -62,6 +64,7 @@ Legacy Ubuntu-specific material belongs in history, not in the active setup.
 - `codex/`: tracked Codex CLI defaults
 - `onepassword/`: 1Password CLI usage docs and secret template examples
 - `DEV-STACK.md`: current language, framework, and hosting targets
+- `PACKAGE-MANAGERS.md`: machine and project package-manager policy
 - `AI-STACK.md`: current AI-tooling inventory and Git-tracking policy
 - `PERSONALITY.md`: default interaction style and mode switch rules
 - `HISTORICAL.md`: guide to removed legacy material recoverable from Git history

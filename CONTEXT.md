@@ -23,6 +23,8 @@ start.
   - Claude desktop app / CLI
 - Shell baseline: `zsh`
 - Package management baseline: Homebrew
+- JavaScript package-manager stance: keep `npm`, prefer `pnpm` for new
+  TypeScript-heavy repos
 - Primary dev languages: TypeScript and Python
 - Primary frontend stack: Next.js, Vite, Tailwind CSS, shadcn/ui
 - Primary backend stack: Django and Flask
@@ -85,6 +87,8 @@ If an agent is deciding how to frame a change, assume:
 - older Ubuntu merge docs are reference material only
 - the target dev stack is TypeScript and Python with Next.js, Vite, Tailwind,
   shadcn/ui, Django, Flask, AWS, and Vercel
+- Homebrew remains the primary machine package manager even if project-level
+  package managers vary
 
 ## Success Condition
 
