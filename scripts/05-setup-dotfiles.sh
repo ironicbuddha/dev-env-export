@@ -10,7 +10,7 @@
 # Safe to run multiple times (idempotent).
 # =============================================================================
 
-set -e  # Exit on any error
+set -euo pipefail
 
 echo "========================================"
 echo "Step 5: Setting Up Dotfiles"
@@ -21,7 +21,7 @@ echo ""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXPORT_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Backup directory
+# Backup directory (created lazily only if a file actually changes)
 BACKUP_DIR="$HOME/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)"
 
 # Turn a destination path into a stable backup path under BACKUP_DIR.
@@ -36,7 +36,7 @@ backup_target_for() {
     printf "%s/%s" "$BACKUP_DIR" "$relative_path"
 }
 
-# Function to copy file with backup
+# Function to copy file with backup only when content changes
 copy_with_backup() {
     local src="$1"
     local dest="$2"
@@ -46,7 +46,12 @@ copy_with_backup() {
     # Create destination directory if needed
     mkdir -p "$dest_dir"
 
-    # Backup existing file if it exists
+    if [ -f "$dest" ] && cmp -s "$src" "$dest"; then
+        echo "  [SKIP] $(basename "$dest") is unchanged"
+        return
+    fi
+
+    # Backup existing file if it exists and differs
     if [ -f "$dest" ]; then
         backup_target="$(backup_target_for "$dest")"
         mkdir -p "$(dirname "$backup_target")"
@@ -54,13 +59,11 @@ copy_with_backup() {
         echo "  [BACKUP] Backed up existing $dest"
     fi
 
-    # Copy the new file
     cp "$src" "$dest"
     echo "  [COPY] $src -> $dest"
 }
 
 echo "Export directory: $EXPORT_DIR"
-echo "Backup directory: $BACKUP_DIR"
 echo ""
 
 # -----------------------------------------------------------------------------
@@ -184,6 +187,9 @@ echo ""
 
 if [ -d "$BACKUP_DIR" ]; then
     echo "Backed up files are in: $BACKUP_DIR"
+    echo ""
+else
+    echo "No changed files needed backups."
     echo ""
 fi
 

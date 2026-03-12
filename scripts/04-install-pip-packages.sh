@@ -10,21 +10,53 @@
 # interpreter is externally managed.
 # =============================================================================
 
-set -e  # Exit on any error
+set -euo pipefail
 
 echo "========================================"
 echo "Step 4: Installing Python pip Packages"
 echo "========================================"
 echo ""
 
-# Ensure Python is available
-if ! command -v python3 &> /dev/null; then
+resolve_python_bin() {
+    local brew_prefix=""
+
+    if command -v brew >/dev/null 2>&1; then
+        brew_prefix="$(brew --prefix python@3.13 2>/dev/null || true)"
+        if [ -n "$brew_prefix" ] && [ -x "$brew_prefix/bin/python3.13" ]; then
+            printf '%s\n' "$brew_prefix/bin/python3.13"
+            return
+        fi
+        if [ -n "$brew_prefix" ] && [ -x "$brew_prefix/libexec/bin/python3" ]; then
+            printf '%s\n' "$brew_prefix/libexec/bin/python3"
+            return
+        fi
+    fi
+
+    if command -v python3.13 >/dev/null 2>&1; then
+        command -v python3.13
+        return
+    fi
+
+    if command -v python3 >/dev/null 2>&1; then
+        command -v python3
+        return
+    fi
+
+    return 1
+}
+
+if ! PYTHON_BIN="$(resolve_python_bin)"; then
     echo "ERROR: Python not found. Run 02-install-cli-tools.sh first."
     exit 1
 fi
 
-echo "Using Python: $(python3 --version)"
-echo "Using pip: $(pip3 --version)"
+if ! "$PYTHON_BIN" -m pip --version >/dev/null 2>&1; then
+    echo "ERROR: Selected Python does not have pip available: $PYTHON_BIN"
+    exit 1
+fi
+
+echo "Using Python: $("$PYTHON_BIN" --version) [$PYTHON_BIN]"
+echo "Using pip: $("$PYTHON_BIN" -m pip --version)"
 echo ""
 
 # -----------------------------------------------------------------------------
@@ -32,9 +64,9 @@ echo ""
 # -----------------------------------------------------------------------------
 PIP_INSTALL_ARGS=(--user)
 
-if python3 -m pip install --dry-run --user pip >/dev/null 2>&1; then
+if "$PYTHON_BIN" -m pip install --dry-run --user pip >/dev/null 2>&1; then
     echo "Using standard user-site pip installs."
-elif python3 -m pip install --dry-run --user --break-system-packages pip >/dev/null 2>&1; then
+elif "$PYTHON_BIN" -m pip install --dry-run --user --break-system-packages pip >/dev/null 2>&1; then
     PIP_INSTALL_ARGS+=(--break-system-packages)
     echo "Using user-site pip installs with --break-system-packages."
 else
@@ -69,11 +101,11 @@ PIP_PACKAGES=(
 )
 
 for package in "${PIP_PACKAGES[@]}"; do
-    if python3 -m pip show "$package" &> /dev/null; then
+    if "$PYTHON_BIN" -m pip show "$package" &> /dev/null; then
         echo "  [SKIP] $package is already installed"
     else
         echo "  [INSTALL] Installing $package..."
-        python3 -m pip install "${PIP_INSTALL_ARGS[@]}" "$package"
+        "$PYTHON_BIN" -m pip install "${PIP_INSTALL_ARGS[@]}" "$package"
     fi
 done
 
@@ -83,10 +115,10 @@ echo "Step 4 Complete: pip packages installed"
 echo "========================================"
 echo ""
 echo "Installed packages:"
-python3 -m pip list --user 2>/dev/null | head -20 || true
+"$PYTHON_BIN" -m pip list --user 2>/dev/null | head -20 || true
 echo ""
 echo "Note: Packages are installed at the user level for convenience only."
 echo "      Project-specific dependencies should still live in project virtualenvs."
-echo "      User site-packages: $(python3 -m site --user-site)"
+echo "      User site-packages: $("$PYTHON_BIN" -m site --user-site)"
 echo ""
 echo "Next: Run 05-setup-dotfiles.sh"

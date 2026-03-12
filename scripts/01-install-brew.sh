@@ -9,7 +9,7 @@
 # Safe to run multiple times (idempotent).
 # =============================================================================
 
-set -e  # Exit on any error
+set -euo pipefail
 
 echo "========================================"
 echo "Step 1: Installing Homebrew and Core CLI Tools"
@@ -48,7 +48,12 @@ if ! command -v brew &> /dev/null; then
     eval "$("$BREW_BIN" shellenv)"
 else
     echo "Homebrew is already installed."
-    brew update
+    if [ "${DEV_ENV_REFRESH_BREW:-0}" = "1" ]; then
+        echo "Refreshing Homebrew metadata because DEV_ENV_REFRESH_BREW=1..."
+        brew update
+    else
+        echo "  [SKIP] brew update (set DEV_ENV_REFRESH_BREW=1 to refresh formulas)"
+    fi
 fi
 
 echo ""

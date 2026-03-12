@@ -87,6 +87,14 @@ If you want to run the primary flow end-to-end, the master bootstrap script
 will execute steps 1 through 7 in order and stop cleanly if macOS still needs
 you to finish Xcode Command Line Tools installation.
 
+The scripts are intended to be rerunnable. Re-running them should skip
+already-installed packages and unchanged config where practical. If you want
+to force a Homebrew metadata refresh before installs, run:
+
+```bash
+DEV_ENV_REFRESH_BREW=1 ./scripts/01-install-brew.sh
+```
+
 To run the steps manually instead:
 
 ```bash
