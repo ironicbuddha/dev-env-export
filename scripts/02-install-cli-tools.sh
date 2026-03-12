@@ -123,6 +123,30 @@ load_nvm() {
     return 1
 }
 
+manifest_includes_tool() {
+    local wanted="$1"
+    local tool=""
+
+    for tool in "${CLI_TOOLS[@]}"; do
+        if [ "$tool" = "$wanted" ]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+ensure_homebrew_taps() {
+    if manifest_includes_tool "bun"; then
+        if brew tap | grep -qx "oven-sh/bun"; then
+            echo "  [SKIP] Homebrew tap oven-sh/bun already configured"
+        else
+            echo "  [INSTALL] Adding Homebrew tap oven-sh/bun for Bun..."
+            brew tap oven-sh/bun
+        fi
+    fi
+}
+
 # -----------------------------------------------------------------------------
 # Install Xcode Command Line Tools (provides build-essential equivalent)
 # -----------------------------------------------------------------------------
@@ -142,6 +166,8 @@ fi
 echo ""
 echo "Installing CLI tools via Homebrew..."
 echo ""
+
+ensure_homebrew_taps
 
 for tool in "${CLI_TOOLS[@]}"; do
     if brew list "$tool" &> /dev/null; then
