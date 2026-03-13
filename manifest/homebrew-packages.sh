@@ -10,6 +10,7 @@ CLI_TOOLS=(
     python@3.13
     uv
     bun
+    taproom
 
     # Cloud and infrastructure
     awscli

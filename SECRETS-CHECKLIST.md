@@ -61,7 +61,7 @@ Recommended 1Password item:
 Suggested fields:
 
 - account ID
-- access key ID
+- access key id
 - secret access key
 - default region
 - preferred profile name
@@ -92,7 +92,7 @@ Recommended 1Password item:
 
 Suggested fields:
 
-- API key
+- api key
 - organization ID
 - project ID
 - usage notes
@@ -112,7 +112,7 @@ Recommended 1Password item:
 
 Suggested fields:
 
-- API key
+- api key
 - workspace or account notes
 - usage notes
 

@@ -63,6 +63,22 @@ copy_with_backup() {
     echo "  [COPY] $src -> $dest"
 }
 
+copy_if_missing() {
+    local src="$1"
+    local dest="$2"
+    local dest_dir="$(dirname "$dest")"
+
+    mkdir -p "$dest_dir"
+
+    if [ -f "$dest" ]; then
+        echo "  [PRESERVE] $dest already exists; leaving local state intact"
+        return
+    fi
+
+    cp "$src" "$dest"
+    echo "  [COPY] $src -> $dest"
+}
+
 echo "Export directory: $EXPORT_DIR"
 echo ""
 
@@ -125,7 +141,7 @@ CODEX_CONFIG_DIR="$HOME/.codex"
 mkdir -p "$CODEX_CONFIG_DIR"
 
 if [ -f "$EXPORT_DIR/codex/config.toml" ]; then
-    copy_with_backup "$EXPORT_DIR/codex/config.toml" "$CODEX_CONFIG_DIR/config.toml"
+    copy_if_missing "$EXPORT_DIR/codex/config.toml" "$CODEX_CONFIG_DIR/config.toml"
 fi
 
 # -----------------------------------------------------------------------------

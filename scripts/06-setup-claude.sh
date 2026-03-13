@@ -9,7 +9,7 @@
 # It preserves previous files by backing them up before overwriting.
 # =============================================================================
 
-set -e  # Exit on any error
+set -euo pipefail
 
 echo "========================================"
 echo "Step 6: Setting Up Claude Code"
@@ -62,6 +62,96 @@ copy_with_backup() {
     echo "  [COPY] $(basename "$dest")"
 }
 
+resolve_python_bin() {
+    if command -v python3 >/dev/null 2>&1; then
+        command -v python3
+        return
+    fi
+
+    if [ -x "/usr/bin/python3" ]; then
+        printf '%s\n' "/usr/bin/python3"
+        return
+    fi
+
+    return 1
+}
+
+merge_json_with_backup() {
+    local src="$1"
+    local dest="$2"
+    local label="$3"
+    local backup_target
+    local tmp_file
+
+    mkdir -p "$(dirname "$dest")"
+
+    if [ ! -f "$dest" ]; then
+        cp "$src" "$dest"
+        echo "  [COPY] $label"
+        return
+    fi
+
+    if cmp -s "$src" "$dest"; then
+        echo "  [SKIP] $label is unchanged"
+        return
+    fi
+
+    if ! PYTHON_BIN="$(resolve_python_bin)"; then
+        echo "  [WARN] python3 not available; preserving existing $label"
+        return
+    fi
+
+    backup_target="$(backup_target_for "$dest")"
+    mkdir -p "$(dirname "$backup_target")"
+    cp "$dest" "$backup_target"
+    echo "  [BACKUP] $dest"
+
+    tmp_file="$(mktemp)"
+    "$PYTHON_BIN" - "$dest" "$src" "$tmp_file" <<'PY'
+import json
+import pathlib
+import sys
+
+dest_path = pathlib.Path(sys.argv[1])
+src_path = pathlib.Path(sys.argv[2])
+out_path = pathlib.Path(sys.argv[3])
+
+existing = json.loads(dest_path.read_text())
+incoming = json.loads(src_path.read_text())
+
+def merge(existing_value, incoming_value):
+    if isinstance(existing_value, dict) and isinstance(incoming_value, dict):
+        merged = dict(existing_value)
+        for key, value in incoming_value.items():
+            if key in merged:
+                merged[key] = merge(merged[key], value)
+            else:
+                merged[key] = value
+        return merged
+
+    if isinstance(existing_value, list) and isinstance(incoming_value, list):
+        merged = list(existing_value)
+        for item in incoming_value:
+            if item not in merged:
+                merged.append(item)
+        return merged
+
+    return incoming_value
+
+merged = merge(existing, incoming)
+out_path.write_text(json.dumps(merged, indent=2) + "\n")
+PY
+
+    if cmp -s "$tmp_file" "$dest"; then
+        rm -f "$tmp_file"
+        echo "  [SKIP] $label already includes repo defaults"
+        return
+    fi
+
+    mv "$tmp_file" "$dest"
+    echo "  [MERGE] $label"
+}
+
 # -----------------------------------------------------------------------------
 # Create Claude Code directories
 # -----------------------------------------------------------------------------
@@ -82,11 +172,11 @@ echo ""
 echo "Copying Claude Code settings..."
 
 if [ -f "$CLAUDE_EXPORT/settings/settings.json" ]; then
-    copy_with_backup "$CLAUDE_EXPORT/settings/settings.json" "$CLAUDE_HOME/settings.json"
+    merge_json_with_backup "$CLAUDE_EXPORT/settings/settings.json" "$CLAUDE_HOME/settings.json" "settings.json"
 fi
 
 if [ -f "$CLAUDE_EXPORT/settings/settings.local.json" ]; then
-    copy_with_backup "$CLAUDE_EXPORT/settings/settings.local.json" "$CLAUDE_HOME/settings.local.json"
+    merge_json_with_backup "$CLAUDE_EXPORT/settings/settings.local.json" "$CLAUDE_HOME/settings.local.json" "settings.local.json"
 fi
 
 # -----------------------------------------------------------------------------

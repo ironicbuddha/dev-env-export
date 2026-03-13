@@ -1,6 +1,15 @@
 # Login-shell configuration for macOS.
 # This file runs once per login session before ~/.zshrc.
 
+# Homebrew
+if command -v brew >/dev/null 2>&1; then
+    eval "$(brew shellenv)"
+elif [ -x "/opt/homebrew/bin/brew" ]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -x "/usr/local/bin/brew" ]; then
+    eval "$(/usr/local/bin/brew shellenv)"
+fi
+
 # Set PATH to include user's private bin if it exists
 if [ -d "$HOME/bin" ] ; then
     PATH="$HOME/bin:$PATH"
@@ -10,5 +19,3 @@ fi
 if [ -d "$HOME/.local/bin" ] ; then
     PATH="$HOME/.local/bin:$PATH"
 fi
-
-# Homebrew shellenv is typically added here by scripts/01-install-brew.sh.

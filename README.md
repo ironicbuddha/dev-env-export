@@ -16,8 +16,8 @@ the core coding workflow already in place:
 For the current direction of the repo, start here:
 
 1. `CONTEXT.md`
-2. `AGENTS.md`
-3. current repository contents
+2. current repository contents
+3. `AGENTS.md`
 
 Older Ubuntu-era inventory and merge artifacts have been removed from the
 active tree. Use [HISTORICAL.md](/Users/carlo/dev/dev-env-export/HISTORICAL.md)

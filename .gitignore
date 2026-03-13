@@ -37,6 +37,7 @@ shadow-backup.txt
 *.tmp
 .tmp/
 logs/
+bugs/
 
 # Archives
 *.zip

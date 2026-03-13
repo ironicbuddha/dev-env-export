@@ -47,15 +47,26 @@ Create missing item stubs in a vault from the repo manifest:
 Typical secret references look like:
 
 ```text
-op://Private/openai/api credential
-op://Private/github/personal access token
+op://Private/openai / api credential/api key
+op://Private/github / personal access token/personal access token
 ```
 
 Or, when used in templates with variables:
 
 ```text
-op://${VAULT:-Private}/openai/api credential
+op://${VAULT:-Private}/openai / api credential/api key
 ```
+
+Current repo convention:
+
+- item titles should match `onepassword/stubs/core.tsv` exactly
+- field names in secret references should match the actual 1Password field labels exactly
+- the example template currently expects these fields:
+  - `openai / api credential` -> `api key`
+  - `anthropic / api credential` -> `api key`
+  - `github / personal access token` -> `personal access token`
+  - `aws / main account` -> `access key id`
+  - `aws / main account` -> `secret access key`
 
 See `onepassword/examples/project.env.tpl` for a practical example.
 See `onepassword/stubs/core.tsv` for the default item-stub scaffold.

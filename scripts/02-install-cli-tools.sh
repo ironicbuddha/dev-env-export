@@ -136,15 +136,52 @@ manifest_includes_tool() {
     return 1
 }
 
+brew_formula_ref() {
+    local tool="$1"
+
+    case "$tool" in
+        bun)
+            printf '%s\n' "oven-sh/bun/bun"
+            ;;
+        taproom)
+            printf '%s\n' "gromgit/brewtils/taproom"
+            ;;
+        *)
+            printf '%s\n' "$tool"
+            ;;
+    esac
+}
+
+brew_required_tap() {
+    local tool="$1"
+
+    case "$tool" in
+        bun)
+            printf '%s\n' "oven-sh/bun"
+            ;;
+        taproom)
+            printf '%s\n' "gromgit/brewtils"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 ensure_homebrew_taps() {
-    if manifest_includes_tool "bun"; then
-        if brew tap | grep -qx "oven-sh/bun"; then
-            echo "  [SKIP] Homebrew tap oven-sh/bun already configured"
-        else
-            echo "  [INSTALL] Adding Homebrew tap oven-sh/bun for Bun..."
-            brew tap oven-sh/bun
+    local tool=""
+    local tap=""
+
+    for tool in "${CLI_TOOLS[@]}"; do
+        if tap="$(brew_required_tap "$tool" 2>/dev/null)"; then
+            if brew tap | grep -qx "$tap"; then
+                echo "  [SKIP] Homebrew tap $tap already configured"
+            else
+                echo "  [INSTALL] Adding Homebrew tap $tap for $tool..."
+                brew tap "$tap"
+            fi
         fi
-    fi
+    done
 }
 
 # -----------------------------------------------------------------------------
@@ -170,11 +207,17 @@ echo ""
 ensure_homebrew_taps
 
 for tool in "${CLI_TOOLS[@]}"; do
-    if brew list "$tool" &> /dev/null; then
+    tool_ref="$(brew_formula_ref "$tool")"
+
+    if brew list "$tool" &> /dev/null || brew list "$tool_ref" &> /dev/null; then
         echo "  [SKIP] $tool is already installed"
     else
-        echo "  [INSTALL] Installing $tool..."
-        brew install "$tool"
+        if [ "$tool_ref" = "$tool" ]; then
+            echo "  [INSTALL] Installing $tool..."
+        else
+            echo "  [INSTALL] Installing $tool via $tool_ref..."
+        fi
+        brew install "$tool_ref"
     fi
 done
 
