@@ -16,9 +16,16 @@ Notes:
   installed.
 - The tracked defaults in this repo are intentionally opinionated:
   - fast autosave after short idle time
-  - format-on-save through language servers
+  - format-on-save enabled with Zed's native formatter auto-selection
+  - Markdown, TypeScript-family files, and CSS explicitly opt into format-on-save
+  - visible tab diagnostics so lint and type issues are easier to spot
   - inline edit predictions disabled in favor of explicit Codex/Claude use
   - Codex and Claude thread shortcuts in the keymap
+- TypeScript and CSS diagnostics come from Zed's built-in language-server
+  support.
+- Markdown formatting works out of the box, but Markdown lint diagnostics still
+  need an added extension or language server because Zed has no built-in
+  Markdown language server.
 
 Tracked keybindings:
 

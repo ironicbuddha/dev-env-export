@@ -5,11 +5,13 @@
   "buffer_font_size": 15,
   "agent_font_size": 15,
   "format_on_save": "on",
-  "formatter": "language_server",
   "autosave": {
     "after_delay": {
       "milliseconds": 500
     }
+  },
+  "tabs": {
+    "show_diagnostics": "all"
   },
   "soft_wrap": "preferred_line_length",
   "preferred_line_length": 100,
@@ -26,10 +28,11 @@
     "Markdown": {
       "soft_wrap": "preferred_line_length",
       "preferred_line_length": 80,
-      "format_on_save": "off"
+      "format_on_save": "on"
     },
     "Python": {
-      "preferred_line_length": 88
+      "preferred_line_length": 88,
+      "formatter": "language_server"
     },
     "JSON": {
       "tab_size": 2
@@ -38,16 +41,23 @@
       "tab_size": 2
     },
     "TypeScript": {
-      "preferred_line_length": 100
+      "preferred_line_length": 100,
+      "format_on_save": "on"
     },
     "TSX": {
-      "preferred_line_length": 100
+      "preferred_line_length": 100,
+      "format_on_save": "on"
     },
     "JavaScript": {
-      "preferred_line_length": 100
+      "preferred_line_length": 100,
+      "format_on_save": "on"
     },
     "JSX": {
-      "preferred_line_length": 100
+      "preferred_line_length": 100,
+      "format_on_save": "on"
+    },
+    "CSS": {
+      "format_on_save": "on"
     }
   }
 }
