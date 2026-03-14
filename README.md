@@ -153,6 +153,8 @@ Recommended follow-up:
 
 - In 1Password, sign in and confirm `op account list` works
 - In Zed, run `Cmd+Shift+P` and execute `cli: install`
+- In Zed, open `/Users/carlo/dev`, then use the `Restricted Mode` prompt or
+  `workspace::ToggleWorktreeSecurity` to trust all projects in that folder
 - In Warp, open `Dev Env Bootstrap` from Launch Configurations
 - In Claude, use `claude/PLUGIN-MANIFEST.md` to install only the plugins you still use
 - Run `./scripts/11-create-1password-stubs.sh --vault Private` to scaffold secret items in 1Password
