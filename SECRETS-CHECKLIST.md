@@ -294,6 +294,25 @@ Where to get it:
 - Store the project ID alongside it so the key is not detached from its billing
   and quota context.
 
+### Google Stitch
+
+Recommended item:
+
+- `google stitch - api credential`
+
+Suggested fields:
+
+- API key
+- project ID
+- usage notes
+
+Where to get it:
+
+- Create the key in the Google account or project that actually backs your
+  Stitch usage.
+- Store the project ID or account context alongside it so billing and quota
+  ownership stay obvious later.
+
 ## Common Project Secrets
 
 For each active project, create separate items per environment:
@@ -364,6 +383,8 @@ Examples:
 - `aws / main account`
 - `openai / api credential`
 - `anthropic / api credential`
+- `google / gemini api key`
+- `google stitch - api credential`
 - `vercel / personal token`
 - `figma / personal access token`
 - `my-app / local env`

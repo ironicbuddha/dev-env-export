@@ -7,6 +7,7 @@ API Credential	vercel / personal token	dev-env,vercel
 API Credential	npm / automation token	dev-env,npm
 API Credential	figma / personal access token	dev-env,figma
 API Credential	google / gemini api key	dev-env,google
+API Credential	google stitch - api credential	dev-env,google,stitch
 Secure Note	ssh / primary developer key	dev-env,ssh
 Secure Note	recovery / github	dev-env,recovery
 Secure Note	recovery / aws	dev-env,recovery

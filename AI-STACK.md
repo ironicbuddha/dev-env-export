@@ -123,6 +123,18 @@ Observed on this machine on March 12, 2026.
 - OpenCode should be treated as optional experimentation or future GSD support,
   not as a required baseline dependency.
 
+## AI Provider Credentials In Scope
+
+These provider credentials are currently expected to live in 1Password and be
+represented in the repo's secret scaffolding and checklist:
+
+- `openai / api credential`
+- `anthropic / api credential`
+- `google / gemini api key`
+- `google stitch - api credential`
+
+Track the item names and guidance in Git. Keep the actual values out of Git.
+
 ### Gaps On This Machine
 
 The inventory found some tools missing in `PATH` on this machine. Those gaps
