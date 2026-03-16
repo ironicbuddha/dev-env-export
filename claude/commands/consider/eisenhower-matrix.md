@@ -20,15 +20,19 @@ Categorize items by urgency and importance to clarify what to do now, schedule, 
 
 <output_format>
 **Q1: Do First** (Important + Urgent)
+
 - Item: [specific action, deadline if applicable]
 
 **Q2: Schedule** (Important + Not Urgent)
+
 - Item: [when to do it, why it matters long-term]
 
 **Q3: Delegate** (Not Important + Urgent)
+
 - Item: [who/what can handle it, or how to minimize time spent]
 
 **Q4: Eliminate** (Not Important + Not Urgent)
+
 - Item: [why it's noise, permission to drop it]
 
 **Immediate Focus:**
@@ -36,6 +40,7 @@ Single sentence on what to tackle right now.
 </output_format>
 
 <success_criteria>
+
 - Every item clearly placed in one quadrant
 - Q1 items have specific next actions
 - Q2 items have scheduling recommendations

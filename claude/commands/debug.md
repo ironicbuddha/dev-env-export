@@ -18,6 +18,7 @@ This applies systematic debugging methodology with evidence gathering, hypothesi
 </process>
 
 <success_criteria>
+
 - Skill successfully invoked
 - Arguments passed correctly to skill
 </success_criteria>

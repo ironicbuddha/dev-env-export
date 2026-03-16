@@ -14,6 +14,7 @@ CLI_TOOLS=(
 
     # Cloud and infrastructure
     awscli
+    docker
     gh
 
     # Build tools

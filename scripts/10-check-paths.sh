@@ -67,7 +67,7 @@ echo ""
 
 load_homebrew
 if load_nvm; then
-    nvm use default >/dev/null 2>&1 || nvm use 22 >/dev/null 2>&1 || true
+    nvm use 22 >/dev/null 2>&1 || nvm use default >/dev/null 2>&1 || true
 fi
 
 echo "Checking CLI visibility in the intended bootstrap shell environment..."
@@ -79,7 +79,7 @@ check_cmd "aws" "aws" "AWS CLI should come from scripts/02-install-cli-tools.sh.
 check_cmd "python3" "python3" "Python should come from scripts/02-install-cli-tools.sh."
 check_cmd "uv" "uv" "uv should come from scripts/02-install-cli-tools.sh."
 check_cmd "bun" "bun" "bun should come from scripts/02-install-cli-tools.sh."
-check_cmd "docker" "docker" "Docker CLI comes with Docker Desktop after install and first launch."
+check_cmd "docker" "docker" "Docker CLI should come from scripts/02-install-cli-tools.sh via the docker formula."
 check_cmd "op" "op" "1Password CLI should come from scripts/02-install-cli-tools.sh."
 check_cmd "zed" "zed" "Install the Zed CLI from inside Zed with Cmd+Shift+P -> cli: install."
 check_cmd "codex" "codex" "Codex CLI should come from scripts/03-install-npm-globals.sh under nvm."

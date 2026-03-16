@@ -18,6 +18,7 @@ This ensures skills follow proper structure (pure XML, required tags, progressiv
 </process>
 
 <success_criteria>
+
 - Subagent invoked successfully
 - Arguments passed correctly to subagent
 - Audit includes XML structure evaluation

@@ -81,7 +81,7 @@ if ! load_nvm; then
     exit 1
 fi
 
-nvm use default >/dev/null 2>&1 || nvm use 22 >/dev/null 2>&1 || true
+nvm use 22 >/dev/null 2>&1 || nvm use default >/dev/null 2>&1 || true
 
 # Ensure Node.js is available from nvm after loading it.
 if ! command -v node &> /dev/null; then

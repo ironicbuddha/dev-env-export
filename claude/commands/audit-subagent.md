@@ -17,6 +17,7 @@ This ensures subagents follow proper structure, configuration, pure XML formatti
 </process>
 
 <success_criteria>
+
 - Subagent invoked successfully
 - Arguments passed correctly to subagent
 </success_criteria>

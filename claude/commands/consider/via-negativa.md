@@ -22,11 +22,13 @@ Instead of asking "What should I add?", ask "What should I remove?" Subtraction 
 [What exists now - activities, features, commitments]
 
 **Subtraction Candidates:**
+
 - [Item]: Remove because [reason] → Impact: [what improves]
 - [Item]: Remove because [reason] → Impact: [what improves]
 - [Item]: Remove because [reason] → Impact: [what improves]
 
 **Keep (Passed the Test):**
+
 - [Item]: Keep because [genuine value]
 
 **After Subtraction:**
@@ -37,6 +39,7 @@ Instead of asking "What should I add?", ask "What should I remove?" Subtraction 
 </output_format>
 
 <success_criteria>
+
 - Identifies genuine bloat vs. essential elements
 - Removes without breaking core function
 - Creates space and simplicity

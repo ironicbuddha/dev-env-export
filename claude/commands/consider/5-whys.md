@@ -33,6 +33,7 @@ Keep asking "why" until you hit the root cause, not just symptoms.
 </output_format>
 
 <success_criteria>
+
 - Moves past symptoms to actual cause
 - Each "why" digs genuinely deeper
 - Stops when hitting actionable root (not infinite regress)

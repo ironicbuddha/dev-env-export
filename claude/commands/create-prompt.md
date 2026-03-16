@@ -52,6 +52,7 @@ Analyze the user's description to extract and infer:
 - **Depth needed**: Standard vs extended thinking triggers
 
 Inference rules:
+
 - Dashboard/feature with multiple components → likely multiple prompts
 - Bug fix with clear location → single prompt, simple
 - "Optimize" or "refactor" → needs specificity about what/where
@@ -64,6 +65,7 @@ Generate 2-4 questions using AskUserQuestion based ONLY on genuine gaps.
 <question_templates>
 
 **For ambiguous scope** (e.g., "build a dashboard"):
+
 - header: "Dashboard type"
 - question: "What kind of dashboard is this?"
 - options:
@@ -72,6 +74,7 @@ Generate 2-4 questions using AskUserQuestion based ONLY on genuine gaps.
   - "User-facing dashboard" - End-user features, personal data, settings
 
 **For unclear target** (e.g., "fix the bug"):
+
 - header: "Bug location"
 - question: "Where does this bug occur?"
 - options:
@@ -80,6 +83,7 @@ Generate 2-4 questions using AskUserQuestion based ONLY on genuine gaps.
   - "Database" - Queries, migrations, data integrity
 
 **For auth/security tasks**:
+
 - header: "Auth method"
 - question: "What authentication approach?"
 - options:
@@ -88,6 +92,7 @@ Generate 2-4 questions using AskUserQuestion based ONLY on genuine gaps.
   - "OAuth/SSO" - Third-party providers, enterprise
 
 **For performance tasks**:
+
 - header: "Performance focus"
 - question: "What's the main performance concern?"
 - options:
@@ -96,6 +101,7 @@ Generate 2-4 questions using AskUserQuestion based ONLY on genuine gaps.
   - "Database" - Query optimization, indexing, caching
 
 **For output/deliverable clarity**:
+
 - header: "Output purpose"
 - question: "What will this be used for?"
 - options:
@@ -106,6 +112,7 @@ Generate 2-4 questions using AskUserQuestion based ONLY on genuine gaps.
 </question_templates>
 
 <question_rules>
+
 - Only ask about genuine gaps - don't ask what's already stated
 - Each option needs a description explaining implications
 - Prefer options over free-text when choices are knowable
@@ -323,6 +330,7 @@ Before completing, verify:
 - [Sources are credible and relevant]
 </verification>
 ```
+
 </prompt_patterns>
 </step_1_generate_and_save>
 
@@ -444,6 +452,7 @@ If user chooses #2, invoke via SlashCommand tool: `/run-prompt 005`
 </process>
 
 <success_criteria>
+
 - Intake gate completed (AskUserQuestion used for clarification if needed)
 - User selected "Proceed" from decision gate
 - Appropriate depth, structure, and execution strategy determined

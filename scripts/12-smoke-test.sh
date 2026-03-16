@@ -22,6 +22,11 @@ load_homebrew() {
         return 0
     fi
 
+    if [ -x "/usr/local/bin/brew" ]; then
+        eval "$(/usr/local/bin/brew shellenv)"
+        return 0
+    fi
+
     return 1
 }
 
@@ -42,6 +47,12 @@ load_nvm() {
     if [ -s "/opt/homebrew/opt/nvm/nvm.sh" ]; then
         # shellcheck disable=SC1091
         . "/opt/homebrew/opt/nvm/nvm.sh"
+        return 0
+    fi
+
+    if [ -s "/usr/local/opt/nvm/nvm.sh" ]; then
+        # shellcheck disable=SC1091
+        . "/usr/local/opt/nvm/nvm.sh"
         return 0
     fi
 
@@ -113,7 +124,7 @@ if ! load_nvm; then
     fail "nvm could not be loaded"
 else
     pass "nvm loaded"
-    if nvm use default >/dev/null 2>&1 || nvm use 22 >/dev/null 2>&1; then
+    if nvm use 22 >/dev/null 2>&1 || nvm use default >/dev/null 2>&1; then
         pass "nvm activated the expected Node runtime"
     else
         fail "nvm could not activate the default or Node 22 runtime"
@@ -135,6 +146,7 @@ check_cmd "node" "node"
 check_cmd "npm" "npm"
 check_cmd "uv" "uv"
 check_cmd "bun" "bun"
+check_cmd "docker" "docker"
 
 if command -v node >/dev/null 2>&1; then
     NODE_PATH="$(command -v node)"

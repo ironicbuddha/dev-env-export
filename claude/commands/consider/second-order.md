@@ -22,14 +22,17 @@ Ask: "And then what?" First-order thinking stops at immediate effects. Second-or
 **Action:** [what's being considered]
 
 **First-Order Effects:** (Immediate)
+
 - [Effect 1]
 - [Effect 2]
 
 **Second-Order Effects:** (And then what?)
+
 - [Effect 1] → leads to → [Consequence]
 - [Effect 2] → leads to → [Consequence]
 
 **Third-Order Effects:** (And then?)
+
 - [Key downstream consequences]
 
 **Delayed Consequences:**
@@ -40,6 +43,7 @@ After tracing the chain, this action [is/isn't] worth it because...
 </output_format>
 
 <success_criteria>
+
 - Traces causal chains beyond obvious effects
 - Identifies feedback loops and unintended consequences
 - Reveals delayed costs or benefits

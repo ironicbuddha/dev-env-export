@@ -184,6 +184,119 @@ ensure_homebrew_taps() {
     done
 }
 
+resolve_python_bin() {
+    local brew_prefix=""
+
+    if command -v brew >/dev/null 2>&1; then
+        brew_prefix="$(brew --prefix python@3.13 2>/dev/null || true)"
+        if [ -n "$brew_prefix" ] && [ -x "$brew_prefix/bin/python3.13" ]; then
+            printf '%s\n' "$brew_prefix/bin/python3.13"
+            return
+        fi
+        if [ -n "$brew_prefix" ] && [ -x "$brew_prefix/libexec/bin/python3" ]; then
+            printf '%s\n' "$brew_prefix/libexec/bin/python3"
+            return
+        fi
+    fi
+
+    if command -v python3.13 >/dev/null 2>&1; then
+        command -v python3.13
+        return
+    fi
+
+    if command -v python3 >/dev/null 2>&1; then
+        command -v python3
+        return
+    fi
+
+    return 1
+}
+
+cask_app_present() {
+    local app="$1"
+    local app_bundle=""
+
+    while IFS= read -r app_bundle; do
+        if [ -n "$app_bundle" ] && [ -d "/Applications/$app_bundle" ]; then
+            return 0
+        fi
+    done < <(brew info --cask --json=v2 "$app" 2>/dev/null | jq -r '.casks[0].artifacts[]? | select(type == "object" and has("app")) | .app[0]')
+
+    return 1
+}
+
+cask_status() {
+    local app="$1"
+
+    if brew list --cask "$app" >/dev/null 2>&1 || cask_app_present "$app"; then
+        printf '%s\n' "installed"
+    else
+        printf '%s\n' "missing"
+    fi
+}
+
+install_bun_fallback() {
+    local bun_version=""
+    local asset_arch=""
+    local asset_name=""
+    local archive_url=""
+    local archive_path=""
+    local tmp_dir=""
+    local install_dir=""
+
+    if command -v bun >/dev/null 2>&1; then
+        echo "  [SKIP] bun is already available -> $(command -v bun)"
+        return 0
+    fi
+
+    bun_version="$(brew info --json=v2 bun 2>/dev/null | jq -r '.formulae[0].versions.stable // empty')"
+    if [ -z "$bun_version" ]; then
+        echo "ERROR: Could not determine the current Bun release for fallback install."
+        return 1
+    fi
+
+    case "$(uname -m)" in
+        arm64|aarch64)
+            asset_arch="aarch64"
+            ;;
+        x86_64)
+            asset_arch="x64"
+            ;;
+        *)
+            echo "ERROR: Unsupported architecture for Bun fallback: $(uname -m)"
+            return 1
+            ;;
+    esac
+
+    asset_name="bun-darwin-$asset_arch.zip"
+    archive_url="https://github.com/oven-sh/bun/releases/download/bun-v${bun_version}/${asset_name}"
+    install_dir="$(brew --prefix)/bin"
+
+    if [ ! -w "$install_dir" ]; then
+        install_dir="$HOME/.local/bin"
+        mkdir -p "$install_dir"
+    fi
+
+    tmp_dir="$(mktemp -d)"
+    archive_path="$tmp_dir/$asset_name"
+
+    echo "  [FALLBACK] Homebrew could not install bun; downloading the official Bun binary..."
+    echo "             $archive_url"
+
+    if ! curl -fsSL -o "$archive_path" "$archive_url"; then
+        rm -rf "$tmp_dir"
+        echo "ERROR: Failed to download Bun fallback archive."
+        return 1
+    fi
+
+    unzip -q "$archive_path" -d "$tmp_dir"
+    install -m 755 "$tmp_dir/bun-darwin-$asset_arch/bun" "$install_dir/bun"
+    rm -rf "$tmp_dir"
+
+    echo "  [FALLBACK] Installed bun $bun_version -> $install_dir/bun"
+    echo "             Update Command Line Tools later if you want Homebrew to own bun directly."
+}
+
 # -----------------------------------------------------------------------------
 # Install Xcode Command Line Tools (provides build-essential equivalent)
 # -----------------------------------------------------------------------------
@@ -209,7 +322,9 @@ ensure_homebrew_taps
 for tool in "${CLI_TOOLS[@]}"; do
     tool_ref="$(brew_formula_ref "$tool")"
 
-    if brew list "$tool" &> /dev/null || brew list "$tool_ref" &> /dev/null; then
+    if [ "$tool" = "bun" ] && command -v bun >/dev/null 2>&1; then
+        echo "  [SKIP] $tool is already available -> $(command -v bun)"
+    elif brew list "$tool" &> /dev/null || brew list "$tool_ref" &> /dev/null; then
         echo "  [SKIP] $tool is already installed"
     else
         if [ "$tool_ref" = "$tool" ]; then
@@ -217,7 +332,13 @@ for tool in "${CLI_TOOLS[@]}"; do
         else
             echo "  [INSTALL] Installing $tool via $tool_ref..."
         fi
-        brew install "$tool_ref"
+        if ! brew install "$tool_ref"; then
+            if [ "$tool" = "bun" ]; then
+                install_bun_fallback || exit 1
+            else
+                exit 1
+            fi
+        fi
     fi
 done
 
@@ -237,9 +358,17 @@ CASK_APPS=(
 for app in "${CASK_APPS[@]}"; do
     if brew list --cask "$app" &> /dev/null 2>&1; then
         echo "  [SKIP] $app is already installed"
+    elif cask_app_present "$app"; then
+        echo "  [PRESERVE] $app app bundle already exists in /Applications"
     else
-        echo "  [INSTALL] Installing $app..."
-        brew install --cask "$app" || echo "  [WARN] Failed to install $app (may require manual install)"
+        if [ "$app" = "docker" ]; then
+            echo "  [INSTALL] Installing $app app bundle without cask-managed binaries..."
+            echo "            Docker CLI is provided by the docker formula to avoid sudo-only cask symlink steps."
+            brew install --cask --no-binaries "$app" || echo "  [WARN] Failed to install $app (may require manual install)"
+        else
+            echo "  [INSTALL] Installing $app..."
+            brew install --cask "$app" || echo "  [WARN] Failed to install $app (may require manual install)"
+        fi
     fi
 done
 
@@ -265,7 +394,7 @@ else
 fi
 
 nvm alias default 22 >/dev/null 2>&1 || true
-nvm use default >/dev/null 2>&1 || nvm use 22 >/dev/null 2>&1
+nvm use 22 >/dev/null 2>&1 || nvm use default >/dev/null 2>&1
 
 if ! command -v node >/dev/null 2>&1; then
     echo "ERROR: Node.js is still not available after nvm setup."
@@ -302,19 +431,24 @@ echo "========================================"
 echo "Step 2 Complete: Development tools installed"
 echo "========================================"
 echo ""
+PYTHON_VERSION="not in PATH yet"
+if PYTHON_BIN="$(resolve_python_bin 2>/dev/null)"; then
+    PYTHON_VERSION="$("$PYTHON_BIN" --version 2>/dev/null || echo 'not in PATH yet')"
+fi
+
 echo "Installed tools:"
 echo "  - Node.js (via nvm): $(node --version 2>/dev/null || echo 'not in PATH yet')"
 echo "  - npm: $(npm --version 2>/dev/null || echo 'not in PATH yet')"
-echo "  - Python: $(python3 --version 2>/dev/null || echo 'not in PATH yet')"
+echo "  - Python: $PYTHON_VERSION"
 echo "  - AWS CLI: $(aws --version 2>/dev/null | cut -d' ' -f1 || echo 'not in PATH yet')"
 echo "  - GitHub CLI: $(gh --version 2>/dev/null | head -1 || echo 'not in PATH yet')"
 echo "  - 1Password CLI: $(op --version 2>/dev/null || echo 'not in PATH yet')"
-echo "  - Raycast: $(brew list --cask raycast >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
-echo "  - BetterDisplay: $(brew list --cask betterdisplay >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
-echo "  - Hidden Bar: $(brew list --cask hiddenbar >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
-echo "  - Hammerspoon: $(brew list --cask hammerspoon >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
-echo "  - GitHub Desktop: $(brew list --cask github >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
-echo "  - Obsidian: $(brew list --cask obsidian >/dev/null 2>&1 && echo 'installed' || echo 'not in PATH yet')"
+echo "  - Raycast: $(cask_status raycast)"
+echo "  - BetterDisplay: $(cask_status betterdisplay)"
+echo "  - Hidden Bar: $(cask_status hiddenbar)"
+echo "  - Hammerspoon: $(cask_status hammerspoon)"
+echo "  - GitHub Desktop: $(cask_status github)"
+echo "  - Obsidian: $(cask_status obsidian)"
 echo ""
 echo "Node runtime policy: Homebrew installs nvm; nvm installs and owns Node."
 echo ""

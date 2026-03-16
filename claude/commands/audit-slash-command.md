@@ -17,6 +17,7 @@ This ensures commands follow security, clarity, and effectiveness standards.
 </process>
 
 <success_criteria>
+
 - Subagent invoked successfully
 - Arguments passed correctly to subagent
 </success_criteria>

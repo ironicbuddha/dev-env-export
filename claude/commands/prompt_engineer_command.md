@@ -70,6 +70,7 @@ Create a numbered prompt file (e.g., `001_project_name.md`) with the following X
 ## Questions to Ask (if needed)
 
 Only ask clarifying questions if the request is genuinely unclear about:
+
 - Target platform or technology preferences
 - Scale/complexity expectations
 - Integration requirements
@@ -78,6 +79,7 @@ Only ask clarifying questions if the request is genuinely unclear about:
 ## File Organization
 
 Save the structured prompt as:
+
 - `prompts/001_descriptive_name.md` for the first prompt
 - `prompts/002_descriptive_name.md` for iterations
 - Include the raw user input at the top for reference

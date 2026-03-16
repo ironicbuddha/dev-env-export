@@ -56,7 +56,7 @@ Claude, and 1Password.
 ## Repository Layout
 
 | Path | Purpose |
-|------|---------|
+| ---- | ------- |
 | `scripts/` | bootstrap and setup scripts |
 | `shell/` | zsh configuration |
 | `dotfiles/` | Git, GitHub CLI, AWS, and related user config |
@@ -111,6 +111,16 @@ DEV_ENV_REFRESH_BREW=1 ./scripts/01-install-brew.sh
 The npm steps are designed for `nvm`. If you have old `prefix` or
 `globalconfig` settings in `~/.npmrc`, the bootstrap scripts will remove those
 so Node 22 globals install under the active nvm-managed runtime.
+
+Docker is installed in two pieces on purpose: the `docker` formula provides the
+CLI, and the Docker Desktop cask provides the app bundle. That avoids the
+privileged cask symlink step that can otherwise derail unattended bootstrap
+runs.
+
+If Homebrew refuses to install `bun` because the local Xcode Command Line Tools
+are too old, the bootstrap falls back to the official Bun release binary so the
+machine still lands in a usable state. After a CLT update or reinstall, you can
+switch Bun back to Homebrew ownership if you care about that detail.
 
 This repo keeps Homebrew as the primary machine-level package manager. For
 project-level JavaScript workflows, keep `npm` available but prefer `pnpm` for

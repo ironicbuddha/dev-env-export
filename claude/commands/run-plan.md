@@ -43,6 +43,7 @@ Execute the plan at {{plan_path}} using **intelligent segmentation** for optimal
 3. **Execute based on strategy:**
 
    **3A: Fully Autonomous Execution**
+
    ```
    Spawn Task tool (subagent_type="general-purpose"):
 
@@ -62,6 +63,7 @@ Execute the plan at {{plan_path}} using **intelligent segmentation** for optimal
    ```
 
    **3B: Segmented Execution (verify-only checkpoints)**
+
    ```
    For each segment (autonomous block between checkpoints):
 
@@ -91,6 +93,7 @@ Execute the plan at {{plan_path}} using **intelligent segmentation** for optimal
    ```
 
    **3C: Decision-Dependent Execution**
+
    ```
    Execute in main context:
 
@@ -124,6 +127,7 @@ Execute the plan at {{plan_path}} using **intelligent segmentation** for optimal
 - **Follow execute-phase.md protocol:** Loaded context contains all execution instructions
 
 **Context Efficiency Target:**
+
 - Execution context: ~5-7k tokens (execute-phase.md, summary.md, checkpoints.md if needed)
 - Domain context: ~10-15k tokens (BRIEF, ROADMAP, codebase files)
 - Total overhead: <30% context, reserving 70%+ for workspace and implementation

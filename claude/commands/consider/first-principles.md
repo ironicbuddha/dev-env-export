@@ -19,10 +19,12 @@ Strip away assumptions, conventions, and analogies to identify fundamental truth
 
 <output_format>
 **Current Assumptions:**
+
 - Assumption 1: [challenged: true/false/partially]
 - Assumption 2: [challenged: true/false/partially]
 
 **Fundamental Truths:**
+
 - Truth 1: [why this is irreducible]
 - Truth 2: [why this is irreducible]
 
@@ -34,6 +36,7 @@ Without legacy assumptions, these options emerge...
 </output_format>
 
 <success_criteria>
+
 - Surfaces hidden assumptions
 - Distinguishes convention from necessity
 - Identifies irreducible base truths

@@ -20,11 +20,13 @@ Identify the vital few factors (≈20%) that drive the majority of results (≈8
 
 <output_format>
 **Vital Few (focus here):**
+
 - Factor 1: [why it matters, specific action]
 - Factor 2: [why it matters, specific action]
 - Factor 3: [why it matters, specific action]
 
 **Trivial Many (deprioritize):**
+
 - Brief list of what can be deferred or ignored
 
 **Bottom Line:**
@@ -32,6 +34,7 @@ Single sentence on where to focus effort for maximum results.
 </output_format>
 
 <success_criteria>
+
 - Clearly separates high-impact from low-impact factors
 - Provides specific, actionable recommendations for vital few
 - Explains why each vital factor matters

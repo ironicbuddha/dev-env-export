@@ -19,11 +19,13 @@ Among competing explanations, prefer the one with fewest assumptions. Simplest â
 
 <output_format>
 **Candidate Explanations:**
+
 1. [Explanation]: Requires assumptions [A, B, C]
 2. [Explanation]: Requires assumptions [D, E]
 3. [Explanation]: Requires assumptions [F]
 
 **Evidence Check:**
+
 - Assumption A: [supported/unsupported]
 - Assumption B: [supported/unsupported]
 ...
@@ -36,6 +38,7 @@ Among competing explanations, prefer the one with fewest assumptions. Simplest â
 </output_format>
 
 <success_criteria>
+
 - Enumerates all plausible explanations
 - Makes assumptions explicit and countable
 - Distinguishes supported from unsupported assumptions

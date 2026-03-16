@@ -21,11 +21,13 @@ Instead of asking "How do I succeed?", ask "What would guarantee failure?" then 
 **Goal:** [what success looks like]
 
 **Guaranteed Failure Modes:**
+
 1. [Way to fail]: Avoid by [specific action]
 2. [Way to fail]: Avoid by [specific action]
 3. [Way to fail]: Avoid by [specific action]
 
 **Anti-Goals (Never Do):**
+
 - [Behavior to eliminate]
 - [Behavior to eliminate]
 
@@ -37,6 +39,7 @@ By simply not doing [X, Y, Z], success becomes much more likely because...
 </output_format>
 
 <success_criteria>
+
 - Failure modes are specific and realistic
 - Avoidance strategies are actionable
 - Surfaces risks that optimistic planning misses

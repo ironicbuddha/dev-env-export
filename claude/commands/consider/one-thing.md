@@ -21,6 +21,7 @@ Ask: "What's the ONE thing I can do such that by doing it everything else will b
 **Goal:** [what you're trying to achieve]
 
 **Candidate Actions:**
+
 - Action 1: [downstream effect]
 - Action 2: [downstream effect]
 - Action 3: [downstream effect]
@@ -36,6 +37,7 @@ By doing this, [specific things] become easier or unnecessary because...
 </output_format>
 
 <success_criteria>
+
 - Identifies genuine leverage point, not just important task
 - Shows causal chain (this enables that)
 - Reduces overwhelm to single focus

@@ -22,18 +22,23 @@ Map internal factors (strengths/weaknesses) and external factors (opportunities/
 **Subject:** [what's being analyzed]
 
 **Strengths (Internal +)**
+
 - [Strength]: How to leverage...
 
 **Weaknesses (Internal -)**
+
 - [Weakness]: How to mitigate...
 
 **Opportunities (External +)**
+
 - [Opportunity]: How to capture...
 
 **Threats (External -)**
+
 - [Threat]: How to defend...
 
 **Strategic Moves:**
+
 - **SO Strategy:** Use [strength] to capture [opportunity]
 - **WO Strategy:** Address [weakness] to enable [opportunity]
 - **ST Strategy:** Use [strength] to counter [threat]
@@ -41,6 +46,7 @@ Map internal factors (strengths/weaknesses) and external factors (opportunities/
 </output_format>
 
 <success_criteria>
+
 - Correctly categorizes internal vs. external factors
 - Factors are specific and actionable, not generic
 - Strategies connect multiple quadrants

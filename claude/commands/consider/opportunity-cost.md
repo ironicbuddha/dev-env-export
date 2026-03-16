@@ -21,12 +21,14 @@ Every yes is a no to something else. What's the true cost of this choice?
 **Choice:** [what you're considering doing]
 
 **Resources Required:**
+
 - Time: [hours/days/weeks]
 - Money: [amount]
 - Energy/Attention: [cognitive load]
 - Other: [relationships, reputation, etc.]
 
 **Best Alternative Uses:**
+
 - With that time, could instead: [alternative + value]
 - With that money, could instead: [alternative + value]
 - With that energy, could instead: [alternative + value]
@@ -39,6 +41,7 @@ Choosing this means NOT doing [best alternative], which would have provided [val
 </output_format>
 
 <success_criteria>
+
 - Makes hidden costs explicit
 - Compares to best alternative, not just any alternative
 - Accounts for all resource types (not just money)
