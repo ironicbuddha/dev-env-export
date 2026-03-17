@@ -16,10 +16,17 @@ CLI_TOOLS=(
     awscli
     docker
     gh
+    googleworkspace-cli
 
     # Build tools
     make
     gcc
+
+    # Document and media tooling for AI workflows
+    pandoc
+    poppler
+    tesseract
+    imagemagick
 )
 
 OPTIONAL_CLI_TOOLS=(

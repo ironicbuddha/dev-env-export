@@ -52,6 +52,7 @@ Claude, and 1Password.
 - Homebrew-driven CLI and app installation
 - Git, GitHub CLI, AWS, Claude, Codex, Zed, and Warp baseline config
 - curated MCP server defaults and policy
+- document, PDF, and image tooling for AI-assisted read/write workflows
 - documented secret-handling policy built around 1Password
 - bootstrap scripts for a fresh machine or Parallels VM
 - archived Ubuntu VM artifacts for reference only
@@ -157,6 +158,7 @@ exec zsh
 gh auth login --web --git-protocol https
 gh auth setup-git
 aws configure
+gws auth setup
 codex login
 claude auth login
 ```
@@ -176,6 +178,8 @@ Recommended follow-up:
 - In 1Password, sign in and confirm `op account list` works
 - In GitHub CLI, authenticate with `gh auth login --web --git-protocol https`
   and then run `gh auth setup-git`
+- In Google Workspace CLI, run `gws auth setup` if Workspace automation is part
+  of the current machine workflow
 - In Zed, run `Cmd+Shift+P` and execute `cli: install`
 - In Zed, open `/Users/carlo/dev`, then use the `Restricted Mode` prompt or
   `workspace::ToggleWorktreeSecurity` to trust all projects in that folder
@@ -216,6 +220,8 @@ The framework and hosting stack is documented in
 - git, git-lfs, jq, curl, wget
 - nvm-managed node, npm, corepack, bun
 - python3, uv
+- googleworkspace-cli (`gws`)
+- pandoc, poppler, tesseract, imagemagick
 - codex
 - claude
 - vercel
@@ -254,6 +260,25 @@ The framework and hosting stack is documented in
 
 The review and optional buckets stay visible in the manifest but are not
 installed by default.
+
+## Document Workflow Baseline
+
+This machine baseline now assumes local tooling for common AI-driven document
+work:
+
+- modern Office files: `.docx`, `.xlsx`, `.pptx`
+- PDFs with native text extraction first
+- images with OCR fallback when text extraction fails or is clearly degraded
+
+Default policy:
+
+- prefer native parsers and structural extraction first
+- use PDF text extraction before page-image OCR
+- use OCR only when extraction is empty, badly garbled, or obviously incomplete
+
+The bootstrap installs the local CLI pieces for that path, and the Python
+bootstrap adds the common document libraries used to read and write those file
+types.
 
 ## Package Manager Policy
 

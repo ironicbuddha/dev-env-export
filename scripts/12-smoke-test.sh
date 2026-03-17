@@ -83,6 +83,17 @@ check_cmd() {
     fi
 }
 
+check_python_module() {
+    local module="$1"
+    local label="$2"
+
+    if python3 -c "import $module" >/dev/null 2>&1; then
+        pass "python module present: $label"
+    else
+        fail "python module missing: $label"
+    fi
+}
+
 check_file() {
     local path="$1"
 
@@ -137,6 +148,7 @@ echo "----------"
 
 check_cmd "gh" "gh"
 check_cmd "aws" "aws"
+check_cmd "gws" "gws"
 check_cmd "python3" "python3"
 check_cmd "op" "op"
 check_cmd "codex" "codex"
@@ -147,6 +159,11 @@ check_cmd "npm" "npm"
 check_cmd "uv" "uv"
 check_cmd "bun" "bun"
 check_cmd "docker" "docker"
+check_cmd "pandoc" "pandoc"
+check_cmd "pdftotext" "pdftotext"
+check_cmd "pdftoppm" "pdftoppm"
+check_cmd "tesseract" "tesseract"
+check_cmd "magick" "magick"
 
 if command -v node >/dev/null 2>&1; then
     NODE_PATH="$(command -v node)"
@@ -164,6 +181,23 @@ if command -v npm >/dev/null 2>&1; then
     else
         fail "npm is not coming from nvm -> $NPM_PATH"
     fi
+fi
+
+echo ""
+echo "Python document stack"
+echo "---------------------"
+
+if command -v python3 >/dev/null 2>&1; then
+    check_python_module "docx" "python-docx"
+    check_python_module "openpyxl" "openpyxl"
+    check_python_module "pptx" "python-pptx"
+    check_python_module "pypdf" "pypdf"
+    check_python_module "pdfplumber" "pdfplumber"
+    check_python_module "PIL" "Pillow"
+    check_python_module "pytesseract" "pytesseract"
+    check_python_module "reportlab" "reportlab"
+else
+    fail "python3 missing, cannot verify document-related Python modules"
 fi
 
 echo ""
@@ -198,6 +232,7 @@ echo "-----"
 note "This smoke test checks install state and config placement, not login state."
 note "Zed CLI installation is still a manual follow-up from inside Zed."
 note "If auth flows are still pending, gh/aws/op can exist without being signed in yet."
+note "Document OCR is expected to be a fallback when native extraction or PDF text parsing yields poor results."
 
 echo ""
 if [ "$FAILURES" -eq 0 ]; then

@@ -47,7 +47,10 @@ the target state anymore.
 - Editor: Zed
 - Secrets: 1Password
 - AI tools: Codex CLI/app, Claude CLI/app
-- Supporting CLIs: GitHub CLI, AWS CLI, Node/npm, Python, Docker as needed
+- Supporting CLIs: GitHub CLI, AWS CLI, Google Workspace CLI, Node/npm,
+  Python, Docker as needed
+- Supporting document/media CLIs: Pandoc, Poppler, Tesseract, and ImageMagick
+  for Office, PDF, image, and OCR-heavy workflows
 - Primary dev stack: TypeScript, Python, Next.js, Vite, Tailwind CSS,
   shadcn/ui, Django, Flask, AWS, Vercel
 - Default interaction mode: buddy mode

@@ -98,6 +98,16 @@ PIP_PACKAGES=(
 
     # Concurrency
     greenlet            # Lightweight in-process concurrent programming
+
+    # Document, PDF, and image handling for AI workflows
+    python-docx         # Read and write .docx files
+    openpyxl            # Read and write .xlsx files
+    python-pptx         # Read and write .pptx files
+    pypdf               # Read and assemble PDFs
+    pdfplumber          # Extract structured text from PDFs
+    pillow              # Image loading and preprocessing
+    pytesseract         # OCR wrapper for tesseract
+    reportlab           # Generate PDFs
 )
 
 for package in "${PIP_PACKAGES[@]}"; do

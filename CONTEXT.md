@@ -24,6 +24,8 @@ start.
 - Shell baseline: `zsh`
 - Package management baseline: Homebrew
 - Node runtime baseline: `nvm` installed by Homebrew
+- Google Workspace baseline CLI: `googleworkspace-cli` (`gws`) when Workspace
+  automation is part of the machine workflow
 - JavaScript package-manager stance: keep `npm`, prefer `pnpm` for new
   TypeScript-heavy repos
 - Primary dev languages: TypeScript and Python
@@ -31,6 +33,8 @@ start.
 - Primary backend stack: Django and Flask
 - Primary cloud and hosting targets: AWS and Vercel
 - Supporting package tools expected to matter: `uv`, `bun`, and `vercel`
+- Supporting document/media tools expected to matter: `pandoc`, `poppler`,
+  `tesseract`, and `imagemagick`
 
 ## Repository Goal
 
@@ -63,6 +67,8 @@ a clean macOS/Parallels bootstrap workflow.
 - Setup instructions should match files that actually exist in the repo.
 - Scripts should be safe to rerun and explicit about destructive behavior.
 - Machine-specific secrets should stay outside versioned config.
+- Document workflows should prefer native parsing first and use OCR only as a
+  targeted fallback for bad or missing extraction.
 - New repos should start with a small, explicit lint and format baseline for
   Markdown, CSS, TSX, and Python.
 - 1Password should be treated as the canonical home for `.env` values, API

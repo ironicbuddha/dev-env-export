@@ -17,6 +17,55 @@ workflow also depends on:
 That layer drifts faster than dotfiles do. This file is meant to stop the repo
 from lying about what is actually in use.
 
+## Document And OCR Baseline
+
+The local AI workflow should not assume plain text inputs only. The intended
+baseline now includes support for:
+
+- modern Microsoft Office files: `.docx`, `.xlsx`, `.pptx`
+- PDFs
+- common image formats used for screenshots, scans, or exported pages
+
+Preferred extraction order:
+
+1. native parser for the file type
+2. structural PDF extraction
+3. OCR only when the first two paths fail or produce clearly degraded output
+
+Local baseline tools for this path:
+
+- Homebrew CLIs:
+  - `pandoc`
+  - `poppler` for `pdftotext` and `pdftoppm`
+  - `tesseract`
+  - `imagemagick`
+- Python packages:
+  - `python-docx`
+  - `openpyxl`
+  - `python-pptx`
+  - `pypdf`
+  - `pdfplumber`
+  - `pillow`
+  - `pytesseract`
+  - `reportlab`
+
+Practical policy:
+
+- do not OCR every PDF by default when text extraction already works
+- treat OCR as a recovery path for scans, image-only pages, or mangled output
+- keep the workflow capable of both reading and writing supported formats
+
+## Google Workspace CLI
+
+For Google Workspace automation on this machine, prefer `googleworkspace-cli`
+with the `gws` command rather than ad hoc scripts or stale one-off admin tools.
+
+Baseline usage:
+
+- install via Homebrew as `googleworkspace-cli`
+- run `gws auth setup` during machine follow-up if Workspace automation matters
+- keep local auth state out of Git like every other runtime credential cache
+
 ## Current Local Inventory
 
 Observed on this machine on March 12, 2026.
