@@ -128,6 +128,7 @@ import pathlib
 import re
 import sys
 import tomllib
+from datetime import date, datetime, time
 
 dest_path = pathlib.Path(sys.argv[1])
 src_path = pathlib.Path(sys.argv[2])
@@ -163,6 +164,13 @@ def format_value(value):
         return str(value)
     if isinstance(value, str):
         return json.dumps(value)
+    if isinstance(value, (datetime, date, time)):
+        return value.isoformat()
+    if isinstance(value, dict):
+        items = []
+        for key, item in value.items():
+            items.append(f"{format_key(key)} = {format_value(item)}")
+        return "{ " + ", ".join(items) + " }"
     if isinstance(value, list):
         return "[" + ", ".join(format_value(item) for item in value) + "]"
     raise TypeError(f"Unsupported TOML value: {value!r}")

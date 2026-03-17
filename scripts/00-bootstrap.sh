@@ -11,6 +11,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+MANUAL_ACTION_EXIT=20
 RUN_ID="$(date '+%Y%m%d-%H%M%S')"
 DEFAULT_LOG_DIR="$REPO_ROOT/logs/bootstrap-$RUN_ID"
 LOG_DIR="${DEV_ENV_LOG_DIR:-$DEFAULT_LOG_DIR}"
@@ -19,6 +20,7 @@ STEP_STATUS_FILE="$LOG_DIR/step-status.tsv"
 ENVIRONMENT_FILE="$LOG_DIR/environment.txt"
 BOOTSTRAP_OUTCOME="in_progress"
 FAILED_STEP=""
+LAST_STEP_STATUS=0
 
 STEPS=(
     "01-install-brew.sh"
@@ -128,9 +130,12 @@ run_step() {
     bash "$script_path" 2>&1 | tee -a "$step_log"
     status=${PIPESTATUS[0]}
     set -e
+    LAST_STEP_STATUS="$status"
 
     if [ "$status" -eq 0 ]; then
         record_step_status "$script_name" "ok" "$step_log"
+    elif [ "$status" -eq "$MANUAL_ACTION_EXIT" ]; then
+        record_step_status "$script_name" "manual_action_required($status)" "$step_log"
     else
         record_step_status "$script_name" "failed($status)" "$step_log"
     fi
@@ -162,6 +167,15 @@ fi
 
 for step in "${STEPS[@]}"; do
     if ! run_step "$step"; then
+        if [ "$step" = "02-install-cli-tools.sh" ] && [ "$LAST_STEP_STATUS" -eq "$MANUAL_ACTION_EXIT" ]; then
+            echo ""
+            echo "Manual action required:"
+            echo "  - Finish installing Xcode Command Line Tools."
+            echo "  - Re-run ./scripts/00-bootstrap.sh after the install completes."
+            BOOTSTRAP_OUTCOME="manual_action_required"
+            exit 0
+        fi
+
         BOOTSTRAP_OUTCOME="failed"
         FAILED_STEP="$step"
         exit 1
@@ -170,19 +184,6 @@ for step in "${STEPS[@]}"; do
     case "$step" in
         "01-install-brew.sh"|"02-install-cli-tools.sh")
             load_homebrew
-            ;;
-    esac
-
-    case "$step" in
-        "02-install-cli-tools.sh")
-            if ! xcode-select -p >/dev/null 2>&1; then
-                echo ""
-                echo "Manual action required:"
-                echo "  - Finish installing Xcode Command Line Tools."
-                echo "  - Re-run ./scripts/00-bootstrap.sh after the install completes."
-                BOOTSTRAP_OUTCOME="manual_action_required"
-                exit 0
-            fi
             ;;
     esac
 done

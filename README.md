@@ -152,6 +152,9 @@ To run the steps manually instead:
 ./scripts/08-setup-gemini.sh
 ```
 
+If `./scripts/02-install-cli-tools.sh` prompts for Xcode Command Line Tools,
+stop there, finish that install, and then re-run step 2 before continuing.
+
 ### 3. Complete Manual Setup
 
 ```bash

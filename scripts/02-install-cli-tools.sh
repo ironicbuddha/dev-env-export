@@ -14,6 +14,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 MANIFEST_FILE="$REPO_ROOT/manifest/homebrew-packages.sh"
+MANUAL_ACTION_EXIT=20
 
 load_homebrew() {
     if command -v brew >/dev/null 2>&1; then
@@ -336,8 +337,8 @@ echo "Checking for Xcode Command Line Tools..."
 if ! xcode-select -p &> /dev/null; then
     echo "Installing Xcode Command Line Tools..."
     xcode-select --install
-    echo "Please complete the installation dialog, then re-run this script."
-    exit 0
+    echo "Manual action required: complete the installation dialog, then re-run this script."
+    exit "$MANUAL_ACTION_EXIT"
 else
     echo "  [SKIP] Xcode Command Line Tools already installed"
 fi

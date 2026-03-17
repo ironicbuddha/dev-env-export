@@ -101,11 +101,6 @@ merge_json_with_backup() {
         return
     fi
 
-    backup_target="$(backup_target_for "$dest")"
-    mkdir -p "$(dirname "$backup_target")"
-    cp "$dest" "$backup_target"
-    echo "  [BACKUP] $dest"
-
     tmp_file="$(mktemp)"
     "$PYTHON_BIN" - "$dest" "$src" "$tmp_file" <<'PY'
 import json
@@ -147,6 +142,11 @@ PY
         echo "  [SKIP] $label already includes repo defaults"
         return
     fi
+
+    backup_target="$(backup_target_for "$dest")"
+    mkdir -p "$(dirname "$backup_target")"
+    cp "$dest" "$backup_target"
+    echo "  [BACKUP] $dest"
 
     mv "$tmp_file" "$dest"
     echo "  [MERGE] $label"
