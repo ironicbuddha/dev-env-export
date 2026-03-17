@@ -15,11 +15,31 @@ fi
 # User bin locations
 export PATH="$HOME/.local/bin:$PATH"
 
+# Keep a preferred path entry at the front without accumulating duplicates.
+path_prepend_distinct() {
+    local entry="$1"
+
+    if [ -z "$entry" ]; then
+        return
+    fi
+
+    PATH=":$PATH:"
+    PATH="${PATH//:$entry:/:}"
+    PATH="${PATH#:}"
+    PATH="${PATH%:}"
+
+    if [ -n "$PATH" ]; then
+        export PATH="$entry:$PATH"
+    else
+        export PATH="$entry"
+    fi
+}
+
 # Python shims from Homebrew, if available
 if command -v brew >/dev/null 2>&1; then
     PYTHON_PREFIX="$(brew --prefix python@3.13 2>/dev/null || true)"
     if [ -n "$PYTHON_PREFIX" ] && [ -d "$PYTHON_PREFIX/libexec/bin" ]; then
-        export PATH="$PYTHON_PREFIX/libexec/bin:$PATH"
+        path_prepend_distinct "$PYTHON_PREFIX/libexec/bin"
     fi
     unset PYTHON_PREFIX
 fi
@@ -43,6 +63,17 @@ if command -v brew >/dev/null 2>&1; then
         . "$NVM_PREFIX/etc/bash_completion.d/nvm"
     fi
     unset NVM_PREFIX
+fi
+
+if command -v nvm >/dev/null 2>&1; then
+    if [ "$(nvm version current 2>/dev/null)" = "system" ]; then
+        nvm use --silent default >/dev/null 2>&1 || nvm use --silent 22 >/dev/null 2>&1 || true
+    fi
+
+    if [ -n "${NVM_BIN:-}" ] && [ -d "$NVM_BIN" ]; then
+        path_prepend_distinct "$NVM_BIN"
+        hash -r 2>/dev/null || true
+    fi
 fi
 
 # Prefer Zed as editor when its CLI is installed.

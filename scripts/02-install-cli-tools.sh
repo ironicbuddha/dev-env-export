@@ -123,6 +123,38 @@ load_nvm() {
     return 1
 }
 
+path_prepend_distinct() {
+    local entry="$1"
+
+    if [ -z "$entry" ]; then
+        return
+    fi
+
+    PATH=":$PATH:"
+    PATH="${PATH//:$entry:/:}"
+    PATH="${PATH#:}"
+    PATH="${PATH%:}"
+
+    if [ -n "$PATH" ]; then
+        export PATH="$entry:$PATH"
+    else
+        export PATH="$entry"
+    fi
+}
+
+activate_nvm_node() {
+    if ! nvm use 22 >/dev/null 2>&1 && ! nvm use default >/dev/null 2>&1; then
+        return 1
+    fi
+
+    if [ -n "${NVM_BIN:-}" ] && [ -d "$NVM_BIN" ]; then
+        path_prepend_distinct "$NVM_BIN"
+        hash -r 2>/dev/null || true
+    fi
+
+    return 0
+}
+
 manifest_includes_tool() {
     local wanted="$1"
     local tool=""
@@ -394,7 +426,11 @@ else
 fi
 
 nvm alias default 22 >/dev/null 2>&1 || true
-nvm use 22 >/dev/null 2>&1 || nvm use default >/dev/null 2>&1
+
+if ! activate_nvm_node; then
+    echo "ERROR: Could not activate the nvm-managed Node runtime."
+    exit 1
+fi
 
 if ! command -v node >/dev/null 2>&1; then
     echo "ERROR: Node.js is still not available after nvm setup."

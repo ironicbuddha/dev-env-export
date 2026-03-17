@@ -1,0 +1,18 @@
+{
+  "experimental": {
+    "enableAgents": true
+  },
+  "ui": {
+    "loadingPhrases": "witty",
+    "customWittyPhrases": [
+      "Consulting the digital oracle...",
+      "Unfucking the codebase...",
+      "Reticulating splines...",
+      "Searching for the perfect sarcastic remark...",
+      "Trying to find the semicolon you missed...",
+      "Explaining it again, but with puppets...",
+      "Summoning a more competent AI...",
+      "Making this bastard work..."
+    ]
+  }
+}

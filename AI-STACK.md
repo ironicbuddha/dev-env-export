@@ -10,6 +10,7 @@ workflow also depends on:
 
 - Codex CLI and desktop app
 - Claude Code CLI and desktop app
+- Gemini CLI
 - Zed agent settings and external agents
 - optional GSD runtimes such as `opencode`
 - plugins, skills, hooks, commands, and MCP-aware integrations
@@ -83,9 +84,12 @@ Observed on this machine on March 12, 2026.
   - `multi_agent = true`
   - `default_mode_request_user_input = true`
 - Current local footprint:
-  - 49 installed skills
+  - 54 installed skills under `~/.codex/skills`
+  - 2 additional agent skill packages under `~/.agents/skills`
   - 24 custom agent definition files
   - 14 trusted project entries
+- Repo-owned inventory and vendoring/install policy now lives in
+  `codex/SKILLS.md`
 
 ### Claude Code
 
@@ -120,6 +124,34 @@ Observed on this machine on March 12, 2026.
 - Curated repo policy:
   - tracked settings still enable no plugins by default
   - plugin choices should follow `claude/PLUGIN-MANIFEST.md`
+
+### Gemini CLI
+
+- CLI version: `gemini 0.33.2`
+- Live config paths:
+  - `~/.gemini/settings.json`
+  - `~/.gemini/GEMINI.md`
+  - `~/.agents/skills/`
+- Current tracked repo targets:
+  - `gemini/README.md`
+  - `gemini/GEMINI.md`
+  - `gemini/settings.json`
+  - `scripts/08-setup-gemini.sh`
+- Current local footprint:
+  - 12 local Gemini agent files
+  - 3 Gemini hook files
+  - shared discovery of the `~/.agents/skills` skill root
+- Current live config shape:
+  - `experimental.enableAgents = true`
+  - witty loading phrases enabled
+  - auth mode `oauth-personal`
+  - statusline and hooks already present in the live local setup
+- Repo policy:
+  - track only portable Gemini persona and settings defaults
+  - preserve local hook, auth, and project state instead of mirroring it into
+    Git
+  - use `scripts/08-setup-gemini.sh` to merge repo defaults and maintain shared
+    skill discovery
 
 ### Zed
 
@@ -227,6 +259,7 @@ Track only portable, intentionally recreated defaults:
 
 - sanitized Codex defaults in `codex/`
 - curated Claude settings, commands, and helper scripts in `claude/`
+- curated Gemini persona, settings defaults, and setup docs in `gemini/`
 - curated Zed settings and keymaps in `zed/`
 - Warp launch configurations in `warp/`
 - curated default MCP server manifest and policy in `mcp/`
@@ -240,6 +273,7 @@ the repo:
 
 - Claude plugin inventory
 - Codex skill inventory
+- Gemini hook and agent inventory
 - Zed extension inventory
 - external agent package names and versions
 - optional `opencode` and GSD runtime usage
@@ -264,6 +298,12 @@ Do not track runtime state, auth, or machine trust:
 - `~/.claude/file-history/`
 - `~/.claude/debug/`
 - `~/.claude/backups/`
+- `~/.gemini/google_accounts.json`
+- `~/.gemini/oauth_creds.json`
+- `~/.gemini/state.json`
+- `~/.gemini/projects.json`
+- `~/.gemini/trustedFolders.json`
+- `~/.gemini/installation_id`
 - plugin caches and marketplace cache data
 - Zed databases, crash dumps, and thread state
 
@@ -293,7 +333,8 @@ The right split now is:
 
 ## Recommended Next Additions
 
-- decide whether any Codex skills should be vendored here or only documented
+- recover the source for `load-manifest` and `stage-commit-push` if those two
+  should be vendored into this repo
 - review whether Docker, Figma, or Firecrawl belong in the default MCP set or
   should stay optional
 - decide whether GSD support should stay Claude/Codex-only or also document an

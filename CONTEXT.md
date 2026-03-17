@@ -21,6 +21,7 @@ start.
 - AI coding tools in active use:
   - Codex desktop app / CLI
   - Claude desktop app / CLI
+  - Gemini CLI
 - Shell baseline: `zsh`
 - Package management baseline: Homebrew
 - Node runtime baseline: `nvm` installed by Homebrew
@@ -49,6 +50,7 @@ That means the repo should eventually cover:
 - core CLI installation
 - shell and dotfile setup
 - Codex and Claude configuration
+- Gemini CLI configuration
 - AI tooling inventory and drift control for plugins, skills, agents, and MCP
   adjacent tooling
 - editor and terminal setup for Zed and Warp
@@ -92,7 +94,7 @@ If an agent is deciding how to frame a change, assume:
 - macOS is the target unless explicitly stated otherwise
 - Parallels VMs matter as much as physical machines
 - Zed/Warp are the preferred local editor and terminal defaults
-- Codex and Claude are primary tools, not optional extras
+- Codex, Claude, and Gemini are primary tools, not optional extras
 - older Ubuntu merge docs are reference material only
 - the target dev stack is TypeScript and Python with Next.js, Vite, Tailwind,
   shadcn/ui, Django, Flask, AWS, and Vercel

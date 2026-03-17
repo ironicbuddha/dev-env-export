@@ -59,6 +59,66 @@ load_nvm() {
     return 1
 }
 
+resolve_python_bin() {
+    local brew_prefix=""
+
+    if command -v brew >/dev/null 2>&1; then
+        brew_prefix="$(brew --prefix python@3.13 2>/dev/null || true)"
+        if [ -n "$brew_prefix" ] && [ -x "$brew_prefix/bin/python3.13" ]; then
+            printf '%s\n' "$brew_prefix/bin/python3.13"
+            return
+        fi
+        if [ -n "$brew_prefix" ] && [ -x "$brew_prefix/libexec/bin/python3" ]; then
+            printf '%s\n' "$brew_prefix/libexec/bin/python3"
+            return
+        fi
+    fi
+
+    if command -v python3.13 >/dev/null 2>&1; then
+        command -v python3.13
+        return
+    fi
+
+    if command -v python3 >/dev/null 2>&1; then
+        command -v python3
+        return
+    fi
+
+    return 1
+}
+
+path_prepend_distinct() {
+    local entry="$1"
+
+    if [ -z "$entry" ]; then
+        return
+    fi
+
+    PATH=":$PATH:"
+    PATH="${PATH//:$entry:/:}"
+    PATH="${PATH#:}"
+    PATH="${PATH%:}"
+
+    if [ -n "$PATH" ]; then
+        export PATH="$entry:$PATH"
+    else
+        export PATH="$entry"
+    fi
+}
+
+activate_nvm_node() {
+    if ! nvm use 22 >/dev/null 2>&1 && ! nvm use default >/dev/null 2>&1; then
+        return 1
+    fi
+
+    if [ -n "${NVM_BIN:-}" ] && [ -d "$NVM_BIN" ]; then
+        path_prepend_distinct "$NVM_BIN"
+        hash -r 2>/dev/null || true
+    fi
+
+    return 0
+}
+
 pass() {
     printf '[OK]   %s\n' "$1"
 }
@@ -87,7 +147,7 @@ check_python_module() {
     local module="$1"
     local label="$2"
 
-    if python3 -c "import $module" >/dev/null 2>&1; then
+    if "$PYTHON_BIN" -c "import $module" >/dev/null 2>&1; then
         pass "python module present: $label"
     else
         fail "python module missing: $label"
@@ -135,7 +195,7 @@ if ! load_nvm; then
     fail "nvm could not be loaded"
 else
     pass "nvm loaded"
-    if nvm use 22 >/dev/null 2>&1 || nvm use default >/dev/null 2>&1; then
+    if activate_nvm_node; then
         pass "nvm activated the expected Node runtime"
     else
         fail "nvm could not activate the default or Node 22 runtime"
@@ -148,6 +208,7 @@ echo "----------"
 
 check_cmd "gh" "gh"
 check_cmd "aws" "aws"
+check_cmd "gemini" "gemini"
 check_cmd "gws" "gws"
 check_cmd "python3" "python3"
 check_cmd "op" "op"
@@ -183,11 +244,18 @@ if command -v npm >/dev/null 2>&1; then
     fi
 fi
 
+PYTHON_BIN=""
+if PYTHON_BIN="$(resolve_python_bin 2>/dev/null)"; then
+    pass "baseline python resolved -> $PYTHON_BIN"
+else
+    fail "could not resolve the baseline Python interpreter"
+fi
+
 echo ""
 echo "Python document stack"
 echo "---------------------"
 
-if command -v python3 >/dev/null 2>&1; then
+if [ -n "$PYTHON_BIN" ]; then
     check_python_module "docx" "python-docx"
     check_python_module "openpyxl" "openpyxl"
     check_python_module "pptx" "python-pptx"
@@ -197,7 +265,7 @@ if command -v python3 >/dev/null 2>&1; then
     check_python_module "pytesseract" "pytesseract"
     check_python_module "reportlab" "reportlab"
 else
-    fail "python3 missing, cannot verify document-related Python modules"
+    fail "baseline Python missing, cannot verify document-related Python modules"
 fi
 
 echo ""
@@ -213,6 +281,8 @@ check_file "$HOME/.config/gh/config.yml"
 check_file "$HOME/.codex/config.toml"
 check_file "$HOME/.claude/settings.json"
 check_file "$HOME/.claude/statusline-command.sh"
+check_file "$HOME/.gemini/settings.json"
+check_file "$HOME/.gemini/GEMINI.md"
 check_file "$HOME/Library/Application Support/Zed/settings.json"
 check_file "$HOME/Library/Application Support/Zed/keymap.json"
 check_file "$HOME/.warp/launch_configurations/dev-env-bootstrap.yaml"
@@ -231,7 +301,7 @@ echo "Notes"
 echo "-----"
 note "This smoke test checks install state and config placement, not login state."
 note "Zed CLI installation is still a manual follow-up from inside Zed."
-note "If auth flows are still pending, gh/aws/op can exist without being signed in yet."
+note "If auth flows are still pending, gh/aws/op/gemini can exist without being signed in yet."
 note "Document OCR is expected to be a fallback when native extraction or PDF text parsing yields poor results."
 
 echo ""

@@ -2,7 +2,7 @@
 # =============================================================================
 # 00-bootstrap.sh - Run the Primary Bootstrap Sequence
 # =============================================================================
-# Runs scripts 01 through 07 in order for the main macOS bootstrap flow.
+# Runs scripts 01 through 08 in order for the main macOS bootstrap flow.
 # Stops cleanly if a manual prerequisite such as Xcode Command Line Tools is
 # still pending.
 # =============================================================================
@@ -28,6 +28,7 @@ STEPS=(
     "05-setup-dotfiles.sh"
     "06-setup-claude.sh"
     "07-setup-1password.sh"
+    "08-setup-gemini.sh"
 )
 
 load_homebrew() {
@@ -147,7 +148,7 @@ echo "========================================"
 echo "Dev Environment Bootstrap"
 echo "========================================"
 echo ""
-echo "This will run scripts 01 through 07 in order."
+echo "This will run scripts 01 through 08 in order."
 echo "If macOS prompts for Xcode Command Line Tools, complete that install and"
 echo "then re-run this script."
 echo "Logs for this run will be written to: $LOG_DIR"
@@ -198,6 +199,7 @@ echo "  - exec zsh"
 echo "  - gh auth login --web --git-protocol https"
 echo "  - gh auth setup-git"
 echo "  - aws configure"
+echo "  - launch gemini and complete OAuth if prompted"
 echo "  - gws auth setup"
 echo "  - codex login"
 echo "  - claude auth login"
@@ -209,6 +211,7 @@ echo "  - Use the Restricted Mode prompt or workspace::ToggleWorktreeSecurity"
 echo "  - Trust all projects in the /Users/carlo/dev folder"
 echo ""
 echo "Optional next steps:"
+echo "  - gemini skills list"
 echo "  - ./scripts/08-op-inject-template.sh --help"
 echo "  - ./scripts/09-inventory-ai-tooling.sh"
 echo "  - ./scripts/10-check-paths.sh"

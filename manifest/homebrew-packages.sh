@@ -15,6 +15,7 @@ CLI_TOOLS=(
     # Cloud and infrastructure
     awscli
     docker
+    gemini-cli
     gh
     googleworkspace-cli
 

@@ -123,6 +123,8 @@ fi
 
 CODEX_CONFIG="$HOME_DIR/.codex/config.toml"
 CLAUDE_SETTINGS="$HOME_DIR/.claude/settings.json"
+GEMINI_SETTINGS="$HOME_DIR/.gemini/settings.json"
+GEMINI_PERSONA="$HOME_DIR/.gemini/GEMINI.md"
 ZED_SETTINGS="$HOME_DIR/Library/Application Support/Zed/settings.json"
 ZED_EXTENSIONS="$HOME_DIR/Library/Application Support/Zed/extensions/index.json"
 ZED_EXTERNAL_AGENTS="$HOME_DIR/Library/Application Support/Zed/external_agents"
@@ -170,6 +172,19 @@ PY
 )"
 
 CLAUDE_PLUGIN_COUNT="$(printf '%s\n' "$CLAUDE_PLUGINS" | awk 'NF && $0 != "(none)" {count++} END {print count+0}')"
+
+GEMINI_AUTH_MODE="unknown"
+if [[ -f "$GEMINI_SETTINGS" ]]; then
+    GEMINI_AUTH_MODE="$(python_parse <<'PY'
+import json
+import pathlib
+
+p = pathlib.Path.home() / ".gemini" / "settings.json"
+data = json.loads(p.read_text())
+print((((data.get("security") or {}).get("auth") or {}).get("selectedType")) or "unknown")
+PY
+)"
+fi
 
 ZED_EXT_LIST="$(python_parse <<'PY'
 import json
@@ -231,6 +246,9 @@ OPENCODE_AGENT_COUNT="$(count_files "$OPENCODE_DIR/agents" f)"
 OPENCODE_HOOK_COUNT="$(count_files "$OPENCODE_DIR/hooks" f)"
 CODEX_SKILL_COUNT="$(find "$HOME_DIR/.codex/skills" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')"
 CODEX_AGENT_COUNT="$(count_files "$HOME_DIR/.codex/agents" f)"
+GEMINI_AGENT_COUNT="$(count_files "$HOME_DIR/.gemini/agents" f)"
+GEMINI_HOOK_COUNT="$(count_files "$HOME_DIR/.gemini/hooks" f)"
+GEMINI_SKILL_COUNT="$(find -L "$HOME_DIR/.agents/skills" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')"
 CLAUDE_COMMAND_COUNT="$(count_files "$HOME_DIR/.claude/commands" f)"
 CLAUDE_HOOK_COUNT="$(count_files "$HOME_DIR/.claude/hooks" f)"
 
@@ -244,6 +262,7 @@ emit "## Versions"
 emit ""
 emit "- codex: $(command_version codex codex --version)"
 emit "- claude: $(command_version claude claude --version)"
+emit "- gemini: $(command_version gemini gemini --version)"
 emit "- zed: $(command_version zed zed --version)"
 emit "- op: $(command_version op op --version)"
 emit "- gh: $(command_version gh gh --version)"
@@ -277,6 +296,15 @@ emit "- enabled plugins:"
 while IFS= read -r line; do
     emit "  - $line"
 done <<< "$CLAUDE_PLUGINS"
+emit ""
+emit "## Gemini CLI"
+emit ""
+emit "- settings: $GEMINI_SETTINGS"
+emit "- persona file: $GEMINI_PERSONA"
+emit "- auth mode: $GEMINI_AUTH_MODE"
+emit "- agent files: $GEMINI_AGENT_COUNT"
+emit "- hook files: $GEMINI_HOOK_COUNT"
+emit "- discovered shared skill count: $GEMINI_SKILL_COUNT"
 emit ""
 emit "## Zed"
 emit ""

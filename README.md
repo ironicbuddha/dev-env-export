@@ -8,7 +8,7 @@ the core coding workflow already in place:
 - `zsh` + Homebrew
 - Warp as the primary terminal
 - Zed as the primary editor
-- Codex and Claude desktop/CLI tooling
+- Codex, Claude, and Gemini CLI tooling
 - reusable shell config, dotfiles, tracked app config, and setup scripts
 
 ## Source Of Truth
@@ -44,13 +44,13 @@ Use this repo to provision:
 - a disposable development VM that should still feel like the main workstation
 
 The target experience is a modern macOS setup centered on Zed, Warp, Codex,
-Claude, and 1Password.
+Claude, Gemini, and 1Password.
 
 ## What This Repo Owns
 
 - shell defaults for macOS development
 - Homebrew-driven CLI and app installation
-- Git, GitHub CLI, AWS, Claude, Codex, Zed, and Warp baseline config
+- Git, GitHub CLI, AWS, Claude, Codex, Gemini, Zed, and Warp baseline config
 - curated MCP server defaults and policy
 - document, PDF, and image tooling for AI-assisted read/write workflows
 - documented secret-handling policy built around 1Password
@@ -65,6 +65,7 @@ Claude, and 1Password.
 | `shell/` | zsh configuration |
 | `dotfiles/` | Git, GitHub CLI, AWS, and related user config |
 | `claude/` | Claude settings, commands, helper scripts, and plugin manifest |
+| `gemini/` | Gemini CLI persona, settings defaults, and setup docs |
 | `zed/` | Zed user configuration tracked for bootstrap |
 | `warp/` | Warp launch configurations and related tracked files |
 | `codex/` | Codex CLI configuration tracked for bootstrap |
@@ -98,7 +99,7 @@ chmod +x scripts/*.sh
 ```
 
 If you want to run the primary flow end-to-end, the master bootstrap script
-will execute steps 1 through 7 in order and stop cleanly if macOS still needs
+will execute steps 1 through 8 in order and stop cleanly if macOS still needs
 you to finish Xcode Command Line Tools installation.
 
 Each bootstrap run writes timestamped logs under `logs/bootstrap-*` by default.
@@ -148,6 +149,7 @@ To run the steps manually instead:
 ./scripts/05-setup-dotfiles.sh
 ./scripts/06-setup-claude.sh
 ./scripts/07-setup-1password.sh
+./scripts/08-setup-gemini.sh
 ```
 
 ### 3. Complete Manual Setup
@@ -158,6 +160,7 @@ exec zsh
 gh auth login --web --git-protocol https
 gh auth setup-git
 aws configure
+gemini
 gws auth setup
 codex login
 claude auth login
@@ -165,6 +168,19 @@ claude auth login
 
 Desktop apps such as 1Password, Warp, Zed, Docker, Claude, and Codex may still
 require normal first-launch/login steps.
+
+`gemini` is CLI-only here. Launch it once and complete the OAuth flow if it
+prompts for authentication.
+
+**Warp Agent Mode (Autonomous Operation):**
+
+To allow agents to run commands without constant confirmation:
+
+1. Open Warp Settings (`Cmd + ,`).
+2. Navigate to **AI > Agents > Profiles** and select your active profile.
+3. Set **Executing commands** to **Always allow**.
+4. Review the **Command denylist** and remove essential developer tools like `rsync`, `curl`, `npm`, `vercel`, `docker`, and `rm` to enable full autonomy.
+5. Use `Cmd + Shift + I` in a session to toggle "Run until completion" for a specific task.
 
 Before those auth steps, sign in to 1Password and use it as the source of truth
 for credentials, API keys, and project `.env` values.
@@ -180,6 +196,7 @@ Recommended follow-up:
   and then run `gh auth setup-git`
 - In Google Workspace CLI, run `gws auth setup` if Workspace automation is part
   of the current machine workflow
+- In Gemini CLI, launch `gemini` once and complete OAuth if prompted
 - In Zed, run `Cmd+Shift+P` and execute `cli: install`
 - In Zed, open `/Users/carlo/dev`, then use the `Restricted Mode` prompt or
   `workspace::ToggleWorktreeSecurity` to trust all projects in that folder
@@ -195,8 +212,8 @@ Recommended follow-up:
 These are known non-blocking rough edges, not current show-stoppers:
 
 - `scripts/10-check-paths.sh` is still a lighter check than
-  `scripts/12-smoke-test.sh` and does not yet assert that `node` and `npm` are
-  actually coming from `nvm`
+  `scripts/12-smoke-test.sh`; use the smoke test when you want Python-module
+  coverage and app/config verification too
 - `scripts/09-inventory-ai-tooling.sh` still treats Warp as a version-style
   CLI check even though Warp is mainly an app-first tool in this repo
 - `AI-STACK.md` is still partly a dated snapshot of one machine's observed tool
@@ -220,6 +237,7 @@ The framework and hosting stack is documented in
 - git, git-lfs, jq, curl, wget
 - nvm-managed node, npm, corepack, bun
 - python3, uv
+- gemini-cli (`gemini`)
 - googleworkspace-cli (`gws`)
 - pandoc, poppler, tesseract, imagemagick
 - codex

@@ -73,6 +73,38 @@ load_nvm() {
     return 1
 }
 
+path_prepend_distinct() {
+    local entry="$1"
+
+    if [ -z "$entry" ]; then
+        return
+    fi
+
+    PATH=":$PATH:"
+    PATH="${PATH//:$entry:/:}"
+    PATH="${PATH#:}"
+    PATH="${PATH%:}"
+
+    if [ -n "$PATH" ]; then
+        export PATH="$entry:$PATH"
+    else
+        export PATH="$entry"
+    fi
+}
+
+activate_nvm_node() {
+    if ! nvm use 22 >/dev/null 2>&1 && ! nvm use default >/dev/null 2>&1; then
+        return 1
+    fi
+
+    if [ -n "${NVM_BIN:-}" ] && [ -d "$NVM_BIN" ]; then
+        path_prepend_distinct "$NVM_BIN"
+        hash -r 2>/dev/null || true
+    fi
+
+    return 0
+}
+
 strip_npmrc_conflicts
 
 if ! load_nvm; then
@@ -81,7 +113,11 @@ if ! load_nvm; then
     exit 1
 fi
 
-nvm use 22 >/dev/null 2>&1 || nvm use default >/dev/null 2>&1 || true
+if ! activate_nvm_node; then
+    echo "ERROR: Node.js could not be activated under nvm."
+    echo "       Run 02-install-cli-tools.sh first."
+    exit 1
+fi
 
 # Ensure Node.js is available from nvm after loading it.
 if ! command -v node &> /dev/null; then
