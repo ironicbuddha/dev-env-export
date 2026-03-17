@@ -21,3 +21,23 @@ optional_servers:
     notes: Keep optional unless Docker Desktop MCP tooling is part of the normal local management workflow.
   - name: Neon
     notes: Default for managing PostgreSQL databases and serverless functions.
+  - name: SQLite
+    notes: Default for managing SQLite databases.
+  - name: AWS Core
+    notes: Default for managing AWS resources.
+  - name: NetOps
+    notes: Default for managing network resources.
+  - name: 21st-dev magic-mcp
+    notes: https://github.com/21st-dev/magic-mcp
+  - name: Chrome DevTools
+    notes: Default for browser automation, UI verification, and real workflow checks.
+  - name: Callout
+    notes: Default for identifying over-engineered code or patterns.
+  - name: Excalidraw
+    notes: Default for drawing diagrams and visualizing ideas.
+  - name: Markdownify
+    notes: A Model Context Protocol server for converting almost anything to Markdown.
+  - name: Miro
+    notes: Default for drawing diagrams and visualizing ideas.
+  - name: Obsidian
+    notes: Default for managing notes and knowledge base documents.
