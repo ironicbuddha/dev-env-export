@@ -30,6 +30,8 @@ Use [DEV-STACK.md](/Users/carlo/dev/dev-env-export/DEV-STACK.md) for the
 current language, framework, and hosting stack this machine should support.
 Use [PACKAGE-MANAGERS.md](/Users/carlo/dev/dev-env-export/PACKAGE-MANAGERS.md)
 for the package-manager policy across Homebrew, npm, pnpm, and uv.
+Use [CODE-QUALITY.md](/Users/carlo/dev/dev-env-export/CODE-QUALITY.md) for the
+default linting and formatting baseline new repos should start with.
 Use [AI-STACK.md](/Users/carlo/dev/dev-env-export/AI-STACK.md) for the current
 AI-tooling inventory and tracking policy.
 
@@ -49,6 +51,7 @@ Claude, and 1Password.
 - shell defaults for macOS development
 - Homebrew-driven CLI and app installation
 - Git, GitHub CLI, AWS, Claude, Codex, Zed, and Warp baseline config
+- curated MCP server defaults and policy
 - documented secret-handling policy built around 1Password
 - bootstrap scripts for a fresh machine or Parallels VM
 - archived Ubuntu VM artifacts for reference only
@@ -64,10 +67,13 @@ Claude, and 1Password.
 | `zed/` | Zed user configuration tracked for bootstrap |
 | `warp/` | Warp launch configurations and related tracked files |
 | `codex/` | Codex CLI configuration tracked for bootstrap |
+| `mcp/` | curated default MCP server manifest and policy |
 | `onepassword/` | 1Password CLI usage docs and secret template examples |
+| `templates/` | starter config bundles and reusable repo scaffolds |
 | `manifest/` | install manifests and review buckets for bootstrap tooling |
 | `DEV-STACK.md` | current languages, frameworks, and hosting targets |
 | `PACKAGE-MANAGERS.md` | package-manager policy for machine and project layers |
+| `CODE-QUALITY.md` | default linting and formatting baseline for new repos |
 | `AI-STACK.md` | AI tooling inventory, drift notes, and tracking policy |
 
 ## Quick Start
@@ -115,7 +121,8 @@ so Node 22 globals install under the active nvm-managed runtime.
 Docker is installed in two pieces on purpose: the `docker` formula provides the
 CLI, and the Docker Desktop cask provides the app bundle. That avoids the
 privileged cask symlink step that can otherwise derail unattended bootstrap
-runs.
+runs. Docker Desktop is also the default source and management path for MCP
+servers in this repo.
 
 If Homebrew refuses to install `bun` because the local Xcode Command Line Tools
 are too old, the bootstrap falls back to the official Bun release binary so the
@@ -147,7 +154,8 @@ To run the steps manually instead:
 ```bash
 exec zsh
 
-gh auth login
+gh auth login --web --git-protocol https
+gh auth setup-git
 aws configure
 codex login
 claude auth login
@@ -159,9 +167,15 @@ require normal first-launch/login steps.
 Before those auth steps, sign in to 1Password and use it as the source of truth
 for credentials, API keys, and project `.env` values.
 
+For normal GitHub CLI and agent usage on this machine, prefer browser-based
+`gh auth login` over PAT-based auth. That is enough for basic repo and gist
+operations over HTTPS, and does not require a GitHub App or SSH key.
+
 Recommended follow-up:
 
 - In 1Password, sign in and confirm `op account list` works
+- In GitHub CLI, authenticate with `gh auth login --web --git-protocol https`
+  and then run `gh auth setup-git`
 - In Zed, run `Cmd+Shift+P` and execute `cli: install`
 - In Zed, open `/Users/carlo/dev`, then use the `Restricted Mode` prompt or
   `workspace::ToggleWorktreeSecurity` to trust all projects in that folder

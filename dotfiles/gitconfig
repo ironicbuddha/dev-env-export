@@ -36,7 +36,8 @@
   smudge = git-lfs smudge -- %f
 
 # GitHub credential helpers - uses gh CLI for authentication
-# Note: Run 'gh auth login' on new machine to authenticate
+# Note: Run 'gh auth login --web --git-protocol https' and then
+# 'gh auth setup-git' on a new machine to authenticate.
 [credential "https://github.com"]
   helper =
   helper = !gh auth git-credential

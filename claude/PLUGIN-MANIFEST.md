@@ -46,14 +46,19 @@ for every machine.
 - `feature-dev@claude-plugins-official`
   Potentially useful, but overlaps with strong built-in model behavior and the
   existing command set.
+- `code-simplifier@claude-plugins-official`
+  Worth keeping when you want a deliberate simplification pass on noisy or
+  overcomplicated code without treating it as a universal default.
+- `ccstatusline`
+  Useful if you want a packaged Claude Code statusline tool instead of
+  maintaining a custom shell-script formatter by hand. Keep it optional because
+  this repo already tracks `claude/statusline-command.sh`.
 
 ## Hold Or Drop
 
 Installed locally at some point, but not strong candidates for the curated
 baseline until they prove they earn their keep.
 
-- `code-simplifier@claude-plugins-official`
-  Feels redundant unless it demonstrates a concrete advantage in real work.
 - `ralph-loop@claude-plugins-official`
   Interesting, but not clearly part of the daily workflow.
 - `superpowers@claude-plugins-official`
@@ -87,6 +92,10 @@ Some plugins only make sense when their adjacent tools or credentials exist:
   Works best when browser tooling is actually installed.
 - `context7@claude-plugins-official`
   No special secret burden, so it is one of the safest defaults.
+- `ccstatusline`
+  No special secret burden, but it overlaps with the repo's tracked statusline
+  script, so pick one statusline path on purpose instead of stacking both by
+  accident.
 
 ## Repo Policy
 

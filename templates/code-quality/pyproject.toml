@@ -1,0 +1,21 @@
+[dependency-groups]
+dev = [
+  "ruff>=0.11.0,<0.12.0",
+]
+
+[tool.ruff]
+line-length = 100
+extend-exclude = [
+  "dist",
+  "build",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+
+[tool.ruff.format]
+docstring-code-format = true

@@ -63,9 +63,12 @@ Legacy Ubuntu-specific material belongs in history, not in the active setup.
 - `zed/`: tracked Zed user settings and keybindings
 - `warp/`: tracked Warp launch configurations
 - `codex/`: tracked Codex CLI defaults
+- `mcp/`: curated default MCP server manifest and policy
 - `onepassword/`: 1Password CLI usage docs and secret template examples
+- `templates/`: starter config bundles and reusable repo scaffolds
 - `DEV-STACK.md`: current language, framework, and hosting targets
 - `PACKAGE-MANAGERS.md`: machine and project package-manager policy
+- `CODE-QUALITY.md`: default linting and formatting baseline for new repos
 - `AI-STACK.md`: current AI-tooling inventory and Git-tracking policy
 - `PERSONALITY.md`: default interaction style and mode switch rules
 - `HISTORICAL.md`: guide to removed legacy material recoverable from Git history
@@ -81,6 +84,8 @@ Legacy Ubuntu-specific material belongs in history, not in the active setup.
   `Heaven's No`, which switches to serious mode.
 - If a tool has drifted out of active use, mark it as legacy instead of quietly
   treating it as current.
+- Prefer repo-local lint and format defaults in new repos, especially for
+  Markdown, CSS, TSX, and Python.
 - If you introduce a new primary tool, update both `AGENTS.md` and
   `CONTEXT.md`.
 

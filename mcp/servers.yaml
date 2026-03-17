@@ -1,0 +1,23 @@
+source: docker-library
+
+default_servers:
+  - name: context7
+    notes: Current docs and API reference lookups. High value and low setup drama.
+  - name: github
+    notes: Worth carrying by default because GitHub repo, PR, and issue work is part of the normal workflow.
+  - name: playwright
+    notes: Strong default for browser automation, UI verification, and real workflow checks.
+  - name: Sequential Thinking
+    notes: Default reasoning aid for tasks that benefit from explicit decomposition, stepwise planning, or deliberate multi-step analysis.
+  - name: Vercel
+    notes: Default for deploying and managing web applications.
+
+optional_servers:
+  - name: figma
+    notes: Keep optional unless design-to-code work is active enough to justify it.
+  - name: firecrawl
+    notes: Keep optional unless web extraction or crawling is part of the active stack and the API key is already in place.
+  - name: docker
+    notes: Keep optional unless Docker Desktop MCP tooling is part of the normal local management workflow.
+  - name: Neon
+    notes: Default for managing PostgreSQL databases and serverless functions.

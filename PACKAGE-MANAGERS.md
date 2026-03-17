@@ -104,6 +104,24 @@ Keep global CLI installs simple:
 That keeps the machine bootstrap stable and avoids turning package-manager
 preferences into a global-runtime mess.
 
+## Repo Quality Tooling Policy
+
+Do not confuse repo quality tooling with machine bootstrap tooling.
+
+Default rule:
+
+- install lint and format tooling in the repo, not globally
+
+For the current stack, new repos should usually start with:
+
+- `prettier`
+- `markdownlint-cli2`
+- `eslint`
+- `stylelint`
+- `ruff`
+
+See `CODE-QUALITY.md` for the repo-level baseline and when to use each tool.
+
 ## Practical Defaults
 
 Use these defaults unless a project gives you a good reason not to:

@@ -1,7 +1,8 @@
 # GitHub CLI Configuration
 # Place at: ~/.config/gh/config.yml
 #
-# IMPORTANT: Run 'gh auth login' on new machine to authenticate
+# IMPORTANT: Run 'gh auth login --web --git-protocol https' and then
+# 'gh auth setup-git' on a new machine to authenticate and wire up HTTPS git.
 
 # The current version of the config schema
 version: 1

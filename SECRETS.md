@@ -49,8 +49,10 @@ On a fresh machine or Parallels VM:
 Examples:
 
 - use 1Password-held AWS credentials with `aws configure`
-- use 1Password-held GitHub credentials or token material for `gh auth login`
-- use 1Password-held API keys when creating local project `.env` files
+- use browser-based `gh auth login --web --git-protocol https` for normal GitHub CLI access
+- keep a GitHub PAT in 1Password only if you need headless or token-based auth later
+- use 1Password-held API keys when creating local project `.env` files, including
+  provider-specific entries such as OpenAI, Anthropic, Firecrawl, or `21st.dev Agents`
 - use 1Password-held app credentials for Codex, Claude, and other tools as needed
 
 ## Preferred CLI Usage

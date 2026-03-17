@@ -63,6 +63,8 @@ a clean macOS/Parallels bootstrap workflow.
 - Setup instructions should match files that actually exist in the repo.
 - Scripts should be safe to rerun and explicit about destructive behavior.
 - Machine-specific secrets should stay outside versioned config.
+- New repos should start with a small, explicit lint and format baseline for
+  Markdown, CSS, TSX, and Python.
 - 1Password should be treated as the canonical home for `.env` values, API
   keys, AWS credentials, GitHub credentials, and similar secrets.
 - The default interaction style should feel lively and informal unless the user

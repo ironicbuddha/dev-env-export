@@ -114,6 +114,12 @@ Observed on this machine on March 12, 2026.
   `gsd-build/get-shit-done`, not as a required base-machine tool.
 - This repo does not currently track `opencode`, but it is a legitimate
   candidate for optional GSD workflow support.
+- `21st.dev Agents` should be treated similarly: an optional app-level agent
+  infrastructure tool in the broader AI chain, not a required machine bootstrap
+  dependency.
+- If it remains in active use, track the 1Password item name and env var
+  convention here, but do not try to mirror runtime credentials or dashboard
+  state into Git.
 
 ### GSD Workflow Position
 
@@ -128,9 +134,11 @@ Observed on this machine on March 12, 2026.
 These provider credentials are currently expected to live in 1Password and be
 represented in the repo's secret scaffolding and checklist:
 
-- `openai / api credential`
-- `anthropic / api credential`
-- `google / gemini api key`
+- `openai - api credential`
+- `anthropic - api credential`
+- `firecrawl - api credential`
+- `21st - agents api credential`
+- `google - gemini api key`
 - `google stitch - api credential`
 
 Track the item names and guidance in Git. Keep the actual values out of Git.
@@ -172,6 +180,7 @@ Track only portable, intentionally recreated defaults:
 - curated Claude settings, commands, and helper scripts in `claude/`
 - curated Zed settings and keymaps in `zed/`
 - Warp launch configurations in `warp/`
+- curated default MCP server manifest and policy in `mcp/`
 - 1Password-backed secret patterns and templates
 - docs that explain the intended AI workflow and how to rebuild it
 
@@ -185,7 +194,7 @@ the repo:
 - Zed extension inventory
 - external agent package names and versions
 - optional `opencode` and GSD runtime usage
-- MCP servers, once there is a deliberate list worth keeping
+- live MCP inventories beyond the curated defaults tracked in `mcp/`
 
 These are good candidates for inventory scripts and Markdown docs. They are bad
 candidates for naive directory copies.
@@ -214,27 +223,30 @@ decision, it probably does not belong in this repo.
 
 ## MCP Status
 
-This machine is clearly using MCP-aware tooling, but the configuration is not
-yet represented in one clean tracked place.
+This machine is clearly using MCP-aware tooling, and the repo now carries a
+curated default MCP manifest in `mcp/servers.yaml`.
 
 Current signals:
 
 - Claude has `context7` and other plugin integrations enabled
 - Zed has external agent packages installed for Codex and Claude
 - `opencode` includes Context7-oriented guidance in its GSD workflows
+- Docker Desktop is part of the machine baseline and is now the default source
+  and management path for MCP servers
+- the default server list now explicitly includes Sequential Thinking as part of
+  the baseline reasoning/tooling layer
 
-What is missing is a deliberate, versioned MCP manifest for this repo.
-
-Until that exists, the right move is:
+The right split now is:
 
 1. inventory the live setup
-2. decide which servers are actually worth carrying to every new machine
-3. add a curated `mcp/` or `ai/` area only after that list is intentional
+2. keep the always-install baseline in `mcp/servers.yaml`
+3. document live extras only when they prove they belong in the curated set
 
 ## Recommended Next Additions
 
 - decide whether any Codex skills should be vendored here or only documented
-- add a small `mcp/README.md` once the always-install server list is clear
+- review whether Docker, Figma, or Firecrawl belong in the default MCP set or
+  should stay optional
 - decide whether GSD support should stay Claude/Codex-only or also document an
   optional OpenCode path
 - run the inventory script after each major toolchain change to catch drift

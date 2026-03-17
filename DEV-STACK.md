@@ -38,6 +38,8 @@ The bootstrap should stay friendly to this stack by default:
 - `bun` available for modern JS or TS workflows where it is the better fit
 - strong Python support for Django and Flask work
 - `uv` available as a fast Python package and environment tool
+- new repos should start with a basic lint and format baseline for Markdown,
+  CSS, TSX, and Python
 - good editor and agent support for both TS and Python
 - AWS CLI and related auth flows treated as first-class
 - Vercel support kept available where it still matches real usage

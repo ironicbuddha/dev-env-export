@@ -47,26 +47,41 @@ Create missing item stubs in a vault from the repo manifest:
 Typical secret references look like:
 
 ```text
-op://Private/openai / api credential/api key
-op://Private/github / personal access token/personal access token
+op://Private/openai - api credential/api key
+op://Private/firecrawl - api credential/api key
+op://Private/github - personal access token/personal access token
+op://Private/21st - agents api credential/api key
 ```
 
 Or, when used in templates with variables:
 
 ```text
-op://${VAULT:-Private}/openai / api credential/api key
+op://${VAULT:-Private}/openai - api credential/api key
+op://${VAULT:-Private}/firecrawl - api credential/api key
+op://${VAULT:-Private}/21st - agents api credential/api key
 ```
 
 Current repo convention:
 
 - item titles should match `onepassword/stubs/core.tsv` exactly
+- do not use `/` in item titles because 1Password secret references parse `/`
+  as a path separator
 - field names in secret references should match the actual 1Password field labels exactly
-- the example template currently expects these fields:
-  - `openai / api credential` -> `api key`
-  - `anthropic / api credential` -> `api key`
-  - `github / personal access token` -> `personal access token`
-  - `aws / main account` -> `access key id`
-  - `aws / main account` -> `secret access key`
+- common field mappings in the repo docs and templates include:
+  - `openai - api credential` -> `api key`
+  - `anthropic - api credential` -> `api key`
+  - `firecrawl - api credential` -> `api key`
+    when a project uses `FIRECRAWL_API_KEY`
+  - `21st - agents api credential` -> `api key`
+    when a project uses `AN_API_KEY`
+  - `github - personal access token` -> `personal access token`
+  - `aws - main account` -> `access key id`
+  - `aws - main account` -> `secret access key`
+
+For GitHub specifically, that PAT item is optional. The repo's default machine
+bootstrap path uses `gh auth login --web --git-protocol https` plus
+`gh auth setup-git`, which is enough for normal repo and gist work without a
+PAT or GitHub App.
 
 See `onepassword/examples/project.env.tpl` for a practical example.
 See `onepassword/stubs/core.tsv` for the default item-stub scaffold.

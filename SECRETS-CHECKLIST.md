@@ -23,9 +23,14 @@ Start with these before anything else:
 
 ### GitHub
 
-Recommended 1Password item:
+Recommended bootstrap auth path:
 
-- `github / personal access token`
+- `gh auth login --web --git-protocol https`
+- `gh auth setup-git`
+
+Optional 1Password item:
+
+- `github - personal access token`
 
 Suggested fields:
 
@@ -38,15 +43,18 @@ Suggested fields:
 
 Notes:
 
-- `gh auth login` is part of the bootstrap follow-up flow.
+- For normal `gh` CLI use on this machine, prefer browser-based auth over HTTPS.
+- That is enough for basic repo and gist operations and does not require a
+  GitHub App or SSH key.
+- Keep a PAT only if you want headless or token-based auth later.
 - If you use fine-grained tokens, store one item per purpose instead of
   cramming them all into one blob.
 
 Where to get it:
 
 - Username and email come from your existing GitHub account.
-- Create a PAT in GitHub account settings under developer or personal access
-  token controls.
+- PATs come from GitHub account settings under developer or personal access
+  token controls, but they are optional for the normal bootstrap path.
 - Recovery codes come from GitHub account security settings if 2FA is enabled.
 - If you already authenticate successfully with GitHub elsewhere, treat that as
   a hint that the token or account already exists and should be recovered, not
@@ -56,7 +64,7 @@ Where to get it:
 
 Recommended 1Password item:
 
-- `aws / main account`
+- `aws - main account`
 
 Suggested fields:
 
@@ -88,7 +96,7 @@ Where to get it:
 
 Recommended 1Password item:
 
-- `openai / api credential`
+- `openai - api credential`
 
 Suggested fields:
 
@@ -108,7 +116,7 @@ Where to get it:
 
 Recommended 1Password item:
 
-- `anthropic / api credential`
+- `anthropic - api credential`
 
 Suggested fields:
 
@@ -124,13 +132,55 @@ Where to get it:
 - As with OpenAI, recover existing working credentials before spraying new ones
   everywhere.
 
+### Firecrawl
+
+Recommended 1Password item:
+
+- `firecrawl - api credential`
+
+Suggested fields:
+
+- api key
+- team or account notes
+- usage notes
+
+Where to get it:
+
+- Create the key in the Firecrawl dashboard for the account or team that
+  actually owns the usage.
+- Store the team or account context with the key so it stays attached to the
+  right billing owner later.
+- If you already have a working key in another machine or project setup,
+  recover it before minting a duplicate.
+
+### 21st.dev Agents
+
+Recommended 1Password item:
+
+- `21st - agents api credential`
+
+Suggested fields:
+
+- api key
+- team slug or team notes
+- usage notes
+
+Where to get it:
+
+- Create the key in the `21st.dev` dashboard for the team that actually owns
+  the agent usage.
+- Store the team context with the key so `AN_API_KEY` is not detached from the
+  correct workspace or billing owner later.
+- If you already have a working key in another machine or project setup,
+  recover it before creating another one for no reason.
+
 ## Access And Identity
 
 ### SSH
 
 Recommended 1Password item:
 
-- `ssh / primary developer key`
+- `ssh - primary developer key`
 
 Suggested fields:
 
@@ -159,10 +209,10 @@ Where to get it:
 
 Recommended 1Password items:
 
-- `recovery / github`
-- `recovery / aws`
-- `recovery / openai`
-- `recovery / anthropic`
+- `recovery - github`
+- `recovery - aws`
+- `recovery - openai`
+- `recovery - anthropic`
 
 Suggested fields:
 
@@ -186,7 +236,7 @@ Create these as needed based on what you actually use:
 
 Recommended item:
 
-- `vercel / personal token`
+- `vercel - personal token`
 
 Suggested fields:
 
@@ -206,7 +256,7 @@ Where to get it:
 
 Recommended item:
 
-- `npm / automation token`
+- `npm - automation token`
 
 Suggested fields:
 
@@ -261,7 +311,7 @@ Where to get it:
 
 Recommended item:
 
-- `figma / personal access token`
+- `figma - personal access token`
 
 Suggested fields:
 
@@ -279,7 +329,7 @@ Where to get it:
 
 Recommended item:
 
-- `google / gemini api key`
+- `google - gemini api key`
 
 Suggested fields:
 
@@ -317,9 +367,9 @@ Where to get it:
 
 For each active project, create separate items per environment:
 
-- `project-name / local env`
-- `project-name / staging env`
-- `project-name / production env`
+- `project-name - local env`
+- `project-name - staging env`
+- `project-name - production env`
 
 Suggested fields:
 
@@ -372,29 +422,34 @@ Where to get it:
 
 Keep names boring and predictable:
 
-- `provider / credential type`
-- `provider / environment`
-- `project-name / local env`
-- `project-name / production env`
+- Avoid `/` in item titles. 1Password secret references treat `/` as a path
+  separator and the parser gets bent out of shape.
+- `provider - credential type`
+- `provider - environment`
+- `project-name - local env`
+- `project-name - production env`
 
 Examples:
 
-- `github / personal access token`
-- `aws / main account`
-- `openai / api credential`
-- `anthropic / api credential`
-- `google / gemini api key`
+- `github - personal access token`
+- `aws - main account`
+- `openai - api credential`
+- `anthropic - api credential`
+- `firecrawl - api credential`
+- `21st - agents api credential`
+- `google - gemini api key`
 - `google stitch - api credential`
-- `vercel / personal token`
-- `figma / personal access token`
-- `my-app / local env`
-- `my-app / production env`
+- `vercel - personal token`
+- `figma - personal access token`
+- `my-app - local env`
+- `my-app - production env`
 
 ## Repo Alignment
 
 This checklist matches the current bootstrap flow in this repo:
 
-- `gh auth login`
+- `gh auth login --web --git-protocol https`
+- `gh auth setup-git`
 - `aws configure`
 - `codex login`
 - `claude auth login`
