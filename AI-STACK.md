@@ -11,8 +11,9 @@ workflow also depends on:
 - Codex CLI and desktop app
 - Claude Code CLI and desktop app
 - Gemini CLI
+- GSD v2 standalone CLI
 - Zed agent settings and external agents
-- optional GSD runtimes such as `opencode`
+- optional legacy or experimental agent runtimes such as `opencode`
 - plugins, skills, hooks, commands, and MCP-aware integrations
 
 That layer drifts faster than dotfiles do. This file is meant to stop the repo
@@ -69,31 +70,50 @@ Baseline usage:
 
 ## Current Local Inventory
 
-Observed on this machine on March 12, 2026.
+Observed on this machine on March 18, 2026.
 
 ### Codex
 
-- CLI version: `codex-cli 0.114.0`
+- CLI version: `codex-cli 0.115.0`
 - Live config path: `~/.codex/config.toml`
 - Current tracked repo target: `codex/config.toml`
 - Live config shape:
   - model `gpt-5.4`
-  - reasoning `high`
+  - reasoning `xhigh`
   - approval `never`
   - sandbox `danger-full-access`
   - `multi_agent = true`
   - `default_mode_request_user_input = true`
 - Current local footprint:
-  - 54 installed skills under `~/.codex/skills`
+  - 55 installed skills under `~/.codex/skills`
   - 2 additional agent skill packages under `~/.agents/skills`
   - 24 custom agent definition files
-  - 14 trusted project entries
+  - 20 trusted project entries
 - Repo-owned inventory and vendoring/install policy now lives in
   `codex/SKILLS.md`
 
+### GSD v2
+
+- CLI version: `gsd 2.28.0`
+- Install package: `gsd-pi`
+- Command names:
+  - `gsd`
+  - `gsd-cli`
+- Global preferences path: `~/.gsd/preferences.md`
+- Global tool-auth path: `~/.gsd/agent/auth.json`
+- Current repo policy:
+  - treat GSD v2 as the primary GSD workflow path on this machine
+  - install it as an npm global under the active `nvm` Node runtime
+  - keep provider and tool credentials out of Git
+  - use `/gsd migrate` inside GSD when upgrading old `.planning` projects to
+    the `.gsd/` format
+- Shell note:
+  - oh-my-zsh's git plugin aliases `gsd` to `git svn dcommit`
+  - the tracked `shell/zshrc` explicitly removes that alias so the CLI wins
+
 ### Claude Code
 
-- CLI version: `claude 2.1.73`
+- CLI version: `claude 2.1.77`
 - Live config path: `~/.claude/settings.json`
 - Current tracked repo targets:
   - `claude/settings/settings.json`
@@ -147,11 +167,9 @@ Observed on this machine on March 12, 2026.
   - auth mode `oauth-personal`
   - statusline and hooks already present in the live local setup
 - Repo policy:
-  - track only portable Gemini persona and settings defaults
-  - preserve local hook, auth, and project state instead of mirroring it into
-    Git
-  - use `scripts/08-setup-gemini.sh` to merge repo defaults and maintain shared
-    skill discovery
+  - track portable Gemini persona and settings defaults
+  - preserve local hook, auth, and project state instead of mirroring it into Git
+  - use `scripts/08-setup-gemini.sh` to merge repo defaults and maintain shared skill discovery
 
 ### Zed
 
@@ -191,8 +209,8 @@ Observed on this machine on March 12, 2026.
   - GSD agent definitions
   - hooks and statusline helpers
   - permission config allowing access to its own GSD bundle
-- Treat `opencode` as an optional runtime for
-  `gsd-build/get-shit-done`, not as a required base-machine tool.
+- Treat `opencode` as an optional runtime or experimental agent layer, not as a
+  required base-machine tool.
 - This repo does not currently track `opencode`, but it is a legitimate
   candidate for optional GSD workflow support.
 - `21st.dev Agents` should be treated similarly: an optional app-level agent
@@ -204,11 +222,15 @@ Observed on this machine on March 12, 2026.
 
 ### GSD Workflow Position
 
-- `get-shit-done` is compatible with multiple runtimes, including Claude,
-  Codex, and OpenCode.
-- For this repo, Claude and Codex remain the primary AI runtimes.
-- OpenCode should be treated as optional experimentation or future GSD support,
-  not as a required baseline dependency.
+- GSD v2 is now the primary GSD path for this machine.
+- The preferred workflow is the standalone `gsd` / `gsd-cli` binary from the
+  `gsd-pi` npm package.
+- Older `get-shit-done` prompt-framework runtimes under Claude, Gemini, Codex,
+  or OpenCode should be treated as legacy reference material or optional
+  experimentation, not as the main bootstrap baseline.
+- Claude, Codex, and Gemini remain the primary AI runtimes that Carlo uses day
+  to day; GSD v2 sits on top as an orchestration layer when that workflow is
+  needed.
 
 ## AI Provider Credentials In Scope
 
@@ -273,10 +295,10 @@ the repo:
 
 - Claude plugin inventory
 - Codex skill inventory
-- Gemini hook and agent inventory
+- Gemini agent inventory beyond the curated tracked baseline settings
 - Zed extension inventory
 - external agent package names and versions
-- optional `opencode` and GSD runtime usage
+- optional legacy `opencode` and non-primary GSD runtime usage
 - live MCP inventories beyond the curated defaults tracked in `mcp/`
 
 These are good candidates for inventory scripts and Markdown docs. They are bad
@@ -337,8 +359,8 @@ The right split now is:
   should be vendored into this repo
 - review whether Docker, Figma, or Firecrawl belong in the default MCP set or
   should stay optional
-- decide whether GSD support should stay Claude/Codex-only or also document an
-  optional OpenCode path
+- decide whether the optional OpenCode path is still worth documenting now that
+  GSD v2 is the primary standalone workflow
 - run the inventory script after each major toolchain change to catch drift
 
 ## Inventory Script
@@ -350,6 +372,6 @@ Use the repo helper to snapshot the current AI-tooling layer:
 ./scripts/09-inventory-ai-tooling.sh --out-file AI-INVENTORY.local.md
 ```
 
-The script reports versions, counts, and non-secret inventories for Codex,
-Claude, Zed, and adjacent tools. It is meant for audits, not for syncing
-runtime state into Git.
+The script reports versions, counts, and non-secret inventories for GSD,
+Codex, Claude, Zed, and adjacent tools. It is meant for audits, not for
+syncing runtime state into Git.

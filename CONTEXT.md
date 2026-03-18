@@ -22,6 +22,7 @@ start.
   - Codex desktop app / CLI
   - Claude desktop app / CLI
   - Gemini CLI
+  - GSD v2 CLI (`gsd` via `gsd-pi`)
 - Shell baseline: `zsh`
 - Package management baseline: Homebrew
 - Node runtime baseline: `nvm` installed by Homebrew
@@ -51,6 +52,7 @@ That means the repo should eventually cover:
 - shell and dotfile setup
 - Codex and Claude configuration
 - Gemini CLI configuration
+- GSD v2 CLI installation and first-run guidance
 - AI tooling inventory and drift control for plugins, skills, agents, and MCP
   adjacent tooling
 - editor and terminal setup for Zed and Warp
@@ -95,6 +97,7 @@ If an agent is deciding how to frame a change, assume:
 - Parallels VMs matter as much as physical machines
 - Zed/Warp are the preferred local editor and terminal defaults
 - Codex, Claude, and Gemini are primary tools, not optional extras
+- GSD v2 is the current standalone orchestration layer when GSD workflows are needed
 - older Ubuntu merge docs are reference material only
 - the target dev stack is TypeScript and Python with Next.js, Vite, Tailwind,
   shadcn/ui, Django, Flask, AWS, and Vercel

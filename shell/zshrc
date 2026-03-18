@@ -56,6 +56,10 @@ if [ -s "$ZSH/oh-my-zsh.sh" ]; then
     source "$ZSH/oh-my-zsh.sh"
 fi
 
+# The oh-my-zsh git plugin aliases `gsd` to `git svn dcommit`.
+# Drop that alias so the GSD v2 CLI binary wins in interactive shells.
+unalias gsd 2>/dev/null || true
+
 # nvm
 export NVM_DIR="$HOME/.nvm"
 if command -v brew >/dev/null 2>&1; then

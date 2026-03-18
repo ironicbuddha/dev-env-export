@@ -41,13 +41,13 @@ When stdout is a TTY, the helper also adds color:
 Pretty output:
 
 ```text
-[mdl gpt-5.4/high] [git dev-env-export:main] [ws d3/s1/normal] [sbx danger] [ask never] [mcp 0] [ma on] [task skills-doc] [check md:clean]
+[mdl gpt-5.4/xhigh] [git dev-env-export:main] [ws d3/s1/normal] [sbx danger] [ask never] [mcp 0] [ma on] [task skills-doc] [check md:clean]
 ```
 
 Compact output:
 
 ```text
-dev-env-export:main d3/s1/normal gpt-5.4/high sbx:danger ask:never mcp:0 ma:on task:skills-doc check:md:clean
+dev-env-export:main d3/s1/normal gpt-5.4/xhigh sbx:danger ask:never mcp:0 ma:on task:skills-doc check:md:clean
 ```
 
 ## Fields

@@ -13,8 +13,8 @@ Notes:
 - Do not commit OAuth tokens, account caches, session state, project state, or
   trust decisions from `~/.gemini`.
 - `scripts/08-setup-gemini.sh` is the repo-managed setup step that applies
-  these defaults and preserves existing local Gemini hook and statusline config
-  when practical.
+  these defaults and preserves existing local auth and runtime state when
+  practical.
 - Shared agent skills currently resolve through `~/.agents/skills`, which lets
   Gemini discover the same skill set linked for the rest of the local agent
   tooling layer.

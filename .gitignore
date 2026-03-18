@@ -2,6 +2,7 @@
 env/
 *.env
 *.env.*
+!onepassword/examples/*.env.tpl
 .credentials.json
 *credentials*
 secrets-export.txt

@@ -1,11 +1,11 @@
 # Working Memory
 
-Last updated: 2026-03-17
+Last updated: 2026-03-18
 
 ## Current State
 
 - The repo is aligned around a macOS bootstrap flow with Homebrew, `nvm`,
-  Warp, Zed, Codex, Claude, Docker Desktop, and 1Password.
+  Warp, Zed, Codex, Claude, Gemini, GSD v2, Docker Desktop, and 1Password.
 - The machine-level bootstrap logic was already hardened earlier in this work:
   nvm-first Node handling, Docker split install, Bun fallback, and better rerun
   behavior.
@@ -28,33 +28,29 @@ changes below are newer local work and are not committed yet.
 
 Current tracked modifications:
 
+- `.gitignore`
 - `AGENTS.md`
 - `AI-STACK.md`
 - `CONTEXT.md`
-- `DEV-STACK.md`
-- `PACKAGE-MANAGERS.md`
 - `README.md`
-- `SECRETS-CHECKLIST.md`
-- `SECRETS.md`
-- `claude/PLUGIN-MANIFEST.md`
-- `dotfiles/gh-config.yml`
-- `dotfiles/gitconfig`
-- `onepassword/README.md`
-- `onepassword/stubs/core.tsv`
-- `scripts/00-bootstrap.sh`
+- `codex/STATUSLINE.md`
+- `codex/config.toml`
+- `gemini/README.md`
+- `scripts/03-install-npm-globals.sh`
+- `scripts/09-inventory-ai-tooling.sh`
+- `scripts/10-check-paths.sh`
+- `scripts/12-smoke-test.sh`
+- `shell/zshrc`
 
 Current untracked additions:
 
-- `CODE-QUALITY.md`
-- `mcp/README.md`
-- `mcp/servers.yaml`
-- `templates/code-quality/`
+- `onepassword/examples/project.env.tpl`
 
 Note:
 
-- `onepassword/examples/project.env.tpl` was updated locally to match the new
-  hyphen-based 1Password item names and added `FIRECRAWL_API_KEY`, but that file
-  is ignored by Git because of the repo's `*.env.*` ignore rule.
+- `onepassword/examples/project.env.tpl` is no longer swallowed by the repo's
+  broad `*.env.*` ignore rule. `.gitignore` now explicitly allowlists tracked
+  1Password example templates under `onepassword/examples/`.
 
 ## What Changed This Session
 
@@ -152,6 +148,26 @@ The tracked default 1Password item names now include:
   - `Makefile.python`
 - Repo stance is explicit that these are repo-local defaults, not new global
   machine bootstrap installs.
+
+### GSD v2 Baseline
+
+- Installed `gsd-pi@2.28.0` globally, which provides the `gsd` and `gsd-cli`
+  commands.
+- Repo bootstrap now installs GSD v2 in `scripts/03-install-npm-globals.sh`.
+- Repo verification now checks `gsd` in:
+  - `scripts/09-inventory-ai-tooling.sh`
+  - `scripts/10-check-paths.sh`
+  - `scripts/12-smoke-test.sh`
+- `shell/zshrc` now removes the oh-my-zsh git-plugin `gsd` alias so the GSD
+  CLI wins in interactive shells.
+- Repo docs now treat GSD v2 as the primary GSD path and downgrade the older
+  Claude/Gemini `get-shit-done` prompt-framework overlays to legacy reference
+  material instead of active bootstrap baseline.
+
+### Codex Baseline Sync
+
+- Updated the tracked Codex default reasoning level from `high` to `xhigh`.
+- Synced the matching examples in `codex/STATUSLINE.md`.
 
 ## Verification Snapshot
 
