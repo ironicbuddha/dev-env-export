@@ -106,8 +106,13 @@ you to finish Xcode Command Line Tools installation.
 Each bootstrap run writes timestamped logs under `logs/bootstrap-*` by default.
 If a step blows up on a fresh VM, keep that log directory around so the failure
 can be diagnosed without guessing.
+Each run now leaves behind `bootstrap.log`, `environment.txt`,
+`step-status.tsv`, `summary.txt`, and one log per step so you can see both the
+machine context and the exact step outcome/duration.
 If you want the logs somewhere else, set `DEV_ENV_LOG_DIR=/path/to/logs`
 before running `./scripts/00-bootstrap.sh`.
+If you want command-by-command tracing inside each step, run
+`DEV_ENV_TRACE_STEPS=1 ./scripts/00-bootstrap.sh`.
 
 The scripts are intended to be rerunnable. Re-running them should skip
 already-installed packages and unchanged config where practical. If you want

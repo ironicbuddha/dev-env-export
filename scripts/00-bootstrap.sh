@@ -18,9 +18,14 @@ LOG_DIR="${DEV_ENV_LOG_DIR:-$DEFAULT_LOG_DIR}"
 BOOTSTRAP_LOG="$LOG_DIR/bootstrap.log"
 STEP_STATUS_FILE="$LOG_DIR/step-status.tsv"
 ENVIRONMENT_FILE="$LOG_DIR/environment.txt"
+SUMMARY_FILE="$LOG_DIR/summary.txt"
 BOOTSTRAP_OUTCOME="in_progress"
 FAILED_STEP=""
+CURRENT_STEP=""
+BOOTSTRAP_START_TS="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+BOOTSTRAP_START_EPOCH="$(date '+%s')"
 LAST_STEP_STATUS=0
+TRACE_STEPS="${DEV_ENV_TRACE_STEPS:-0}"
 
 STEPS=(
     "01-install-brew.sh"
@@ -41,42 +46,181 @@ load_homebrew() {
     fi
 }
 
-write_environment_snapshot() {
+format_duration() {
+    local total_seconds="${1:-0}"
+    local hours=0
+    local minutes=0
+    local seconds=0
+
+    hours=$((total_seconds / 3600))
+    minutes=$(((total_seconds % 3600) / 60))
+    seconds=$((total_seconds % 60))
+
+    printf '%02d:%02d:%02d' "$hours" "$minutes" "$seconds"
+}
+
+command_output_line() {
+    "$@" 2>/dev/null | head -n 1 || true
+}
+
+append_environment_snapshot() {
+    local phase="$1"
+    local phase_title=""
+    local host_name=""
+    local local_host_name=""
+    local translated="unknown"
+
+    phase_title="$(printf '%s' "$phase" | tr '[:lower:]' '[:upper:]')"
+    host_name="$(scutil --get ComputerName 2>/dev/null || hostname 2>/dev/null || echo unknown)"
+    local_host_name="$(scutil --get LocalHostName 2>/dev/null || echo unknown)"
+
+    if command -v sysctl >/dev/null 2>&1; then
+        translated="$(sysctl -in sysctl.proc_translated 2>/dev/null || echo 0)"
+    fi
+
     {
+        echo "===== ${phase_title} SNAPSHOT ====="
         echo "timestamp=$(date '+%Y-%m-%d %H:%M:%S %Z')"
+        echo "run_id=$RUN_ID"
         echo "repo_root=$REPO_ROOT"
         echo "log_dir=$LOG_DIR"
         echo "pwd=$(pwd)"
+        echo "home=$HOME"
         echo "shell=${SHELL:-unknown}"
         echo "user=$(whoami 2>/dev/null || echo unknown)"
+        echo "uid=$(id -u 2>/dev/null || echo unknown)"
+        echo "hostname=$host_name"
+        echo "local_hostname=$local_host_name"
+        echo "arch=$(uname -m 2>/dev/null || echo unknown)"
         echo "uname=$(uname -a)"
+        echo "path=$PATH"
+        echo "dev_env_log_dir_override=${DEV_ENV_LOG_DIR:-unset}"
+        echo "dev_env_refresh_brew=${DEV_ENV_REFRESH_BREW:-0}"
+        echo "dev_env_trace_steps=$TRACE_STEPS"
+        echo "rosetta_translated=$translated"
         if command -v sw_vers >/dev/null 2>&1; then
+            echo ""
+            echo "[sw_vers]"
             sw_vers
+        fi
+        if command -v uptime >/dev/null 2>&1; then
+            echo ""
+            echo "uptime=$(command_output_line uptime)"
+        fi
+        if command -v df >/dev/null 2>&1; then
+            echo ""
+            echo "[disk_root]"
+            df -h /
+        fi
+        if command -v xcode-select >/dev/null 2>&1; then
+            echo ""
+            echo "xcode_select_path=$(xcode-select -p 2>/dev/null || echo missing)"
+        fi
+        if command -v xcodebuild >/dev/null 2>&1; then
+            echo "xcodebuild_version=$(command_output_line xcodebuild -version)"
+        fi
+        if command -v git >/dev/null 2>&1; then
+            echo ""
+            echo "git_version=$(command_output_line git --version)"
         fi
         if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
             echo "git_commit=$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
             echo "git_branch=$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
+            echo ""
+            echo "[git_status]"
+            git -C "$REPO_ROOT" status --short --branch 2>/dev/null || true
         fi
-    } > "$ENVIRONMENT_FILE"
+        if command -v brew >/dev/null 2>&1; then
+            echo ""
+            echo "brew_prefix=$(brew --prefix 2>/dev/null || echo unknown)"
+            echo "brew_version=$(command_output_line brew --version)"
+            echo ""
+            echo "[brew_config]"
+            brew config 2>/dev/null || true
+        fi
+        if command -v node >/dev/null 2>&1; then
+            echo ""
+            echo "node_version=$(command_output_line node --version)"
+        fi
+        if command -v npm >/dev/null 2>&1; then
+            echo "npm_version=$(command_output_line npm --version)"
+        fi
+        if command -v python3 >/dev/null 2>&1; then
+            echo "python3_version=$(command_output_line python3 --version)"
+        fi
+        if command -v pip3 >/dev/null 2>&1; then
+            echo "pip3_version=$(command_output_line pip3 --version)"
+        fi
+        echo ""
+    } >> "$ENVIRONMENT_FILE"
 }
 
 record_step_status() {
     local script_name="$1"
-    local status="$2"
-    local step_log="$3"
-    printf '%s\t%s\t%s\t%s\n' \
-        "$(date '+%Y-%m-%d %H:%M:%S')" \
+    local start_ts="$2"
+    local end_ts="$3"
+    local duration_seconds="$4"
+    local exit_code="$5"
+    local status="$6"
+    local step_log="$7"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+        "$start_ts" \
+        "$end_ts" \
+        "$duration_seconds" \
         "$script_name" \
+        "$exit_code" \
         "$status" \
         "$step_log" >> "$STEP_STATUS_FILE"
 }
 
+write_summary() {
+    local exit_status="$1"
+    local end_ts=""
+    local end_epoch=0
+    local duration_seconds=0
+    local relevant_step=""
+
+    end_ts="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+    end_epoch="$(date '+%s')"
+    duration_seconds=$((end_epoch - BOOTSTRAP_START_EPOCH))
+    relevant_step="${FAILED_STEP:-$CURRENT_STEP}"
+
+    {
+        echo "run_id=$RUN_ID"
+        echo "started_at=$BOOTSTRAP_START_TS"
+        echo "ended_at=$end_ts"
+        echo "duration_seconds=$duration_seconds"
+        echo "duration_human=$(format_duration "$duration_seconds")"
+        echo "outcome=$BOOTSTRAP_OUTCOME"
+        echo "exit_status=$exit_status"
+        echo "failed_step=${FAILED_STEP:-none}"
+        echo "relevant_step=${relevant_step:-none}"
+        echo "trace_steps=$TRACE_STEPS"
+        echo "log_dir=$LOG_DIR"
+        echo "bootstrap_log=$BOOTSTRAP_LOG"
+        echo "environment_file=$ENVIRONMENT_FILE"
+        echo "step_status_file=$STEP_STATUS_FILE"
+        echo ""
+        echo "[step_status]"
+        cat "$STEP_STATUS_FILE"
+    } > "$SUMMARY_FILE"
+}
+
 on_exit() {
     local status="$1"
+    local relevant_step=""
+
+    append_environment_snapshot "postflight"
+    write_summary "$status"
+
+    relevant_step="${FAILED_STEP:-$CURRENT_STEP}"
 
     echo ""
     echo "Bootstrap logs: $LOG_DIR"
     echo "Main log: $BOOTSTRAP_LOG"
+    echo "Environment snapshot: $ENVIRONMENT_FILE"
+    echo "Step status: $STEP_STATUS_FILE"
+    echo "Summary: $SUMMARY_FILE"
 
     case "$BOOTSTRAP_OUTCOME" in
         completed)
@@ -87,15 +231,15 @@ on_exit() {
             ;;
         failed)
             echo "Bootstrap outcome: failed"
-            if [ -n "$FAILED_STEP" ]; then
-                echo "Failed step: $FAILED_STEP"
+            if [ -n "$relevant_step" ]; then
+                echo "Failed step: $relevant_step"
             fi
             ;;
         *)
             if [ "$status" -ne 0 ]; then
                 echo "Bootstrap outcome: failed"
-                if [ -n "$FAILED_STEP" ]; then
-                    echo "Failed step: $FAILED_STEP"
+                if [ -n "$relevant_step" ]; then
+                    echo "Failed step: $relevant_step"
                 fi
             fi
             ;;
@@ -107,45 +251,104 @@ run_step() {
     local script_path="$SCRIPT_DIR/$script_name"
     local step_log="$LOG_DIR/${script_name%.sh}.log"
     local status=0
+    local script_status=0
+    local tee_status=0
+    local start_ts=""
+    local end_ts=""
+    local start_epoch=0
+    local end_epoch=0
+    local duration_seconds=0
+    local status_label=""
+    local pipe_status=()
 
     if [ ! -f "$script_path" ]; then
         echo "ERROR: Missing bootstrap step: $script_path"
         exit 1
     fi
 
+    CURRENT_STEP="$script_name"
+    start_ts="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+    start_epoch="$(date '+%s')"
+
     echo ""
     echo "========================================"
     echo "Running $script_name"
     echo "========================================"
     echo ""
+    echo "Step log: $step_log"
+    if [ "$TRACE_STEPS" = "1" ]; then
+        echo "Trace mode: enabled (DEV_ENV_TRACE_STEPS=1)"
+    fi
 
     {
-        echo "===== $(date '+%Y-%m-%d %H:%M:%S %Z') ====="
+        echo "===== $start_ts ====="
         echo "Step: $script_name"
         echo "Script: $script_path"
+        echo "Step log: $step_log"
+        echo "Trace mode: $TRACE_STEPS"
         echo ""
     } >> "$step_log"
 
     set +e
-    bash "$script_path" 2>&1 | tee -a "$step_log"
-    status=${PIPESTATUS[0]}
+    if [ "$TRACE_STEPS" = "1" ]; then
+        bash -x "$script_path" 2>&1 | tee -a "$step_log"
+    else
+        bash "$script_path" 2>&1 | tee -a "$step_log"
+    fi
+    pipe_status=("${PIPESTATUS[@]}")
     set -e
+
+    script_status="${pipe_status[0]:-1}"
+    tee_status="${pipe_status[1]:-0}"
+    status="$script_status"
+
+    if [ "$tee_status" -ne 0 ]; then
+        echo "ERROR: tee failed while writing $step_log (exit $tee_status)"
+        status="$tee_status"
+    fi
+
+    end_ts="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+    end_epoch="$(date '+%s')"
+    duration_seconds=$((end_epoch - start_epoch))
     LAST_STEP_STATUS="$status"
 
-    if [ "$status" -eq 0 ]; then
-        record_step_status "$script_name" "ok" "$step_log"
+    if [ "$tee_status" -ne 0 ]; then
+        status_label="logging_failed(script=$script_status tee=$tee_status)"
+    elif [ "$status" -eq 0 ]; then
+        status_label="ok"
     elif [ "$status" -eq "$MANUAL_ACTION_EXIT" ]; then
-        record_step_status "$script_name" "manual_action_required($status)" "$step_log"
+        status_label="manual_action_required($status)"
     else
-        record_step_status "$script_name" "failed($status)" "$step_log"
+        status_label="failed($status)"
     fi
+
+    record_step_status "$script_name" "$start_ts" "$end_ts" "$duration_seconds" "$status" "$status_label" "$step_log"
+
+    {
+        echo ""
+        echo "Step outcome: $status_label"
+        echo "Start: $start_ts"
+        echo "End: $end_ts"
+        echo "Duration: $(format_duration "$duration_seconds") ($duration_seconds seconds)"
+        echo "Exit code: $status"
+        if [ "$tee_status" -ne 0 ]; then
+            echo "Script exit code: $script_status"
+            echo "tee exit code: $tee_status"
+        fi
+        echo ""
+    } >> "$step_log"
+
+    echo ""
+    echo "Step result: $script_name -> $status_label in $(format_duration "$duration_seconds")"
+    echo "Step log: $step_log"
 
     return "$status"
 }
 
 mkdir -p "$LOG_DIR"
-printf 'timestamp\tstep\tstatus\tlog_file\n' > "$STEP_STATUS_FILE"
-write_environment_snapshot
+printf 'start_time\tend_time\tduration_seconds\tstep\texit_code\tstatus\tlog_file\n' > "$STEP_STATUS_FILE"
+: > "$ENVIRONMENT_FILE"
+append_environment_snapshot "preflight"
 exec > >(tee -a "$BOOTSTRAP_LOG") 2>&1
 trap 'on_exit "$?"' EXIT
 
@@ -157,6 +360,12 @@ echo "This will run scripts 01 through 08 in order."
 echo "If macOS prompts for Xcode Command Line Tools, complete that install and"
 echo "then re-run this script."
 echo "Logs for this run will be written to: $LOG_DIR"
+echo "Artifacts: bootstrap.log, environment.txt, step-status.tsv, summary.txt, and per-step logs."
+if [ "$TRACE_STEPS" = "1" ]; then
+    echo "Step trace logging is enabled."
+else
+    echo "Set DEV_ENV_TRACE_STEPS=1 for command-by-command step tracing."
+fi
 
 if [[ "$(uname)" != "Darwin" ]]; then
     echo ""
@@ -189,6 +398,7 @@ for step in "${STEPS[@]}"; do
 done
 
 BOOTSTRAP_OUTCOME="completed"
+CURRENT_STEP=""
 
 echo ""
 echo "========================================"
