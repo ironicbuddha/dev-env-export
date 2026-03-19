@@ -30,6 +30,23 @@ Observed on 2026-03-17.
   - keep the `.system/*` skills external; they are platform-managed helpers,
     not repo-owned local customizations
 
+## Repo-Vendored Skills In Git
+
+The repo now carries a small `codex/skills/` tree for local customizations that
+should travel with the machine bootstrap repo.
+
+Install or refresh those skills with:
+
+```bash
+./scripts/14-install-codex-skills.sh
+```
+
+Current repo-vendored skill:
+
+- `apply-project-standards`
+  Uses `scripts/13-apply-project-standards.sh` to load the TypeScript-first
+  project standards starter into a target repo.
+
 ## Planned Repo Layout
 
 If `load-manifest` and `stage-commit-push` are recovered and promoted into the

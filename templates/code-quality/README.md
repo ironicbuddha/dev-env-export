@@ -2,6 +2,9 @@
 
 This starter bundle is the copy-and-merge baseline for new repos.
 
+For testing, deployment, security, and delivery guidance, pair it with
+`templates/project-standards/constitution.md` or `PROJECT-STANDARDS.md`.
+
 Use the files that match the repo you are creating:
 
 - frontend or TS repo:

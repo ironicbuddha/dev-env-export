@@ -11,6 +11,8 @@ Notes:
 - Keep this directory limited to portable Codex defaults.
 - Use `codex/SKILLS.md` for the current skill inventory and for the repo policy
   on vendored versus install-on-build skills.
+- Repo-vendored skills live under `codex/skills/` and can be linked into
+  `~/.codex/skills` with `./scripts/14-install-codex-skills.sh`.
 - Use `codex/STATUSLINE.md` for the current Codex statusline/context helper
   design.
 - Use `codex/codex-wrapper.sh` when you want to launch Codex with task/check/cmd

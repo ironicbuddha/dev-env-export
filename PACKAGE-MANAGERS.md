@@ -10,7 +10,7 @@ to keep each layer boring and reliable.
 - Homebrew is the primary machine-level package manager.
 - Homebrew installs `nvm`, and `nvm` manages the active Node runtime.
 - `npm` remains available for compatibility and global CLI installs.
-- `pnpm` is the preferred package manager for new TypeScript-heavy projects.
+- `pnpm` is the preferred package manager for new TypeScript-first projects.
 - `uv` is the preferred fast package tool for modern Python workflows when it
   fits the project.
 
@@ -59,6 +59,7 @@ Use `pnpm` by default for new projects that are primarily:
 - Next.js
 - Vite
 - TypeScript-heavy frontend work
+- Node.js and TypeScript backend work
 - monorepos or workspace-heavy repos
 
 Reasons:
@@ -129,7 +130,7 @@ Use these defaults unless a project gives you a good reason not to:
 - machine bootstrap: Homebrew
 - Node runtime manager: `nvm` (installed by Homebrew)
 - global Node CLIs: `npm`
-- new TypeScript app: `pnpm`
+- new TypeScript app or service: `pnpm`
 - existing `npm` project: leave it on `npm`
 - Python package workflows: prefer `uv` when it fits, otherwise normal project
   virtualenv tooling

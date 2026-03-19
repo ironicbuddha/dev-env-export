@@ -29,10 +29,13 @@ start.
 - Google Workspace baseline CLI: `googleworkspace-cli` (`gws`) when Workspace
   automation is part of the machine workflow
 - JavaScript package-manager stance: keep `npm`, prefer `pnpm` for new
-  TypeScript-heavy repos
-- Primary dev languages: TypeScript and Python
+  TypeScript-first repos
+- Primary dev language: TypeScript for most application and service work
+- Python stance: mainly for scripting, automation, document workflows, and
+  library-driven cases where it is the pragmatic fit
 - Primary frontend stack: Next.js, Vite, Tailwind CSS, shadcn/ui
-- Primary backend stack: Django and Flask
+- Primary backend stack: Node.js and TypeScript for APIs, services, Lambdas,
+  and microservice-style workloads
 - Primary cloud and hosting targets: AWS and Vercel
 - Supporting package tools expected to matter: `uv`, `bun`, and `vercel`
 - Supporting document/media tools expected to matter: `pandoc`, `poppler`,
@@ -57,6 +60,8 @@ That means the repo should eventually cover:
   adjacent tooling
 - editor and terminal setup for Zed and Warp
 - documented 1Password-backed secret handling and post-install auth steps
+- new-project starter standards covering testing, deployment, security, and
+  operational expectations
 
 ## Transition State
 
@@ -75,6 +80,8 @@ a clean macOS/Parallels bootstrap workflow.
   targeted fallback for bad or missing extraction.
 - New repos should start with a small, explicit lint and format baseline for
   Markdown, CSS, TSX, and Python.
+- New repos should also start with an explicit standards document covering
+  testing, deployment, security, secrets, and operational expectations.
 - 1Password should be treated as the canonical home for `.env` values, API
   keys, AWS credentials, GitHub credentials, and similar secrets.
 - The default interaction style should feel lively and informal unless the user
@@ -99,8 +106,9 @@ If an agent is deciding how to frame a change, assume:
 - Codex, Claude, and Gemini are primary tools, not optional extras
 - GSD v2 is the current standalone orchestration layer when GSD workflows are needed
 - older Ubuntu merge docs are reference material only
-- the target dev stack is TypeScript and Python with Next.js, Vite, Tailwind,
-  shadcn/ui, Django, Flask, AWS, and Vercel
+- the target dev stack is TypeScript-first with Next.js, Vite, Tailwind,
+  shadcn/ui, Node.js on AWS, and Vercel, with Python kept available for
+  scripting and library-driven work
 - Homebrew remains the primary machine package manager even if project-level
   package managers vary
 

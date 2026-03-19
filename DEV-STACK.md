@@ -8,8 +8,10 @@ defaults.
 
 ## Primary Languages
 
-- TypeScript
-- Python
+- TypeScript as the default language for application code across frontend and
+  backend work
+- Python mainly for scripting, automation, document workflows, and cases where
+  the library support is materially better
 
 ## Frontend Stack
 
@@ -20,8 +22,10 @@ defaults.
 
 ## Backend Stack
 
-- Django
-- Flask
+- Node.js and TypeScript for APIs, services, Lambdas, and microservice-style
+  workloads
+- Python only where scripting ergonomics or library support make it the better
+  tool
 
 ## Cloud And Hosting
 
@@ -32,15 +36,17 @@ defaults.
 
 The bootstrap should stay friendly to this stack by default:
 
-- solid Node.js and npm or nvm support for TypeScript, Next.js, and Vite work
+- strong Node.js support for TypeScript across frontend and backend work
 - Homebrew-managed `nvm` with Node versions installed through `nvm`
-- `pnpm` preferred for new TypeScript-heavy repos
+- `pnpm` preferred for new TypeScript-first repos
 - `bun` available for modern JS or TS workflows where it is the better fit
-- strong Python support for Django and Flask work
+- Python kept practical for scripting, automation, document tooling, and
+  library-driven edge cases
 - `uv` available as a fast Python package and environment tool
 - new repos should start with a basic lint and format baseline for Markdown,
   CSS, TSX, and Python
-- good editor and agent support for both TS and Python
+- editor and agent support should be strongest for TypeScript while still
+  keeping Python usable
 - AWS CLI and related auth flows treated as first-class
 - Vercel support kept available where it still matches real usage
 - browser automation and frontend tooling kept practical for UI-heavy work

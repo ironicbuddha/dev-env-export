@@ -41,7 +41,7 @@ the target state anymore.
 - Shell: `zsh`
 - Package manager: Homebrew
 - Node runtime manager: `nvm` via Homebrew
-- JS package-manager stance: keep `npm`, prefer `pnpm` for new TypeScript-heavy
+- JS package-manager stance: keep `npm`, prefer `pnpm` for new TypeScript-first
   repos
 - Terminal: Warp
 - Editor: Zed
@@ -51,8 +51,9 @@ the target state anymore.
   Python, Docker, and GSD v2 as needed
 - Supporting document/media CLIs: Pandoc, Poppler, Tesseract, and ImageMagick
   for Office, PDF, image, and OCR-heavy workflows
-- Primary dev stack: TypeScript, Python, Next.js, Vite, Tailwind CSS,
-  shadcn/ui, Django, Flask, AWS, Vercel
+- Primary dev stack: TypeScript-first across frontend and backend with
+  Next.js, Vite, Tailwind CSS, shadcn/ui, Node.js on AWS, and Vercel, with
+  Python retained for scripting and library-heavy cases
 - Default interaction mode: buddy mode
 
 Legacy Ubuntu-specific material belongs in history, not in the active setup.
@@ -73,6 +74,8 @@ Legacy Ubuntu-specific material belongs in history, not in the active setup.
 - `DEV-STACK.md`: current language, framework, and hosting targets
 - `PACKAGE-MANAGERS.md`: machine and project package-manager policy
 - `CODE-QUALITY.md`: default linting and formatting baseline for new repos
+- `PROJECT-STANDARDS.md`: default testing, deployment, security, and delivery
+  baseline for new repos
 - `AI-STACK.md`: current AI-tooling inventory and Git-tracking policy
 - `PERSONALITY.md`: default interaction style and mode switch rules
 - `HISTORICAL.md`: guide to removed legacy material recoverable from Git history
@@ -90,6 +93,8 @@ Legacy Ubuntu-specific material belongs in history, not in the active setup.
   treating it as current.
 - Prefer repo-local lint and format defaults in new repos, especially for
   Markdown, CSS, TSX, and Python.
+- Prefer new repos to start from the project standards and constitution
+  template, not ad hoc conventions.
 - If you introduce a new primary tool, update both `AGENTS.md` and
   `CONTEXT.md`.
 
@@ -103,6 +108,7 @@ Agents working here should typically do one or more of the following:
 - keep Codex and Claude setup current
 - keep the AI tooling layer honest about current plugins, skills, agents, and
   extensions
+- keep new-project starter standards aligned with the real stack and workflow
 - remove or downgrade stale references to Ubuntu where appropriate
 - improve bootstrap safety, backups, and rerun behavior
 - keep README-level setup instructions aligned with the actual repo contents

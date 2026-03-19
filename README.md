@@ -32,6 +32,9 @@ Use [PACKAGE-MANAGERS.md](/Users/carlo/dev/dev-env-export/PACKAGE-MANAGERS.md)
 for the package-manager policy across Homebrew, npm, pnpm, and uv.
 Use [CODE-QUALITY.md](/Users/carlo/dev/dev-env-export/CODE-QUALITY.md) for the
 default linting and formatting baseline new repos should start with.
+Use [PROJECT-STANDARDS.md](/Users/carlo/dev/dev-env-export/PROJECT-STANDARDS.md)
+for the default testing, deployment, security, and delivery baseline new repos
+should start with.
 Use [AI-STACK.md](/Users/carlo/dev/dev-env-export/AI-STACK.md) for the current
 AI-tooling inventory and tracking policy.
 
@@ -55,6 +58,8 @@ Claude, Gemini, GSD v2, and 1Password.
 - curated MCP server defaults and policy
 - document, PDF, and image tooling for AI-assisted read/write workflows
 - documented secret-handling policy built around 1Password
+- new-project standards and constitution templates for TypeScript-first repos,
+  with Python support where it is justified
 - bootstrap scripts for a fresh machine or Parallels VM
 - archived Ubuntu VM artifacts for reference only
 
@@ -77,6 +82,7 @@ Claude, Gemini, GSD v2, and 1Password.
 | `DEV-STACK.md` | current languages, frameworks, and hosting targets |
 | `PACKAGE-MANAGERS.md` | package-manager policy for machine and project layers |
 | `CODE-QUALITY.md` | default linting and formatting baseline for new repos |
+| `PROJECT-STANDARDS.md` | default engineering baseline for new repos beyond lint and format |
 | `AI-STACK.md` | AI tooling inventory, drift notes, and tracking policy |
 
 ## Quick Start
@@ -139,7 +145,7 @@ switch Bun back to Homebrew ownership if you care about that detail.
 
 This repo keeps Homebrew as the primary machine-level package manager. For
 project-level JavaScript workflows, keep `npm` available but prefer `pnpm` for
-new TypeScript-heavy repos. See `PACKAGE-MANAGERS.md`.
+new TypeScript-first repos. See `PACKAGE-MANAGERS.md`.
 
 The active Homebrew install set lives in
 `manifest/homebrew-packages.sh`. Use that file to cull stale apps from the
@@ -242,11 +248,42 @@ These are known non-blocking rough edges, not current show-stoppers:
 The framework and hosting stack is documented in
 `DEV-STACK.md`. At a glance, this repo is being shaped around:
 
-- TypeScript and Python
+- TypeScript as the default for application code
 - Next.js and Vite
 - Tailwind CSS and shadcn/ui
-- Django and Flask
+- Node.js and TypeScript for backend services, Lambdas, and microservices
+- Python for scripting, automation, document tooling, and library-driven edge
+  cases
 - AWS and Vercel
+
+## Starting New Repos
+
+When you spin up a new repo from this environment, do not start from scratch.
+
+- Use [PROJECT-STANDARDS.md](/Users/carlo/dev/dev-env-export/PROJECT-STANDARDS.md)
+  as the default standard for testing, deployment, security, and operations.
+- Install the Codex skill once with
+  [scripts/14-install-codex-skills.sh](/Users/carlo/dev/dev-env-export/scripts/14-install-codex-skills.sh)
+  if you want to trigger the starter as a reusable local skill.
+- Run
+  [scripts/13-apply-project-standards.sh](/Users/carlo/dev/dev-env-export/scripts/13-apply-project-standards.sh)
+  to copy the starter into a target repo with a profile-aware baseline.
+- Copy
+  [templates/project-standards/constitution.md](/Users/carlo/dev/dev-env-export/templates/project-standards/constitution.md)
+  into the new repo as `constitution.md`.
+- Merge the right files from
+  [templates/code-quality/](/Users/carlo/dev/dev-env-export/templates/code-quality/)
+  for the repo's lint and format baseline.
+
+Example:
+
+```bash
+./scripts/14-install-codex-skills.sh --skill apply-project-standards
+
+./scripts/13-apply-project-standards.sh \
+  --repo ~/dev/my-api \
+  --profile ts-service
+```
 
 ### Core CLI
 
@@ -322,7 +359,8 @@ types.
 - Homebrew installs `nvm`, and `nvm` owns the active Node runtime.
 - `npm` stays installed for compatibility and global CLIs.
 - `pnpm` is the preferred project package manager for new TS-heavy repos.
-- `uv` is the preferred fast Python package tool where it fits.
+- `uv` is the preferred fast Python package tool where Python is the right
+  tool.
 
 See `PACKAGE-MANAGERS.md` for the detailed policy.
 
