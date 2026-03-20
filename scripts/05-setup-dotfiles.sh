@@ -20,6 +20,7 @@ echo ""
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXPORT_DIR="$(dirname "$SCRIPT_DIR")"
+INSTALL_CODEX_SKILLS_SCRIPT="$SCRIPT_DIR/14-install-codex-skills.sh"
 
 # Backup directory (created lazily only if a file actually changes)
 BACKUP_DIR="$HOME/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)"
@@ -289,6 +290,15 @@ if [ -f "$EXPORT_DIR/codex/config.toml" ]; then
     merge_toml_with_backup "$EXPORT_DIR/codex/config.toml" "$CODEX_CONFIG_DIR/config.toml" "Codex config"
 fi
 
+echo ""
+echo "Installing repo-vendored Codex skills..."
+
+if [ -x "$INSTALL_CODEX_SKILLS_SCRIPT" ]; then
+    "$INSTALL_CODEX_SKILLS_SCRIPT"
+else
+    echo "  [WARN] Codex skill installer is missing or not executable: $INSTALL_CODEX_SKILLS_SCRIPT"
+fi
+
 # -----------------------------------------------------------------------------
 # Zed Configuration
 # -----------------------------------------------------------------------------
@@ -360,6 +370,7 @@ echo "  - ~/.gitignore_global (Global git ignore)"
 echo "  - ~/.aws/config (AWS profiles)"
 echo "  - ~/.config/gh/config.yml (GitHub CLI config)"
 echo "  - ~/.codex/config.toml (Codex config, if tracked in repo)"
+echo "  - ~/.codex/skills/* (repo-vendored Codex skills, if tracked in repo)"
 echo "  - ~/Library/Application Support/Zed/* (if tracked in repo)"
 echo "  - ~/.warp/launch_configurations/* (if tracked in repo)"
 echo ""

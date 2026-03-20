@@ -177,6 +177,21 @@ if command -v npm >/dev/null 2>&1; then
     fi
 fi
 
+echo ""
+if [ -L "$HOME/.codex/skills/apply-project-standards" ] || [ -d "$HOME/.codex/skills/apply-project-standards" ]; then
+    echo "[OK]   repo Codex skill -> $HOME/.codex/skills/apply-project-standards"
+else
+    echo "[MISS] repo Codex skill"
+    echo "       Re-run scripts/05-setup-dotfiles.sh or scripts/14-install-codex-skills.sh."
+fi
+
+if [ -L "$HOME/.agents/skills/apply-project-standards" ] || [ -d "$HOME/.agents/skills/apply-project-standards" ]; then
+    echo "[OK]   shared agent skill -> $HOME/.agents/skills/apply-project-standards"
+else
+    echo "[MISS] shared agent skill"
+    echo "       Re-run scripts/05-setup-dotfiles.sh or scripts/14-install-codex-skills.sh."
+fi
+
 if PYTHON_BIN="$(resolve_python_bin 2>/dev/null)"; then
     echo "[OK]   baseline python -> $PYTHON_BIN"
 else

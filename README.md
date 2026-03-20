@@ -151,6 +151,10 @@ The active Homebrew install set lives in
 `manifest/homebrew-packages.sh`. Use that file to cull stale apps from the
 default bootstrap and keep a visible review bucket for stuff you no longer use.
 
+The bootstrap also installs repo-vendored Codex skills during
+`./scripts/05-setup-dotfiles.sh`, so fresh machines pick up tracked local
+skills without a separate follow-up command.
+
 To run the steps manually instead:
 
 ```bash
@@ -262,9 +266,11 @@ When you spin up a new repo from this environment, do not start from scratch.
 
 - Use [PROJECT-STANDARDS.md](/Users/carlo/dev/dev-env-export/PROJECT-STANDARDS.md)
   as the default standard for testing, deployment, security, and operations.
-- Install the Codex skill once with
+- Fresh bootstrap runs already install repo-vendored Codex skills for you.
+- Install or refresh the Codex skill manually with
   [scripts/14-install-codex-skills.sh](/Users/carlo/dev/dev-env-export/scripts/14-install-codex-skills.sh)
-  if you want to trigger the starter as a reusable local skill.
+  if you want to update an existing machine without rerunning the broader
+  bootstrap.
 - Run
   [scripts/13-apply-project-standards.sh](/Users/carlo/dev/dev-env-export/scripts/13-apply-project-standards.sh)
   to copy the starter into a target repo with a profile-aware baseline.
