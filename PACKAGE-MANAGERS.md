@@ -100,6 +100,7 @@ Keep global CLI installs simple:
 
 - Codex CLI via `npm`
 - Claude Code via `npm`
+- OpenSpec CLI via `npm`
 - Vercel CLI via `npm`
 
 That keeps the machine bootstrap stable and avoids turning package-manager

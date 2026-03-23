@@ -151,6 +151,7 @@ check_cmd "op" "op" "1Password CLI should come from scripts/02-install-cli-tools
 check_cmd "zed" "zed" "Install the Zed CLI from inside Zed with Cmd+Shift+P -> cli: install."
 check_cmd "codex" "codex" "Codex CLI should come from scripts/03-install-npm-globals.sh under nvm."
 check_cmd "claude" "claude" "Claude CLI should come from scripts/03-install-npm-globals.sh under nvm."
+check_cmd "openspec" "openspec" "OpenSpec CLI should come from scripts/03-install-npm-globals.sh under nvm."
 check_cmd "gsd" "gsd" "GSD v2 should come from scripts/03-install-npm-globals.sh via the gsd-pi npm package."
 check_cmd "vercel" "vercel" "Vercel CLI should come from scripts/03-install-npm-globals.sh under nvm."
 check_cmd "node" "node" "Node should come from nvm in scripts/02-install-cli-tools.sh."

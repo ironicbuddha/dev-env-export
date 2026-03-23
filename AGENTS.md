@@ -12,7 +12,7 @@ historical reference material only. The current direction is:
 - macOS guests in Parallels
 - Apple Silicon / Homebrew-first setup
 - Zed and Warp as primary editor + terminal
-- Codex and Claude desktop apps plus Gemini CLI and GSD v2 workflows
+- Codex and Claude desktop apps plus Gemini CLI, OpenSpec CLI, and GSD v2 workflows
 - reusable dotfiles, tracked app config, and bootstrap scripts
 
 ## Source Of Truth
@@ -46,7 +46,7 @@ the target state anymore.
 - Terminal: Warp
 - Editor: Zed
 - Secrets: 1Password
-- AI tools: Codex CLI/app, Claude CLI/app, Gemini CLI, GSD v2 CLI
+- AI tools: Codex CLI/app, Claude CLI/app, Gemini CLI, OpenSpec CLI, GSD v2 CLI
 - Supporting CLIs: GitHub CLI, AWS CLI, Google Workspace CLI, Node/npm,
   Python, Docker, and GSD v2 as needed
 - Supporting document/media CLIs: Pandoc, Poppler, Tesseract, and ImageMagick

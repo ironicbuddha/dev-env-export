@@ -8,7 +8,7 @@ the core coding workflow already in place:
 - `zsh` + Homebrew
 - Warp as the primary terminal
 - Zed as the primary editor
-- Codex, Claude, Gemini, and GSD v2 CLI tooling
+- Codex, Claude, Gemini, OpenSpec, and GSD v2 CLI tooling
 - reusable shell config, dotfiles, tracked app config, and setup scripts
 
 ## Source Of Truth
@@ -47,13 +47,13 @@ Use this repo to provision:
 - a disposable development VM that should still feel like the main workstation
 
 The target experience is a modern macOS setup centered on Zed, Warp, Codex,
-Claude, Gemini, GSD v2, and 1Password.
+Claude, Gemini, OpenSpec, GSD v2, and 1Password.
 
 ## What This Repo Owns
 
 - shell defaults for macOS development
 - Homebrew-driven CLI and app installation
-- Git, GitHub CLI, AWS, Claude, Codex, Gemini, GSD v2, Zed, and Warp baseline config
+- Git, GitHub CLI, AWS, Claude, Codex, Gemini, OpenSpec, GSD v2, Zed, and Warp baseline config
 - GSD v2 install, shell-path, and migration guidance
 - curated MCP server defaults and policy
 - document, PDF, and image tooling for AI-assisted read/write workflows
@@ -188,6 +188,9 @@ gsd config
 
 Desktop apps such as 1Password, Warp, Zed, Docker, Claude, and Codex may still
 require normal first-launch/login steps.
+
+`openspec` is installed as an npm global under the active `nvm` Node runtime
+during `./scripts/03-install-npm-globals.sh`.
 
 `gemini` is CLI-only here. Launch it once and complete the OAuth flow if it
 prompts for authentication.

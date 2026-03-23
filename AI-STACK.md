@@ -11,6 +11,7 @@ workflow also depends on:
 - Codex CLI and desktop app
 - Claude Code CLI and desktop app
 - Gemini CLI
+- OpenSpec CLI
 - GSD v2 standalone CLI
 - Zed agent settings and external agents
 - optional legacy or experimental agent runtimes such as `opencode`
@@ -171,6 +172,17 @@ Observed on this machine on March 18, 2026.
   - preserve local hook, auth, and project state instead of mirroring it into Git
   - use `scripts/08-setup-gemini.sh` to merge repo defaults and maintain shared skill discovery
 
+### OpenSpec
+
+- CLI version: `openspec 1.2.0`
+- Install package: `@fission-ai/openspec`
+- Command name:
+  - `openspec`
+- Current repo policy:
+  - treat OpenSpec as a global npm CLI installed under the active `nvm` Node runtime
+  - keep any runtime auth, cache, or project-specific state out of Git
+  - verify command visibility with `scripts/10-check-paths.sh`
+
 ### Zed
 
 - App version: `Zed 0.227.1`
@@ -228,9 +240,9 @@ Observed on this machine on March 18, 2026.
 - Older `get-shit-done` prompt-framework runtimes under Claude, Gemini, Codex,
   or OpenCode should be treated as legacy reference material or optional
   experimentation, not as the main bootstrap baseline.
-- Claude, Codex, and Gemini remain the primary AI runtimes that Carlo uses day
-  to day; GSD v2 sits on top as an orchestration layer when that workflow is
-  needed.
+- Claude, Codex, Gemini, and OpenSpec remain the primary AI runtimes that
+  Carlo uses day to day; GSD v2 sits on top as an orchestration layer when
+  that workflow is needed.
 
 ## AI Provider Credentials In Scope
 

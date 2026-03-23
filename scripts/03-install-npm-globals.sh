@@ -148,6 +148,7 @@ NPM_PACKAGES=(
     corepack                    # Package manager manager
     @anthropic-ai/claude-code   # Claude Code CLI
     @openai/codex              # Codex CLI
+    @fission-ai/openspec       # OpenSpec agentic framework CLI
     gsd-pi                     # GSD v2 standalone CLI
     vercel                     # Vercel CLI
 )
@@ -176,6 +177,7 @@ npm list -g --depth=0 2>/dev/null || true
 echo ""
 echo "Claude Code version: $(claude --version 2>/dev/null || echo 'not in PATH yet')"
 echo "Codex version: $(codex --version 2>/dev/null || echo 'not in PATH yet')"
+echo "OpenSpec version: $(openspec --version 2>/dev/null || echo 'not in PATH yet')"
 echo "GSD version: $(gsd --version 2>/dev/null || echo 'not in PATH yet')"
 echo "Vercel version: $(vercel --version 2>/dev/null | head -1 || echo 'not in PATH yet')"
 echo ""

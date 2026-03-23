@@ -22,6 +22,7 @@ start.
   - Codex desktop app / CLI
   - Claude desktop app / CLI
   - Gemini CLI
+  - OpenSpec CLI
   - GSD v2 CLI (`gsd` via `gsd-pi`)
 - Shell baseline: `zsh`
 - Package management baseline: Homebrew
@@ -103,7 +104,7 @@ If an agent is deciding how to frame a change, assume:
 - macOS is the target unless explicitly stated otherwise
 - Parallels VMs matter as much as physical machines
 - Zed/Warp are the preferred local editor and terminal defaults
-- Codex, Claude, and Gemini are primary tools, not optional extras
+- Codex, Claude, Gemini, and OpenSpec are primary tools, not optional extras
 - GSD v2 is the current standalone orchestration layer when GSD workflows are needed
 - older Ubuntu merge docs are reference material only
 - the target dev stack is TypeScript-first with Next.js, Vite, Tailwind,
