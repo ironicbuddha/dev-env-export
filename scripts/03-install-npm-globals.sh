@@ -11,9 +11,76 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
+BOOTSTRAP_PROFILE=""
+
+# shellcheck disable=SC1090
+source "$PROFILE_LIB"
+
+usage() {
+    cat <<'EOF'
+Usage: ./scripts/03-install-npm-globals.sh --profile PROFILE
+
+Installs global npm packages for the selected Bootstrap Profile.
+
+Options:
+  --profile PROFILE   Required unless DEV_ENV_BOOTSTRAP_PROFILE is set
+  -h, --help          Show this help
+
+Valid profiles:
+EOF
+    bootstrap_print_profiles
+}
+
+PROFILE_INPUT="${DEV_ENV_BOOTSTRAP_PROFILE:-}"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --profile)
+            if [ $# -lt 2 ]; then
+                echo "ERROR: --profile requires a value." >&2
+                usage >&2
+                exit 2
+            fi
+            PROFILE_INPUT="${2:-}"
+            shift 2
+            ;;
+        --profile=*)
+            PROFILE_INPUT="${1#--profile=}"
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "ERROR: Unknown option: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+if [ -z "$PROFILE_INPUT" ]; then
+    echo "ERROR: Missing required Bootstrap Profile." >&2
+    usage >&2
+    exit 2
+fi
+
+if ! BOOTSTRAP_PROFILE="$(bootstrap_normalize_profile "$PROFILE_INPUT")"; then
+    echo "ERROR: Unknown Bootstrap Profile: $PROFILE_INPUT" >&2
+    usage >&2
+    exit 2
+fi
+
+export DEV_ENV_BOOTSTRAP_PROFILE="$BOOTSTRAP_PROFILE"
+
 echo "========================================"
 echo "Step 3: Installing Global npm Packages"
 echo "========================================"
+echo ""
+echo "Bootstrap profile: $(bootstrap_profile_label "$BOOTSTRAP_PROFILE") ($BOOTSTRAP_PROFILE)"
 echo ""
 
 strip_npmrc_conflicts() {
@@ -144,14 +211,31 @@ echo ""
 echo "Installing global npm packages..."
 echo ""
 
-NPM_PACKAGES=(
+COMMON_NPM_PACKAGES=(
     corepack                    # Package manager manager
-    @anthropic-ai/claude-code   # Claude Code CLI
     @openai/codex              # Codex CLI
-    @fission-ai/openspec       # OpenSpec agentic framework CLI
-    gsd-pi                     # GSD v2 standalone CLI
+    pnpm                       # Preferred package manager for TS-first repos
     vercel                     # Vercel CLI
 )
+
+SHARED_BASELINE_NPM_PACKAGES=(
+)
+
+CARLO_BASELINE_NPM_PACKAGES=(
+    @anthropic-ai/claude-code   # Claude Code CLI
+    @fission-ai/openspec       # OpenSpec agentic framework CLI
+    gsd-pi                     # GSD v2 standalone CLI
+)
+
+NPM_PACKAGES=("${COMMON_NPM_PACKAGES[@]}")
+case "$BOOTSTRAP_PROFILE" in
+    carlo-baseline)
+        NPM_PACKAGES+=("${CARLO_BASELINE_NPM_PACKAGES[@]}")
+        ;;
+    shared-baseline)
+        NPM_PACKAGES+=("${SHARED_BASELINE_NPM_PACKAGES[@]}")
+        ;;
+esac
 
 for package in "${NPM_PACKAGES[@]}"; do
     if npm list -g "$package" &> /dev/null; then
@@ -175,11 +259,14 @@ echo ""
 echo "Installed packages:"
 npm list -g --depth=0 2>/dev/null || true
 echo ""
-echo "Claude Code version: $(claude --version 2>/dev/null || echo 'not in PATH yet')"
 echo "Codex version: $(codex --version 2>/dev/null || echo 'not in PATH yet')"
-echo "OpenSpec version: $(openspec --version 2>/dev/null || echo 'not in PATH yet')"
-echo "GSD version: $(gsd --version 2>/dev/null || echo 'not in PATH yet')"
+echo "pnpm version: $(pnpm --version 2>/dev/null || echo 'not in PATH yet')"
 echo "Vercel version: $(vercel --version 2>/dev/null | head -1 || echo 'not in PATH yet')"
+if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
+    echo "Claude Code version: $(claude --version 2>/dev/null || echo 'not in PATH yet')"
+    echo "OpenSpec version: $(openspec --version 2>/dev/null || echo 'not in PATH yet')"
+    echo "GSD version: $(gsd --version 2>/dev/null || echo 'not in PATH yet')"
+fi
 echo ""
 echo "Note: These CLIs are installed under the active nvm-managed Node version."
 echo "      If they are not found in a new shell, make sure nvm loads correctly."

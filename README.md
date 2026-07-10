@@ -89,6 +89,8 @@ Claude, Gemini, OpenSpec, GSD v2, and 1Password.
 
 ### 1. Clone Or Copy The Repo
 
+For the Carlo Baseline, clone or copy the repo however you normally do:
+
 ```bash
 git clone <repo-url> dev-env-export
 cd dev-env-export
@@ -97,17 +99,34 @@ cd dev-env-export
 If the repo is being moved manually between machines, unpack it and `cd` into
 the project root before running scripts.
 
-### 2. Run The Bootstrap Scripts
+For the Shared Baseline, the expected entry path is GitHub Desktop on macOS:
+sign in, fetch this repo, and open the local checkout. Do not assume Homebrew,
+Git CLI, `gh`, Node, Python tooling, or AI CLIs already exist before the
+bootstrap runs.
+
+### 2. Choose A Bootstrap Profile
+
+The master bootstrap requires an explicit profile every time. Canonical profile
+names are `carlo-baseline` and `shared-baseline`; aliases `carlo` and `shared`
+also work.
 
 ```bash
-chmod +x scripts/*.sh
+chmod +x scripts/*.sh scripts/lib/*.sh
 
-./scripts/00-bootstrap.sh
+./scripts/00-bootstrap.sh --profile carlo-baseline
+./scripts/00-bootstrap.sh --profile shared-baseline
 ```
 
-If you want to run the primary flow end-to-end, the master bootstrap script
-will execute steps 1 through 8 in order and stop cleanly if macOS still needs
-you to finish Xcode Command Line Tools installation.
+You can also use the environment variable form:
+
+```bash
+DEV_ENV_BOOTSTRAP_PROFILE=shared-baseline ./scripts/00-bootstrap.sh
+```
+
+Use `./scripts/00-bootstrap.sh --list-profiles` if you need to check the valid
+names. The script validates the profile before doing install work and stops
+cleanly if macOS still needs you to finish Xcode Command Line Tools
+installation.
 
 Each bootstrap run writes timestamped logs under `logs/bootstrap-*` by default.
 If a step blows up on a fresh VM, keep that log directory around so the failure
@@ -118,7 +137,7 @@ machine context and the exact step outcome/duration.
 If you want the logs somewhere else, set `DEV_ENV_LOG_DIR=/path/to/logs`
 before running `./scripts/00-bootstrap.sh`.
 If you want command-by-command tracing inside each step, run
-`DEV_ENV_TRACE_STEPS=1 ./scripts/00-bootstrap.sh`.
+`DEV_ENV_TRACE_STEPS=1 ./scripts/00-bootstrap.sh --profile carlo-baseline`.
 
 The scripts are intended to be rerunnable. Re-running them should skip
 already-installed packages and unchanged config where practical. If you want
@@ -132,11 +151,11 @@ The npm steps are designed for `nvm`. If you have old `prefix` or
 `globalconfig` settings in `~/.npmrc`, the bootstrap scripts will remove those
 so Node 22 globals install under the active nvm-managed runtime.
 
-Docker is installed in two pieces on purpose: the `docker` formula provides the
-CLI, and the Docker Desktop cask provides the app bundle. That avoids the
-privileged cask symlink step that can otherwise derail unattended bootstrap
-runs. Docker Desktop is also the default source and management path for MCP
-servers in this repo.
+Docker is Carlo Baseline tooling. In that profile it is installed in two pieces
+on purpose: the `docker` formula provides the CLI, and the Docker Desktop cask
+provides the app bundle. That avoids the privileged cask symlink step that can
+otherwise derail unattended bootstrap runs. Docker Desktop is also the default
+source and management path for MCP servers in this repo.
 
 If Homebrew refuses to install `bun` because the local Xcode Command Line Tools
 are too old, the bootstrap falls back to the official Bun release binary so the
@@ -151,27 +170,60 @@ The active Homebrew install set lives in
 `manifest/homebrew-packages.sh`. Use that file to cull stale apps from the
 default bootstrap and keep a visible review bucket for stuff you no longer use.
 
-The bootstrap also installs repo-vendored Codex skills during
-`./scripts/05-setup-dotfiles.sh`, so fresh machines pick up tracked local
-skills without a separate follow-up command.
+The Carlo Baseline also installs repo-vendored Codex skills during
+`./scripts/05-setup-dotfiles.sh`, so Carlo machines pick up tracked local skills
+without a separate follow-up command. The Shared Baseline installs Codex CLI
+only and does not install Carlo-specific Codex config, skills, personas, MCP
+defaults, or plugin manifests.
 
 To run the steps manually instead:
 
 ```bash
 ./scripts/01-install-brew.sh
-./scripts/02-install-cli-tools.sh
-./scripts/03-install-npm-globals.sh
-./scripts/04-install-pip-packages.sh
+./scripts/02-install-cli-tools.sh --profile shared-baseline
+./scripts/03-install-npm-globals.sh --profile shared-baseline
+./scripts/04-install-pip-packages.sh --profile shared-baseline
+./scripts/15-setup-shared-shell.sh
+./scripts/10-check-paths.sh --profile shared-baseline
+./scripts/12-smoke-test.sh --profile shared-baseline
+```
+
+For the Carlo Baseline manual path, run the same first four steps with
+`--profile carlo-baseline`, then run:
+
+```bash
 ./scripts/05-setup-dotfiles.sh
 ./scripts/06-setup-claude.sh
 ./scripts/07-setup-1password.sh
 ./scripts/08-setup-gemini.sh
+./scripts/10-check-paths.sh --profile carlo-baseline
+./scripts/12-smoke-test.sh --profile carlo-baseline
 ```
 
 If `./scripts/02-install-cli-tools.sh` prompts for Xcode Command Line Tools,
 stop there, finish that install, and then re-run step 2 before continuing.
 
 ### 3. Complete Manual Setup
+
+For the Shared Baseline:
+
+```bash
+exec zsh
+
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+gh auth login --web --git-protocol https
+gh auth setup-git
+vercel login
+codex login
+```
+
+Codex Desktop may already be installed on the target machine, but it is not a
+Shared Baseline prerequisite and is not installed by the bootstrap. Store
+credentials in 1Password or the user's preferred secret manager; the Shared
+Baseline documents 1Password but does not install or configure it.
+
+For the Carlo Baseline:
 
 ```bash
 exec zsh
@@ -234,8 +286,10 @@ Recommended follow-up:
 - In Claude, use `claude/PLUGIN-MANIFEST.md` to install only the plugins you still use
 - Run `./scripts/11-create-1password-stubs.sh --vault Private` to scaffold secret items in 1Password
 - Run `./scripts/09-inventory-ai-tooling.sh` to snapshot the local AI layer
-- Run `./scripts/10-check-paths.sh` to verify the expected CLIs are actually visible
-- Run `./scripts/12-smoke-test.sh` to verify the post-bootstrap baseline end to end
+- Run `./scripts/10-check-paths.sh --profile carlo-baseline` to verify the
+  expected CLIs are actually visible
+- Run `./scripts/12-smoke-test.sh --profile carlo-baseline` to verify the
+  post-bootstrap baseline end to end
 
 ## Known Niggles
 
@@ -269,7 +323,8 @@ When you spin up a new repo from this environment, do not start from scratch.
 
 - Use [PROJECT-STANDARDS.md](/Users/carlo/dev/dev-env-export/PROJECT-STANDARDS.md)
   as the default standard for testing, deployment, security, and operations.
-- Fresh bootstrap runs already install repo-vendored Codex skills for you.
+- Carlo Baseline bootstrap runs already install repo-vendored Codex skills for
+  you.
 - Install or refresh the Codex skill manually with
   [scripts/14-install-codex-skills.sh](/Users/carlo/dev/dev-env-export/scripts/14-install-codex-skills.sh)
   if you want to update an existing machine without rerunning the broader
@@ -294,43 +349,47 @@ Example:
   --profile ts-service
 ```
 
-### Core CLI
+### Shared Baseline CLI
 
 - Homebrew
-- git, git-lfs, jq, curl, wget
-- nvm-managed node, npm, corepack, bun
+- git, gh, jq
+- nvm-managed node, npm, corepack, pnpm, bun
 - python3, uv
+- pandoc, poppler, tesseract, imagemagick
+- codex
+- vercel
+- make, gcc
+
+### Carlo Baseline Additional CLI
+
 - gemini-cli (`gemini`)
 - gsd-pi (`gsd`, `gsd-cli`)
 - googleworkspace-cli (`gws`)
-- pandoc, poppler, tesseract, imagemagick
-- codex
 - claude
-- vercel
-- gh
+- OpenSpec (`openspec`)
 - awscli
 - docker-related local tooling where needed
+- taproom
 
-### Primary GUI Tools
+### Shared Baseline GUI Tools
 
-- 1Password
 - Warp
 - Zed
-- Claude desktop
-- Codex desktop
-
-### Quality-Of-Life Apps
-
 - Raycast
-- BetterDisplay
 - Hidden Bar
 - Hammerspoon
 - GitHub Desktop
+
+### Carlo Baseline Additional GUI Tools
+
+- 1Password
+- 1Password CLI
+- BetterDisplay
 - Obsidian
-
-### Supporting GUI Tools
-
+- Docker Desktop
 - Firefox
+- Claude desktop
+- Codex desktop
 
 ### Review Bucket
 

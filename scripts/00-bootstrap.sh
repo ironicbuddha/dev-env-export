@@ -1,8 +1,8 @@
 #!/bin/bash
 # =============================================================================
-# 00-bootstrap.sh - Run the Primary Bootstrap Sequence
+# 00-bootstrap.sh - Run a Bootstrap Profile Sequence
 # =============================================================================
-# Runs scripts 01 through 08 in order for the main macOS bootstrap flow.
+# Runs the selected Bootstrap Profile for the macOS bootstrap flow.
 # Stops cleanly if a manual prerequisite such as Xcode Command Line Tools is
 # still pending.
 # =============================================================================
@@ -11,7 +11,77 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
 MANUAL_ACTION_EXIT=20
+BOOTSTRAP_PROFILE=""
+
+# shellcheck disable=SC1090
+source "$PROFILE_LIB"
+
+usage() {
+    cat <<'EOF'
+Usage: ./scripts/00-bootstrap.sh --profile PROFILE
+       DEV_ENV_BOOTSTRAP_PROFILE=PROFILE ./scripts/00-bootstrap.sh
+
+Runs the selected macOS Bootstrap Profile.
+
+Options:
+  --profile PROFILE   Required unless DEV_ENV_BOOTSTRAP_PROFILE is set
+  --list-profiles     Show valid profile names and aliases
+  -h, --help          Show this help
+
+Valid profiles:
+EOF
+    bootstrap_print_profiles
+}
+
+PROFILE_INPUT="${DEV_ENV_BOOTSTRAP_PROFILE:-}"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --profile)
+            if [ $# -lt 2 ]; then
+                echo "ERROR: --profile requires a value." >&2
+                usage >&2
+                exit 2
+            fi
+            PROFILE_INPUT="${2:-}"
+            shift 2
+            ;;
+        --profile=*)
+            PROFILE_INPUT="${1#--profile=}"
+            shift
+            ;;
+        --list-profiles)
+            bootstrap_print_profiles
+            exit 0
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "ERROR: Unknown option: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+if [ -z "$PROFILE_INPUT" ]; then
+    echo "ERROR: Missing required Bootstrap Profile." >&2
+    usage >&2
+    exit 2
+fi
+
+if ! BOOTSTRAP_PROFILE="$(bootstrap_normalize_profile "$PROFILE_INPUT")"; then
+    echo "ERROR: Unknown Bootstrap Profile: $PROFILE_INPUT" >&2
+    usage >&2
+    exit 2
+fi
+
+export DEV_ENV_BOOTSTRAP_PROFILE="$BOOTSTRAP_PROFILE"
+
 RUN_ID="$(date '+%Y%m%d-%H%M%S')"
 DEFAULT_LOG_DIR="$REPO_ROOT/logs/bootstrap-$RUN_ID"
 LOG_DIR="${DEV_ENV_LOG_DIR:-$DEFAULT_LOG_DIR}"
@@ -27,16 +97,39 @@ BOOTSTRAP_START_EPOCH="$(date '+%s')"
 LAST_STEP_STATUS=0
 TRACE_STEPS="${DEV_ENV_TRACE_STEPS:-0}"
 
-STEPS=(
+COMMON_STEPS=(
     "01-install-brew.sh"
     "02-install-cli-tools.sh"
     "03-install-npm-globals.sh"
     "04-install-pip-packages.sh"
+)
+
+CARLO_BASELINE_STEPS=(
     "05-setup-dotfiles.sh"
     "06-setup-claude.sh"
     "07-setup-1password.sh"
     "08-setup-gemini.sh"
 )
+
+SHARED_BASELINE_STEPS=(
+    "15-setup-shared-shell.sh"
+)
+
+VERIFICATION_STEPS=(
+    "10-check-paths.sh"
+    "12-smoke-test.sh"
+)
+
+STEPS=("${COMMON_STEPS[@]}")
+case "$BOOTSTRAP_PROFILE" in
+    carlo-baseline)
+        STEPS+=("${CARLO_BASELINE_STEPS[@]}")
+        ;;
+    shared-baseline)
+        STEPS+=("${SHARED_BASELINE_STEPS[@]}")
+        ;;
+esac
+STEPS+=("${VERIFICATION_STEPS[@]}")
 
 load_homebrew() {
     if [ -x "/opt/homebrew/bin/brew" ]; then
@@ -82,6 +175,7 @@ append_environment_snapshot() {
         echo "===== ${phase_title} SNAPSHOT ====="
         echo "timestamp=$(date '+%Y-%m-%d %H:%M:%S %Z')"
         echo "run_id=$RUN_ID"
+        echo "bootstrap_profile=$BOOTSTRAP_PROFILE"
         echo "repo_root=$REPO_ROOT"
         echo "log_dir=$LOG_DIR"
         echo "pwd=$(pwd)"
@@ -192,6 +286,7 @@ write_summary() {
         echo "duration_seconds=$duration_seconds"
         echo "duration_human=$(format_duration "$duration_seconds")"
         echo "outcome=$BOOTSTRAP_OUTCOME"
+        echo "bootstrap_profile=$BOOTSTRAP_PROFILE"
         echo "exit_status=$exit_status"
         echo "failed_step=${FAILED_STEP:-none}"
         echo "relevant_step=${relevant_step:-none}"
@@ -260,6 +355,7 @@ run_step() {
     local duration_seconds=0
     local status_label=""
     local pipe_status=()
+    local step_args=()
 
     if [ ! -f "$script_path" ]; then
         echo "ERROR: Missing bootstrap step: $script_path"
@@ -286,14 +382,21 @@ run_step() {
         echo "Script: $script_path"
         echo "Step log: $step_log"
         echo "Trace mode: $TRACE_STEPS"
+        echo "Bootstrap profile: $BOOTSTRAP_PROFILE"
         echo ""
     } >> "$step_log"
 
+    case "$script_name" in
+        "02-install-cli-tools.sh"|"03-install-npm-globals.sh"|"04-install-pip-packages.sh"|"10-check-paths.sh"|"12-smoke-test.sh")
+            step_args=(--profile "$BOOTSTRAP_PROFILE")
+            ;;
+    esac
+
     set +e
     if [ "$TRACE_STEPS" = "1" ]; then
-        bash -x "$script_path" 2>&1 | tee -a "$step_log"
+        bash -x "$script_path" "${step_args[@]}" 2>&1 | tee -a "$step_log"
     else
-        bash "$script_path" 2>&1 | tee -a "$step_log"
+        bash "$script_path" "${step_args[@]}" 2>&1 | tee -a "$step_log"
     fi
     pipe_status=("${PIPESTATUS[@]}")
     set -e
@@ -356,9 +459,10 @@ echo "========================================"
 echo "Dev Environment Bootstrap"
 echo "========================================"
 echo ""
-echo "This will run scripts 01 through 08 in order."
+echo "Bootstrap profile: $(bootstrap_profile_label "$BOOTSTRAP_PROFILE") ($BOOTSTRAP_PROFILE)"
+echo "This will run the selected profile steps in order."
 echo "If macOS prompts for Xcode Command Line Tools, complete that install and"
-echo "then re-run this script."
+echo "then re-run this script with the same --profile value."
 echo "Logs for this run will be written to: $LOG_DIR"
 echo "Artifacts: bootstrap.log, environment.txt, step-status.tsv, summary.txt, and per-step logs."
 if [ "$TRACE_STEPS" = "1" ]; then
@@ -380,7 +484,7 @@ for step in "${STEPS[@]}"; do
             echo ""
             echo "Manual action required:"
             echo "  - Finish installing Xcode Command Line Tools."
-            echo "  - Re-run ./scripts/00-bootstrap.sh after the install completes."
+            echo "  - Re-run ./scripts/00-bootstrap.sh --profile $BOOTSTRAP_PROFILE after the install completes."
             BOOTSTRAP_OUTCOME="manual_action_required"
             exit 0
         fi
@@ -405,25 +509,39 @@ echo "========================================"
 echo "Bootstrap Complete"
 echo "========================================"
 echo ""
-echo "Recommended manual follow-up:"
-echo "  - exec zsh"
-echo "  - gh auth login --web --git-protocol https"
-echo "  - gh auth setup-git"
-echo "  - aws configure"
-echo "  - launch gemini and complete OAuth if prompted"
-echo "  - gws auth setup"
-echo "  - codex login"
-echo "  - claude auth login"
-echo "  - open 1Password and confirm op account list works"
-echo ""
-echo "Zed trust follow-up:"
-echo "  - Open /Users/carlo/dev in Zed"
-echo "  - Use the Restricted Mode prompt or workspace::ToggleWorktreeSecurity"
-echo "  - Trust all projects in the /Users/carlo/dev folder"
-echo ""
-echo "Optional next steps:"
-echo "  - gemini skills list"
-echo "  - ./scripts/08-op-inject-template.sh --help"
-echo "  - ./scripts/09-inventory-ai-tooling.sh"
-echo "  - ./scripts/10-check-paths.sh"
-echo "  - ./scripts/12-smoke-test.sh"
+case "$BOOTSTRAP_PROFILE" in
+    carlo-baseline)
+        echo "Recommended manual follow-up:"
+        echo "  - exec zsh"
+        echo "  - gh auth login --web --git-protocol https"
+        echo "  - gh auth setup-git"
+        echo "  - aws configure"
+        echo "  - launch gemini and complete OAuth if prompted"
+        echo "  - gws auth setup"
+        echo "  - codex login"
+        echo "  - claude auth login"
+        echo "  - open 1Password and confirm op account list works"
+        echo ""
+        echo "Zed trust follow-up:"
+        echo "  - Open /Users/carlo/dev in Zed"
+        echo "  - Use the Restricted Mode prompt or workspace::ToggleWorktreeSecurity"
+        echo "  - Trust all projects in the /Users/carlo/dev folder"
+        echo ""
+        echo "Optional next steps:"
+        echo "  - gemini skills list"
+        echo "  - ./scripts/08-op-inject-template.sh --help"
+        echo "  - ./scripts/09-inventory-ai-tooling.sh"
+        ;;
+    shared-baseline)
+        echo "Recommended manual follow-up:"
+        echo "  - exec zsh"
+        echo "  - git config --global user.name \"Your Name\""
+        echo "  - git config --global user.email \"you@example.com\""
+        echo "  - gh auth login --web --git-protocol https"
+        echo "  - gh auth setup-git"
+        echo "  - vercel login"
+        echo "  - codex login"
+        echo "  - complete any Zed, Warp, Raycast, Hidden Bar, Hammerspoon, or GitHub Desktop first-launch prompts"
+        echo "  - store credentials in 1Password or the user's preferred secret manager"
+        ;;
+esac

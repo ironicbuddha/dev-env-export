@@ -1,5 +1,14 @@
 # CONTEXT.md
 
+<!-- BEGIN HANDOFF DISCOVERY -->
+## Handoff Discovery
+
+Before starting work in this repository, check `/Users/carlo/dev/handoff-docs` for handoff documents whose metadata `source_repo` matches this repository path. Load the most recently modified matching handoff document into context before making changes.
+
+Most recent handoff: `/Users/carlo/dev/handoff-docs/dev-env-export-handoff-2026-07-09-204557.md`
+Last updated: 2026-07-09 20:45
+<!-- END HANDOFF DISCOVERY -->
+
 ## Project Snapshot
 
 This repository captures the baseline configuration for Carlo's development
@@ -9,6 +18,53 @@ The project started as an export/merge of Ubuntu VM environments, but the live
 workflow has changed. The current target is a macOS development environment,
 typically running inside Parallels, with modern coding tools configured from the
 start.
+
+## Language
+
+**Carlo Baseline**:
+The full personal workstation setup for Carlo's own macOS laptop, Parallels VM,
+or disposable dev VM.
+_Avoid_: default setup, full setup
+
+**Shared Baseline**:
+The portable subset of the Carlo Baseline that can be applied to someone else's
+macOS development environment without assuming Carlo-specific identity,
+secrets, preferences, or private workflow state.
+_Avoid_: someone else's setup, external setup, public setup
+
+**Bootstrap Profile**:
+A named bootstrap scope that selects which baseline should be applied to a
+machine. The canonical profiles are `carlo-baseline` and `shared-baseline`,
+with `carlo` and `shared` accepted as aliases for ergonomics.
+_Avoid_: mode, variant, script fork
+
+**Bootstrap Entry Path**:
+The expected starting route before this repo's scripts run. For the Shared
+Baseline, the entry path is GitHub Desktop on macOS, used to sign in, fetch this
+repo, and open the local checkout before any other developer tools are assumed.
+_Avoid_: clone method, install prerequisite
+
+**Shared AI Layer**:
+The AI-tooling slice of the Shared Baseline. It is centered on Codex CLI access
+for collaboration from the shell. It does not assume Codex Desktop is installed
+as part of the reusable baseline, and does not install Carlo-specific Codex
+personas, skills, MCP defaults, private plugin manifests, Claude CLI, Gemini
+CLI, or other personal AI workflow state.
+_Avoid_: minimal AI layer, shared Carlo AI setup
+
+**Shared Shell Setup**:
+The shell slice of the Shared Baseline. It makes the installed tools usable from
+`zsh`, including required path and runtime-manager wiring, without installing
+Carlo-specific prompts, themes, aliases, functions, history preferences, or
+other personal shell behavior.
+_Avoid_: shared dotfiles, clean shell setup
+
+**Shared Secret Handling**:
+The secret-management guidance for the Shared Baseline. It may document
+1Password as the preferred place for credentials and post-bootstrap sign-ins,
+but does not install 1Password, configure accounts, create vaults, copy items,
+enable SSH agents, or assume Carlo's secret model.
+_Avoid_: shared 1Password setup, secret bootstrap
 
 ## Current Reality
 

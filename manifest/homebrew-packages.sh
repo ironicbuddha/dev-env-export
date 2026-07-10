@@ -4,22 +4,17 @@
 # Put stale, uncertain, or no-longer-used apps in REVIEW_CASK_APPS so they stay
 # visible without getting installed by default.
 
-CLI_TOOLS=(
+COMMON_BREW_PACKAGES=(
     # Development
     nvm
     python@3.13
     uv
     bun
-    taproom
 
-    # Cloud and infrastructure
-    awscli
-    docker
-    gemini-cli
+    # Collaboration and build tools
+    git
     gh
-    googleworkspace-cli
-
-    # Build tools
+    jq
     make
     gcc
 
@@ -30,28 +25,42 @@ CLI_TOOLS=(
     imagemagick
 )
 
+SHARED_BASELINE_BREW_PACKAGES=(
+)
+
+CARLO_BASELINE_BREW_PACKAGES=(
+    # Development convenience
+    taproom
+
+    # Cloud, infrastructure, and personal workflow CLIs
+    awscli
+    docker
+    gemini-cli
+    googleworkspace-cli
+)
+
 OPTIONAL_CLI_TOOLS=(
     # Optional infrastructure tooling
     terraform
 )
 
-PRIMARY_CASK_APPS=(
-    1password
-    1password-cli
+COMMON_CASK_APPS=(
     warp
     zed
-)
-
-UTILITY_CASK_APPS=(
     raycast
-    betterdisplay
     hiddenbar
     hammerspoon
     github
-    obsidian
 )
 
-SUPPORTING_CASK_APPS=(
+SHARED_BASELINE_CASK_APPS=(
+)
+
+CARLO_BASELINE_CASK_APPS=(
+    1password
+    1password-cli
+    betterdisplay
+    obsidian
     docker
     firefox
 )

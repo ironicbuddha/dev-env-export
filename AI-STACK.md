@@ -181,7 +181,7 @@ Observed on this machine on March 18, 2026.
 - Current repo policy:
   - treat OpenSpec as a global npm CLI installed under the active `nvm` Node runtime
   - keep any runtime auth, cache, or project-specific state out of Git
-  - verify command visibility with `scripts/10-check-paths.sh`
+  - verify command visibility with `scripts/10-check-paths.sh --profile carlo-baseline`
 
 ### Zed
 
@@ -284,8 +284,9 @@ Repo stance:
 So the right interpretation is not "these gaps are fine." It is "the bootstrap
 and docs need to account for each one on purpose."
 
-Use `./scripts/10-check-paths.sh` after bootstrap to verify whether these tools
-are actually visible in the intended shell environment.
+Use `./scripts/10-check-paths.sh --profile carlo-baseline` after bootstrap to
+verify whether these tools are actually visible in the intended shell
+environment.
 
 ## What To Track In Git
 

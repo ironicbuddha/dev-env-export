@@ -8,6 +8,71 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
+BOOTSTRAP_PROFILE=""
+
+# shellcheck disable=SC1090
+source "$PROFILE_LIB"
+
+usage() {
+    cat <<'EOF'
+Usage: ./scripts/10-check-paths.sh --profile PROFILE
+
+Checks CLI visibility for the selected Bootstrap Profile.
+
+Options:
+  --profile PROFILE   Required unless DEV_ENV_BOOTSTRAP_PROFILE is set
+  -h, --help          Show this help
+
+Valid profiles:
+EOF
+    bootstrap_print_profiles
+}
+
+PROFILE_INPUT="${DEV_ENV_BOOTSTRAP_PROFILE:-}"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --profile)
+            if [ $# -lt 2 ]; then
+                echo "ERROR: --profile requires a value." >&2
+                usage >&2
+                exit 2
+            fi
+            PROFILE_INPUT="${2:-}"
+            shift 2
+            ;;
+        --profile=*)
+            PROFILE_INPUT="${1#--profile=}"
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "ERROR: Unknown option: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+if [ -z "$PROFILE_INPUT" ]; then
+    echo "ERROR: Missing required Bootstrap Profile." >&2
+    usage >&2
+    exit 2
+fi
+
+if ! BOOTSTRAP_PROFILE="$(bootstrap_normalize_profile "$PROFILE_INPUT")"; then
+    echo "ERROR: Unknown Bootstrap Profile: $PROFILE_INPUT" >&2
+    usage >&2
+    exit 2
+fi
+
+export DEV_ENV_BOOTSTRAP_PROFILE="$BOOTSTRAP_PROFILE"
+
 load_homebrew() {
     if command -v brew >/dev/null 2>&1; then
         eval "$(brew shellenv)"
@@ -124,6 +189,8 @@ echo "========================================"
 echo "Dev Environment CLI Path Check"
 echo "========================================"
 echo ""
+echo "Bootstrap profile: $(bootstrap_profile_label "$BOOTSTRAP_PROFILE") ($BOOTSTRAP_PROFILE)"
+echo ""
 
 load_homebrew
 if load_nvm; then
@@ -134,28 +201,34 @@ echo "Checking CLI visibility in the intended bootstrap shell environment..."
 echo ""
 
 check_cmd "brew" "brew" "Homebrew should be installed by scripts/01-install-brew.sh."
+check_cmd "git" "git" "Git should come from scripts/02-install-cli-tools.sh or Xcode Command Line Tools."
 check_cmd "gh" "gh" "GitHub CLI should come from scripts/02-install-cli-tools.sh."
-check_cmd "aws" "aws" "AWS CLI should come from scripts/02-install-cli-tools.sh."
-check_cmd "gemini" "gemini" "Gemini CLI should come from scripts/02-install-cli-tools.sh via the gemini-cli formula."
-check_cmd "gws" "gws" "Google Workspace CLI should come from scripts/02-install-cli-tools.sh via googleworkspace-cli."
+check_cmd "jq" "jq" "jq should come from scripts/02-install-cli-tools.sh and is used by bootstrap cask checks."
 check_cmd "python3" "python3" "Python should come from scripts/02-install-cli-tools.sh."
 check_cmd "uv" "uv" "uv should come from scripts/02-install-cli-tools.sh."
 check_cmd "bun" "bun" "bun should come from scripts/02-install-cli-tools.sh."
-check_cmd "docker" "docker" "Docker CLI should come from scripts/02-install-cli-tools.sh via the docker formula."
 check_cmd "pandoc" "pandoc" "Pandoc should come from scripts/02-install-cli-tools.sh for document conversions."
 check_cmd "pdftotext" "pdftotext" "poppler should come from scripts/02-install-cli-tools.sh for PDF text extraction."
 check_cmd "pdftoppm" "pdftoppm" "poppler should come from scripts/02-install-cli-tools.sh for PDF page rendering."
 check_cmd "tesseract" "tesseract" "Tesseract should come from scripts/02-install-cli-tools.sh for OCR fallback."
 check_cmd "magick" "magick" "ImageMagick should come from scripts/02-install-cli-tools.sh for image preprocessing."
-check_cmd "op" "op" "1Password CLI should come from scripts/02-install-cli-tools.sh."
-check_cmd "zed" "zed" "Install the Zed CLI from inside Zed with Cmd+Shift+P -> cli: install."
 check_cmd "codex" "codex" "Codex CLI should come from scripts/03-install-npm-globals.sh under nvm."
-check_cmd "claude" "claude" "Claude CLI should come from scripts/03-install-npm-globals.sh under nvm."
-check_cmd "openspec" "openspec" "OpenSpec CLI should come from scripts/03-install-npm-globals.sh under nvm."
-check_cmd "gsd" "gsd" "GSD v2 should come from scripts/03-install-npm-globals.sh via the gsd-pi npm package."
+check_cmd "pnpm" "pnpm" "pnpm should come from scripts/03-install-npm-globals.sh under nvm."
 check_cmd "vercel" "vercel" "Vercel CLI should come from scripts/03-install-npm-globals.sh under nvm."
 check_cmd "node" "node" "Node should come from nvm in scripts/02-install-cli-tools.sh."
 check_cmd "npm" "npm" "npm should come with the active nvm-managed Node runtime."
+
+if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
+    check_cmd "aws" "aws" "AWS CLI should come from scripts/02-install-cli-tools.sh."
+    check_cmd "gemini" "gemini" "Gemini CLI should come from scripts/02-install-cli-tools.sh via the gemini-cli formula."
+    check_cmd "gws" "gws" "Google Workspace CLI should come from scripts/02-install-cli-tools.sh via googleworkspace-cli."
+    check_cmd "docker" "docker" "Docker CLI should come from scripts/02-install-cli-tools.sh via the docker formula."
+    check_cmd "op" "op" "1Password CLI should come from scripts/02-install-cli-tools.sh."
+    check_cmd "zed" "zed" "Install the Zed CLI from inside Zed with Cmd+Shift+P -> cli: install."
+    check_cmd "claude" "claude" "Claude CLI should come from scripts/03-install-npm-globals.sh under nvm."
+    check_cmd "openspec" "openspec" "OpenSpec CLI should come from scripts/03-install-npm-globals.sh under nvm."
+    check_cmd "gsd" "gsd" "GSD v2 should come from scripts/03-install-npm-globals.sh via the gsd-pi npm package."
+fi
 
 echo ""
 if command -v node >/dev/null 2>&1; then
@@ -179,18 +252,20 @@ if command -v npm >/dev/null 2>&1; then
 fi
 
 echo ""
-if [ -L "$HOME/.codex/skills/apply-project-standards" ] || [ -d "$HOME/.codex/skills/apply-project-standards" ]; then
-    echo "[OK]   repo Codex skill -> $HOME/.codex/skills/apply-project-standards"
-else
-    echo "[MISS] repo Codex skill"
-    echo "       Re-run scripts/05-setup-dotfiles.sh or scripts/14-install-codex-skills.sh."
-fi
+if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
+    if [ -L "$HOME/.codex/skills/apply-project-standards" ] || [ -d "$HOME/.codex/skills/apply-project-standards" ]; then
+        echo "[OK]   repo Codex skill -> $HOME/.codex/skills/apply-project-standards"
+    else
+        echo "[MISS] repo Codex skill"
+        echo "       Re-run scripts/05-setup-dotfiles.sh or scripts/14-install-codex-skills.sh."
+    fi
 
-if [ -L "$HOME/.agents/skills/apply-project-standards" ] || [ -d "$HOME/.agents/skills/apply-project-standards" ]; then
-    echo "[OK]   shared agent skill -> $HOME/.agents/skills/apply-project-standards"
-else
-    echo "[MISS] shared agent skill"
-    echo "       Re-run scripts/05-setup-dotfiles.sh or scripts/14-install-codex-skills.sh."
+    if [ -L "$HOME/.agents/skills/apply-project-standards" ] || [ -d "$HOME/.agents/skills/apply-project-standards" ]; then
+        echo "[OK]   shared agent skill -> $HOME/.agents/skills/apply-project-standards"
+    else
+        echo "[MISS] shared agent skill"
+        echo "       Re-run scripts/05-setup-dotfiles.sh or scripts/14-install-codex-skills.sh."
+    fi
 fi
 
 if PYTHON_BIN="$(resolve_python_bin 2>/dev/null)"; then

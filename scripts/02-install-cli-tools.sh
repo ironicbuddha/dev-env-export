@@ -14,7 +14,70 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 MANIFEST_FILE="$REPO_ROOT/manifest/homebrew-packages.sh"
+PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
 MANUAL_ACTION_EXIT=20
+BOOTSTRAP_PROFILE=""
+
+# shellcheck disable=SC1090
+source "$PROFILE_LIB"
+
+usage() {
+    cat <<'EOF'
+Usage: ./scripts/02-install-cli-tools.sh --profile PROFILE
+
+Installs Homebrew CLI tools and cask apps for the selected Bootstrap Profile.
+
+Options:
+  --profile PROFILE   Required unless DEV_ENV_BOOTSTRAP_PROFILE is set
+  -h, --help          Show this help
+
+Valid profiles:
+EOF
+    bootstrap_print_profiles
+}
+
+PROFILE_INPUT="${DEV_ENV_BOOTSTRAP_PROFILE:-}"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --profile)
+            if [ $# -lt 2 ]; then
+                echo "ERROR: --profile requires a value." >&2
+                usage >&2
+                exit 2
+            fi
+            PROFILE_INPUT="${2:-}"
+            shift 2
+            ;;
+        --profile=*)
+            PROFILE_INPUT="${1#--profile=}"
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "ERROR: Unknown option: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+if [ -z "$PROFILE_INPUT" ]; then
+    echo "ERROR: Missing required Bootstrap Profile." >&2
+    usage >&2
+    exit 2
+fi
+
+if ! BOOTSTRAP_PROFILE="$(bootstrap_normalize_profile "$PROFILE_INPUT")"; then
+    echo "ERROR: Unknown Bootstrap Profile: $PROFILE_INPUT" >&2
+    usage >&2
+    exit 2
+fi
+
+export DEV_ENV_BOOTSTRAP_PROFILE="$BOOTSTRAP_PROFILE"
 
 load_homebrew() {
     if command -v brew >/dev/null 2>&1; then
@@ -38,6 +101,8 @@ load_homebrew() {
 echo "========================================"
 echo "Step 2: Installing Development CLI Tools"
 echo "========================================"
+echo ""
+echo "Bootstrap profile: $(bootstrap_profile_label "$BOOTSTRAP_PROFILE") ($BOOTSTRAP_PROFILE)"
 echo ""
 
 # Ensure Homebrew is available (self-heal by running step 1 if needed)
@@ -65,6 +130,20 @@ fi
 
 # shellcheck disable=SC1090
 source "$MANIFEST_FILE"
+
+CLI_TOOLS=("${COMMON_BREW_PACKAGES[@]}")
+CASK_APPS=("${COMMON_CASK_APPS[@]}")
+
+case "$BOOTSTRAP_PROFILE" in
+    carlo-baseline)
+        CLI_TOOLS+=("${CARLO_BASELINE_BREW_PACKAGES[@]}")
+        CASK_APPS+=("${CARLO_BASELINE_CASK_APPS[@]}")
+        ;;
+    shared-baseline)
+        CLI_TOOLS+=("${SHARED_BASELINE_BREW_PACKAGES[@]}")
+        CASK_APPS+=("${SHARED_BASELINE_CASK_APPS[@]}")
+        ;;
+esac
 
 strip_npmrc_conflicts() {
     local npmrc_path="$HOME/.npmrc"
@@ -382,12 +461,6 @@ echo ""
 echo "Installing applications via Homebrew Cask..."
 echo ""
 
-CASK_APPS=(
-    "${PRIMARY_CASK_APPS[@]}"
-    "${UTILITY_CASK_APPS[@]}"
-    "${SUPPORTING_CASK_APPS[@]}"
-)
-
 for app in "${CASK_APPS[@]}"; do
     if brew list --cask "$app" &> /dev/null 2>&1; then
         echo "  [SKIP] $app is already installed"
@@ -456,7 +529,9 @@ fi
 # -----------------------------------------------------------------------------
 echo ""
 echo "Checking for Oh My Zsh..."
-if [ ! -d "$HOME/.oh-my-zsh" ]; then
+if [ "$BOOTSTRAP_PROFILE" = "shared-baseline" ]; then
+    echo "  [SKIP] Oh My Zsh is Carlo Baseline shell customization."
+elif [ ! -d "$HOME/.oh-my-zsh" ]; then
     echo "Installing Oh My Zsh..."
     RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 else
@@ -477,15 +552,17 @@ echo "Installed tools:"
 echo "  - Node.js (via nvm): $(node --version 2>/dev/null || echo 'not in PATH yet')"
 echo "  - npm: $(npm --version 2>/dev/null || echo 'not in PATH yet')"
 echo "  - Python: $PYTHON_VERSION"
-echo "  - AWS CLI: $(aws --version 2>/dev/null | cut -d' ' -f1 || echo 'not in PATH yet')"
 echo "  - GitHub CLI: $(gh --version 2>/dev/null | head -1 || echo 'not in PATH yet')"
-echo "  - 1Password CLI: $(op --version 2>/dev/null || echo 'not in PATH yet')"
 echo "  - Raycast: $(cask_status raycast)"
-echo "  - BetterDisplay: $(cask_status betterdisplay)"
 echo "  - Hidden Bar: $(cask_status hiddenbar)"
 echo "  - Hammerspoon: $(cask_status hammerspoon)"
 echo "  - GitHub Desktop: $(cask_status github)"
-echo "  - Obsidian: $(cask_status obsidian)"
+if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
+    echo "  - AWS CLI: $(aws --version 2>/dev/null | cut -d' ' -f1 || echo 'not in PATH yet')"
+    echo "  - 1Password CLI: $(op --version 2>/dev/null || echo 'not in PATH yet')"
+    echo "  - BetterDisplay: $(cask_status betterdisplay)"
+    echo "  - Obsidian: $(cask_status obsidian)"
+fi
 echo ""
 echo "Node runtime policy: Homebrew installs nvm; nvm installs and owns Node."
 echo ""

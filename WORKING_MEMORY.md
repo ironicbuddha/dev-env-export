@@ -7,7 +7,8 @@ Last updated: 2026-03-18
 - The repo is aligned around a macOS / Parallels bootstrap flow with Homebrew,
   `nvm`, Warp, Zed, Codex, Claude, Gemini, GSD v2, Docker Desktop, and
   1Password.
-- The primary fresh-machine entrypoint is `./scripts/00-bootstrap.sh`.
+- The primary fresh-machine entrypoint is `./scripts/00-bootstrap.sh --profile
+  carlo-baseline` or `./scripts/00-bootstrap.sh --profile shared-baseline`.
 - The worktree is currently clean on `main`.
 - `origin/main` is at commit `fbdd4b4` (`Improve bootstrap logging diagnostics`).
 
@@ -47,8 +48,8 @@ Last updated: 2026-03-18
   docs were finalized.
 - Earlier repo baseline checks on the current machine also passed:
   - `./scripts/09-inventory-ai-tooling.sh`
-  - `./scripts/10-check-paths.sh`
-  - `./scripts/12-smoke-test.sh`
+  - `./scripts/10-check-paths.sh --profile carlo-baseline`
+  - `./scripts/12-smoke-test.sh --profile carlo-baseline`
 
 ## Important Notes
 
@@ -64,7 +65,7 @@ Last updated: 2026-03-18
 - On the fresh VM, run:
 
 ```bash
-DEV_ENV_TRACE_STEPS=1 ./scripts/00-bootstrap.sh
+DEV_ENV_TRACE_STEPS=1 ./scripts/00-bootstrap.sh --profile carlo-baseline
 ```
 
 - If Xcode Command Line Tools interrupts the flow, finish that install, rerun
