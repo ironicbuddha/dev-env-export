@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 QUALITY_DIR="$REPO_ROOT/templates/code-quality"
 STANDARDS_DIR="$REPO_ROOT/templates/project-standards"
-AGENT_DIRECTION_DIR="$REPO_ROOT/templates/agent-direction"
+AGENT_DIRECTION_DIR="$REPO_ROOT/agent-direction"
 
 TARGET_REPO=""
 PROFILE=""
@@ -437,12 +437,12 @@ apply_agent_direction() {
     local target_repo_root="$1"
 
     if [[ ! -d "$AGENT_DIRECTION_DIR" ]]; then
-        record_warning "Agent direction templates not found at $AGENT_DIRECTION_DIR"
+        record_warning "Agent direction files not found at $AGENT_DIRECTION_DIR"
         return
     fi
 
     if [[ ! -f "$AGENT_DIRECTION_DIR/AGENTS.md" || ! -f "$AGENT_DIRECTION_DIR/CLAUDE.md" ]]; then
-        record_warning "Agent direction templates must include AGENTS.md and CLAUDE.md"
+        record_warning "Agent direction package must include AGENTS.md and CLAUDE.md"
         return
     fi
 

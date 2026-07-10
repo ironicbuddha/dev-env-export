@@ -333,8 +333,8 @@ When you spin up a new repo from this environment, do not start from scratch.
   [scripts/13-apply-project-standards.sh](/Users/carlo/dev/dev-env-export/scripts/13-apply-project-standards.sh)
   to copy the starter into a target repo with a profile-aware baseline.
 - That script also deploys the standard agent direction files from
-  `templates/agent-direction/` as root `AGENTS.md` and `CLAUDE.md` unless you
-  use `--constitution-only`.
+  `agent-direction/` as root `AGENTS.md` and `CLAUDE.md` unless you use
+  `--constitution-only`.
 - Copy
   [templates/project-standards/constitution.md](/Users/carlo/dev/dev-env-export/templates/project-standards/constitution.md)
   into the new repo as `constitution.md`.
