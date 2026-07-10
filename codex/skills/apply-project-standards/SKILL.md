@@ -28,6 +28,8 @@ Make sure you are in the `dev-env-export` repo root or can reach:
 - `scripts/13-apply-project-standards.sh`
 - `templates/project-standards/constitution.md`
 - `templates/code-quality/`
+- `templates/agent-direction/AGENTS.md`
+- `templates/agent-direction/CLAUDE.md`
 
 ### 2. Determine the target repo and profile
 
@@ -64,9 +66,13 @@ After the script runs:
 - note any skipped files
 - note any warnings
 - tell the user what was merged versus what still needs manual review
+- confirm whether `AGENTS.md` and `CLAUDE.md` were written, skipped, or backed
+  up because these are part of the standard agent direction baseline
 
 Typical follow-up points:
 
+- all non-`--constitution-only` runs deploy the shared agent direction files
+  from `templates/agent-direction/`
 - TypeScript repos get the starter lint and format config plus a `package.json`
   quality merge
 - Python repos may still need Ruff wired into the repo's actual dependency flow

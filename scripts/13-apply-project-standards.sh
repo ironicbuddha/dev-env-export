@@ -12,6 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 QUALITY_DIR="$REPO_ROOT/templates/code-quality"
 STANDARDS_DIR="$REPO_ROOT/templates/project-standards"
+AGENT_DIRECTION_DIR="$REPO_ROOT/templates/agent-direction"
 
 TARGET_REPO=""
 PROFILE=""
@@ -432,6 +433,23 @@ apply_ts_baseline() {
     merge_package_json_quality "$target_repo_root"
 }
 
+apply_agent_direction() {
+    local target_repo_root="$1"
+
+    if [[ ! -d "$AGENT_DIRECTION_DIR" ]]; then
+        record_warning "Agent direction templates not found at $AGENT_DIRECTION_DIR"
+        return
+    fi
+
+    if [[ ! -f "$AGENT_DIRECTION_DIR/AGENTS.md" || ! -f "$AGENT_DIRECTION_DIR/CLAUDE.md" ]]; then
+        record_warning "Agent direction templates must include AGENTS.md and CLAUDE.md"
+        return
+    fi
+
+    write_file_safe "$AGENT_DIRECTION_DIR/AGENTS.md" "$target_repo_root/AGENTS.md" "AGENTS.md"
+    write_file_safe "$AGENT_DIRECTION_DIR/CLAUDE.md" "$target_repo_root/CLAUDE.md" "CLAUDE.md"
+}
+
 print_summary() {
     local target_repo_root="$1"
 
@@ -540,6 +558,8 @@ render_constitution "$PROFILE" "$PROJECT_NAME" "$TODAY" "$CONSTITUTION_TMP"
 write_rendered_file_safe "$CONSTITUTION_TMP" "$TARGET_REPO/constitution.md" "constitution.md"
 
 if [[ "$CONSTITUTION_ONLY" -ne 1 ]]; then
+    apply_agent_direction "$TARGET_REPO"
+
     case "$PROFILE" in
         next|vite|ts-service)
             apply_ts_baseline "$TARGET_REPO"
