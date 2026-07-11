@@ -10,6 +10,70 @@
 set -euo pipefail
 
 FAILURES=0
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
+BOOTSTRAP_PROFILE=""
+
+# shellcheck disable=SC1090
+source "$PROFILE_LIB"
+
+usage() {
+    cat <<'EOF'
+Usage: ./scripts/12-smoke-test.sh --profile PROFILE
+
+Runs smoke checks for the selected Bootstrap Profile.
+
+Options:
+  --profile PROFILE   Required unless DEV_ENV_BOOTSTRAP_PROFILE is set
+  -h, --help          Show this help
+
+Valid profiles:
+EOF
+    bootstrap_print_profiles
+}
+
+PROFILE_INPUT="${DEV_ENV_BOOTSTRAP_PROFILE:-}"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --profile)
+            if [ $# -lt 2 ]; then
+                echo "ERROR: --profile requires a value." >&2
+                usage >&2
+                exit 2
+            fi
+            PROFILE_INPUT="${2:-}"
+            shift 2
+            ;;
+        --profile=*)
+            PROFILE_INPUT="${1#--profile=}"
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "ERROR: Unknown option: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+if [ -z "$PROFILE_INPUT" ]; then
+    echo "ERROR: Missing required Bootstrap Profile." >&2
+    usage >&2
+    exit 2
+fi
+
+if ! BOOTSTRAP_PROFILE="$(bootstrap_normalize_profile "$PROFILE_INPUT")"; then
+    echo "ERROR: Unknown Bootstrap Profile: $PROFILE_INPUT" >&2
+    usage >&2
+    exit 2
+fi
+
+export DEV_ENV_BOOTSTRAP_PROFILE="$BOOTSTRAP_PROFILE"
 
 load_homebrew() {
     if command -v brew >/dev/null 2>&1; then
@@ -178,6 +242,8 @@ echo "========================================"
 echo "Dev Environment Smoke Test"
 echo "========================================"
 echo ""
+echo "Bootstrap profile: $(bootstrap_profile_label "$BOOTSTRAP_PROFILE") ($BOOTSTRAP_PROFILE)"
+echo ""
 
 if ! load_homebrew; then
     fail "Homebrew could not be loaded"
@@ -207,25 +273,31 @@ echo "CLI checks"
 echo "----------"
 
 check_cmd "gh" "gh"
-check_cmd "aws" "aws"
-check_cmd "gemini" "gemini"
-check_cmd "gws" "gws"
+check_cmd "git" "git"
+check_cmd "jq" "jq"
 check_cmd "python3" "python3"
-check_cmd "op" "op"
 check_cmd "codex" "codex"
-check_cmd "claude" "claude"
-check_cmd "gsd" "gsd"
+check_cmd "pnpm" "pnpm"
 check_cmd "vercel" "vercel"
 check_cmd "node" "node"
 check_cmd "npm" "npm"
 check_cmd "uv" "uv"
 check_cmd "bun" "bun"
-check_cmd "docker" "docker"
 check_cmd "pandoc" "pandoc"
 check_cmd "pdftotext" "pdftotext"
 check_cmd "pdftoppm" "pdftoppm"
 check_cmd "tesseract" "tesseract"
 check_cmd "magick" "magick"
+
+if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
+    check_cmd "aws" "aws"
+    check_cmd "gemini" "gemini"
+    check_cmd "gws" "gws"
+    check_cmd "op" "op"
+    check_cmd "claude" "claude"
+    check_cmd "gsd" "gsd"
+    check_cmd "docker" "docker"
+fi
 
 if command -v node >/dev/null 2>&1; then
     NODE_PATH="$(command -v node)"
@@ -275,36 +347,46 @@ echo "-------------"
 
 check_file "$HOME/.zshrc"
 check_file "$HOME/.zprofile"
-check_file "$HOME/.gitconfig"
-check_file "$HOME/.gitignore_global"
-check_file "$HOME/.aws/config"
-check_file "$HOME/.config/gh/config.yml"
-check_file "$HOME/.codex/config.toml"
-check_file "$HOME/.codex/skills/apply-project-standards/SKILL.md"
-check_file "$HOME/.agents/skills/apply-project-standards/SKILL.md"
-check_file "$HOME/.claude/settings.json"
-check_file "$HOME/.claude/statusline-command.sh"
-check_file "$HOME/.gemini/settings.json"
-check_file "$HOME/.gemini/GEMINI.md"
-check_file "$HOME/Library/Application Support/Zed/settings.json"
-check_file "$HOME/Library/Application Support/Zed/keymap.json"
-check_file "$HOME/.warp/launch_configurations/dev-env-bootstrap.yaml"
+
+if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
+    check_file "$HOME/.gitconfig"
+    check_file "$HOME/.gitignore_global"
+    check_file "$HOME/.aws/config"
+    check_file "$HOME/.config/gh/config.yml"
+    check_file "$HOME/.codex/config.toml"
+    check_file "$HOME/.codex/skills/apply-project-standards/SKILL.md"
+    check_file "$HOME/.agents/skills/apply-project-standards/SKILL.md"
+    check_file "$HOME/.claude/settings.json"
+    check_file "$HOME/.claude/statusline-command.sh"
+    check_file "$HOME/.gemini/settings.json"
+    check_file "$HOME/.gemini/GEMINI.md"
+    check_file "$HOME/Library/Application Support/Zed/settings.json"
+    check_file "$HOME/Library/Application Support/Zed/keymap.json"
+    check_file "$HOME/.warp/launch_configurations/dev-env-bootstrap.yaml"
+fi
 
 echo ""
 echo "App checks"
 echo "----------"
 
-check_app "/Applications/1Password.app"
 check_app "/Applications/Warp.app"
 check_app "/Applications/Zed.app"
-check_app "/Applications/Docker.app"
+check_app "/Applications/Raycast.app"
+check_app "/Applications/Hidden Bar.app"
+check_app "/Applications/Hammerspoon.app"
+check_app "/Applications/GitHub Desktop.app"
+
+if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
+    check_app "/Applications/1Password.app"
+    check_app "/Applications/Docker.app"
+fi
 
 echo ""
 echo "Notes"
 echo "-----"
 note "This smoke test checks install state and config placement, not login state."
 note "Zed CLI installation is still a manual follow-up from inside Zed."
-note "If auth flows are still pending, gh/aws/op/gemini can exist without being signed in yet."
+note "If auth flows are still pending, installed CLIs can exist without being signed in yet."
 note "Document OCR is expected to be a fallback when native extraction or PDF text parsing yields poor results."
 
 echo ""

@@ -12,9 +12,76 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
+BOOTSTRAP_PROFILE=""
+
+# shellcheck disable=SC1090
+source "$PROFILE_LIB"
+
+usage() {
+    cat <<'EOF'
+Usage: ./scripts/04-install-pip-packages.sh --profile PROFILE
+
+Installs user-level Python packages for the selected Bootstrap Profile.
+
+Options:
+  --profile PROFILE   Required unless DEV_ENV_BOOTSTRAP_PROFILE is set
+  -h, --help          Show this help
+
+Valid profiles:
+EOF
+    bootstrap_print_profiles
+}
+
+PROFILE_INPUT="${DEV_ENV_BOOTSTRAP_PROFILE:-}"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --profile)
+            if [ $# -lt 2 ]; then
+                echo "ERROR: --profile requires a value." >&2
+                usage >&2
+                exit 2
+            fi
+            PROFILE_INPUT="${2:-}"
+            shift 2
+            ;;
+        --profile=*)
+            PROFILE_INPUT="${1#--profile=}"
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "ERROR: Unknown option: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+if [ -z "$PROFILE_INPUT" ]; then
+    echo "ERROR: Missing required Bootstrap Profile." >&2
+    usage >&2
+    exit 2
+fi
+
+if ! BOOTSTRAP_PROFILE="$(bootstrap_normalize_profile "$PROFILE_INPUT")"; then
+    echo "ERROR: Unknown Bootstrap Profile: $PROFILE_INPUT" >&2
+    usage >&2
+    exit 2
+fi
+
+export DEV_ENV_BOOTSTRAP_PROFILE="$BOOTSTRAP_PROFILE"
+
 echo "========================================"
 echo "Step 4: Installing Python pip Packages"
 echo "========================================"
+echo ""
+echo "Bootstrap profile: $(bootstrap_profile_label "$BOOTSTRAP_PROFILE") ($BOOTSTRAP_PROFILE)"
 echo ""
 
 resolve_python_bin() {
@@ -82,7 +149,22 @@ echo ""
 echo "Installing pip packages..."
 echo ""
 
-PIP_PACKAGES=(
+COMMON_PIP_PACKAGES=(
+    # Document, PDF, and image handling for AI workflows
+    python-docx         # Read and write .docx files
+    openpyxl            # Read and write .xlsx files
+    python-pptx         # Read and write .pptx files
+    pypdf               # Read and assemble PDFs
+    pdfplumber          # Extract structured text from PDFs
+    pillow              # Image loading and preprocessing
+    pytesseract         # OCR wrapper for tesseract
+    reportlab           # Generate PDFs
+)
+
+SHARED_BASELINE_PIP_PACKAGES=(
+)
+
+CARLO_BASELINE_PIP_PACKAGES=(
     # Data validation and typing
     pydantic            # Data validation using Python type annotations
     annotated-types     # Type annotations support
@@ -98,17 +180,17 @@ PIP_PACKAGES=(
 
     # Concurrency
     greenlet            # Lightweight in-process concurrent programming
-
-    # Document, PDF, and image handling for AI workflows
-    python-docx         # Read and write .docx files
-    openpyxl            # Read and write .xlsx files
-    python-pptx         # Read and write .pptx files
-    pypdf               # Read and assemble PDFs
-    pdfplumber          # Extract structured text from PDFs
-    pillow              # Image loading and preprocessing
-    pytesseract         # OCR wrapper for tesseract
-    reportlab           # Generate PDFs
 )
+
+PIP_PACKAGES=("${COMMON_PIP_PACKAGES[@]}")
+case "$BOOTSTRAP_PROFILE" in
+    carlo-baseline)
+        PIP_PACKAGES+=("${CARLO_BASELINE_PIP_PACKAGES[@]}")
+        ;;
+    shared-baseline)
+        PIP_PACKAGES+=("${SHARED_BASELINE_PIP_PACKAGES[@]}")
+        ;;
+esac
 
 for package in "${PIP_PACKAGES[@]}"; do
     if "$PYTHON_BIN" -m pip show "$package" &> /dev/null; then
