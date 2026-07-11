@@ -394,9 +394,17 @@ run_step() {
 
     set +e
     if [ "$TRACE_STEPS" = "1" ]; then
-        bash -x "$script_path" "${step_args[@]}" 2>&1 | tee -a "$step_log"
+        if [ "${#step_args[@]}" -gt 0 ]; then
+            bash -x "$script_path" "${step_args[@]}" 2>&1 | tee -a "$step_log"
+        else
+            bash -x "$script_path" 2>&1 | tee -a "$step_log"
+        fi
     else
-        bash "$script_path" "${step_args[@]}" 2>&1 | tee -a "$step_log"
+        if [ "${#step_args[@]}" -gt 0 ]; then
+            bash "$script_path" "${step_args[@]}" 2>&1 | tee -a "$step_log"
+        else
+            bash "$script_path" 2>&1 | tee -a "$step_log"
+        fi
     fi
     pipe_status=("${PIPESTATUS[@]}")
     set -e

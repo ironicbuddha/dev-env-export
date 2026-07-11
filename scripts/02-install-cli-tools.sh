@@ -140,8 +140,12 @@ case "$BOOTSTRAP_PROFILE" in
         CASK_APPS+=("${CARLO_BASELINE_CASK_APPS[@]}")
         ;;
     shared-baseline)
-        CLI_TOOLS+=("${SHARED_BASELINE_BREW_PACKAGES[@]}")
-        CASK_APPS+=("${SHARED_BASELINE_CASK_APPS[@]}")
+        if [ "${#SHARED_BASELINE_BREW_PACKAGES[@]}" -gt 0 ]; then
+            CLI_TOOLS+=("${SHARED_BASELINE_BREW_PACKAGES[@]}")
+        fi
+        if [ "${#SHARED_BASELINE_CASK_APPS[@]}" -gt 0 ]; then
+            CASK_APPS+=("${SHARED_BASELINE_CASK_APPS[@]}")
+        fi
         ;;
 esac
 

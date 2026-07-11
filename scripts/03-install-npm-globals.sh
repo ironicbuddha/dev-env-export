@@ -233,7 +233,9 @@ case "$BOOTSTRAP_PROFILE" in
         NPM_PACKAGES+=("${CARLO_BASELINE_NPM_PACKAGES[@]}")
         ;;
     shared-baseline)
-        NPM_PACKAGES+=("${SHARED_BASELINE_NPM_PACKAGES[@]}")
+        if [ "${#SHARED_BASELINE_NPM_PACKAGES[@]}" -gt 0 ]; then
+            NPM_PACKAGES+=("${SHARED_BASELINE_NPM_PACKAGES[@]}")
+        fi
         ;;
 esac
 
