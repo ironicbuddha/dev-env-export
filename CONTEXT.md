@@ -40,8 +40,10 @@ _Avoid_: mode, variant, script fork
 
 **Bootstrap Entry Path**:
 The expected starting route before this repo's scripts run. For the Shared
-Baseline, the entry path is GitHub Desktop on macOS, used to sign in, fetch this
-repo, and open the local checkout before any other developer tools are assumed.
+Baseline, the zero-tool entry path is a GitHub ZIP archive extracted on macOS,
+with Terminal opened in the extracted folder. No Git CLI, Xcode Command Line
+Tools, Homebrew, editor, or executable file modes are assumed. GitHub Desktop
+and a normal Git clone remain supported acquisition paths.
 _Avoid_: clone method, install prerequisite
 
 **Shared AI Layer**:

@@ -3,7 +3,7 @@
 # 00-bootstrap.sh - Run a Bootstrap Profile Sequence
 # =============================================================================
 # Runs the selected Bootstrap Profile for the macOS bootstrap flow.
-# Stops cleanly if a manual prerequisite such as Xcode Command Line Tools is
+# Returns exit 20 if a manual prerequisite such as Xcode Command Line Tools is
 # still pending.
 # =============================================================================
 
@@ -20,8 +20,8 @@ source "$PROFILE_LIB"
 
 usage() {
     cat <<'EOF'
-Usage: ./scripts/00-bootstrap.sh --profile PROFILE
-       DEV_ENV_BOOTSTRAP_PROFILE=PROFILE ./scripts/00-bootstrap.sh
+Usage: /bin/bash scripts/00-bootstrap.sh --profile PROFILE
+       DEV_ENV_BOOTSTRAP_PROFILE=PROFILE /bin/bash scripts/00-bootstrap.sh
 
 Runs the selected macOS Bootstrap Profile.
 
@@ -492,9 +492,9 @@ for step in "${STEPS[@]}"; do
             echo ""
             echo "Manual action required:"
             echo "  - Finish installing Xcode Command Line Tools."
-            echo "  - Re-run ./scripts/00-bootstrap.sh --profile $BOOTSTRAP_PROFILE after the install completes."
+            echo "  - Re-run /bin/bash scripts/00-bootstrap.sh --profile $BOOTSTRAP_PROFILE after the install completes."
             BOOTSTRAP_OUTCOME="manual_action_required"
-            exit 0
+            exit "$MANUAL_ACTION_EXIT"
         fi
 
         BOOTSTRAP_OUTCOME="failed"

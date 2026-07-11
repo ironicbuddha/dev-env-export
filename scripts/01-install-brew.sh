@@ -40,11 +40,8 @@ if ! command -v brew &> /dev/null; then
         exit 1
     fi
 
-    # Add Homebrew to PATH for future login shells
-    echo "Adding Homebrew to PATH..."
-    if ! grep -Fq "brew shellenv" "$HOME/.zprofile" 2>/dev/null; then
-        echo "eval \"\$($BREW_BIN shellenv)\"" >> "$HOME/.zprofile"
-    fi
+    # Load Homebrew for this bootstrap process. Persistent shell setup belongs
+    # to the selected profile's shell-configuration step.
     eval "$("$BREW_BIN" shellenv)"
 else
     echo "Homebrew is already installed."

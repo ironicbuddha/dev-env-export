@@ -87,7 +87,15 @@ Claude, Gemini, OpenSpec, GSD v2, and 1Password.
 
 ## Quick Start
 
-### 1. Clone Or Copy The Repo
+### 1. Download Or Clone The Repo
+
+For a zero-tool Shared Baseline, sign in to GitHub in a browser, download this
+repository as a ZIP, and extract it. In Finder, open the extracted folder,
+right-click the folder background, and choose **New Terminal at Folder**.
+
+This path assumes only macOS, Terminal, an internet connection, and the
+extracted repository. It does not assume Xcode Command Line Tools, Git,
+Homebrew, an editor, GitHub Desktop, or executable file permissions.
 
 For the Carlo Baseline, clone or copy the repo however you normally do:
 
@@ -99,10 +107,9 @@ cd dev-env-export
 If the repo is being moved manually between machines, unpack it and `cd` into
 the project root before running scripts.
 
-For the Shared Baseline, the expected entry path is GitHub Desktop on macOS:
-sign in, fetch this repo, and open the local checkout. Do not assume Homebrew,
-Git CLI, `gh`, Node, Python tooling, or AI CLIs already exist before the
-bootstrap runs.
+GitHub Desktop and a normal Git clone are also supported acquisition paths.
+Do not assume Homebrew, Git CLI, `gh`, Node, Python tooling, or AI CLIs already
+exist before the Shared Baseline bootstrap runs.
 
 ### 2. Choose A Bootstrap Profile
 
@@ -111,22 +118,20 @@ names are `carlo-baseline` and `shared-baseline`; aliases `carlo` and `shared`
 also work.
 
 ```bash
-chmod +x scripts/*.sh scripts/lib/*.sh
-
-./scripts/00-bootstrap.sh --profile carlo-baseline
-./scripts/00-bootstrap.sh --profile shared-baseline
+/bin/bash scripts/00-bootstrap.sh --profile carlo-baseline
+/bin/bash scripts/00-bootstrap.sh --profile shared-baseline
 ```
 
 You can also use the environment variable form:
 
 ```bash
-DEV_ENV_BOOTSTRAP_PROFILE=shared-baseline ./scripts/00-bootstrap.sh
+DEV_ENV_BOOTSTRAP_PROFILE=shared-baseline /bin/bash scripts/00-bootstrap.sh
 ```
 
-Use `./scripts/00-bootstrap.sh --list-profiles` if you need to check the valid
+Use `/bin/bash scripts/00-bootstrap.sh --list-profiles` to check the valid
 names. The script validates the profile before doing install work and stops
-cleanly if macOS still needs you to finish Xcode Command Line Tools
-installation.
+with exit code `20` if macOS still needs you to finish Xcode Command Line Tools
+installation. Complete the Apple installer, then run the same command again.
 
 Each bootstrap run writes timestamped logs under `logs/bootstrap-*` by default.
 If a step blows up on a fresh VM, keep that log directory around so the failure
@@ -135,9 +140,9 @@ Each run now leaves behind `bootstrap.log`, `environment.txt`,
 `step-status.tsv`, `summary.txt`, and one log per step so you can see both the
 machine context and the exact step outcome/duration.
 If you want the logs somewhere else, set `DEV_ENV_LOG_DIR=/path/to/logs`
-before running `./scripts/00-bootstrap.sh`.
+before running `/bin/bash scripts/00-bootstrap.sh`.
 If you want command-by-command tracing inside each step, run
-`DEV_ENV_TRACE_STEPS=1 ./scripts/00-bootstrap.sh --profile carlo-baseline`.
+`DEV_ENV_TRACE_STEPS=1 /bin/bash scripts/00-bootstrap.sh --profile carlo-baseline`.
 
 The scripts are intended to be rerunnable. Re-running them should skip
 already-installed packages and unchanged config where practical. If you want
