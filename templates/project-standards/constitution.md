@@ -17,8 +17,8 @@ result short enough that humans and agents will actually read it.
 
 ## Project Profile
 
-- Project type: `{{web-app | api | lambda | worker | library | mixed}}`
-- Primary language: `{{TypeScript | Python | mixed}}`
+- Project type: `{{web-app | api | lambda | worker | library | documentation | mixed}}`
+- Primary language: `{{TypeScript | Python | Markdown | mixed}}`
 - Frontend stack: `{{Next.js | Vite | none}}`
 - Backend shape: `{{node-service | lambda | worker | python-script | none}}`
 - Package manager: `{{pnpm | npm | uv}}`
@@ -102,6 +102,9 @@ For deployable apps and services, also require:
 - preview deploy or deployable artifact generation where practical
 - validation of migrations or deploy-time changes
 
+For a Markdown-only repository, require `lint` and `format:check`; tests,
+builds, and type checks apply only when the repository adds executable code.
+
 ## Profile Addenda
 
 Keep the section that applies. Delete the rest.
@@ -109,6 +112,7 @@ Keep the section that applies. Delete the rest.
 ### Next.js App
 
 - Use `pnpm` unless there is a documented reason not to.
+- Pin `next` to version `16.2.10`.
 - Use TypeScript strict mode.
 - Use `vitest` for unit tests and React Testing Library for component behavior.
 - Use `playwright` for critical user journeys.
@@ -140,6 +144,13 @@ Keep the section that applies. Delete the rest.
 - Test the external systems and libraries the script or worker touches.
 - Document the AWS runtime model early.
 - Use health checks for long-running services and smoke checks for worker paths.
+
+### Markdown-Only Repository
+
+- Use `pnpm` for the repo-local Markdown tooling.
+- Keep `.markdownlint.json`, Prettier configuration, and the lockfile in Git.
+- Define `lint`, `lint:md`, `format`, and `format:check` commands.
+- Run `lint` and `format:check` in CI.
 
 ### Mixed Vercel Plus AWS Repo
 

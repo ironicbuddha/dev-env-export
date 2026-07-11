@@ -16,6 +16,7 @@ COMMON_BREW_PACKAGES=(
     gh
     jq
     make
+    mole
     gcc
 
     # Document and media tooling for AI workflows

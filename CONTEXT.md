@@ -84,7 +84,7 @@ _Avoid_: shared 1Password setup, secret bootstrap
   - GSD v2 CLI (`gsd` via `gsd-pi`)
 - Shell baseline: `zsh`
 - Package management baseline: Homebrew
-- Node runtime baseline: `nvm` installed by Homebrew
+- Node runtime baseline: `nvm` installed by Homebrew, with Node 26.5 as the default runtime
 - Google Workspace baseline CLI: `googleworkspace-cli` (`gws`) when Workspace
   automation is part of the machine workflow
 - JavaScript package-manager stance: keep `npm`, prefer `pnpm` for new
@@ -92,8 +92,8 @@ _Avoid_: shared 1Password setup, secret bootstrap
 - Primary dev language: TypeScript for most application and service work
 - Python stance: mainly for scripting, automation, document workflows, and
   library-driven cases where it is the pragmatic fit
-- Primary frontend stack: Next.js, Vite, Tailwind CSS, shadcn/ui
-- Primary backend stack: Node.js and TypeScript for APIs, services, Lambdas,
+- Primary frontend stack: Next.js 16.2.10, Vite, Tailwind CSS, shadcn/ui
+- Primary backend stack: Node.js 26.5 and TypeScript for APIs, services, Lambdas,
   and microservice-style workloads
 - Primary cloud and hosting targets: AWS and Vercel
 - Supporting package tools expected to matter: `uv`, `bun`, and `vercel`

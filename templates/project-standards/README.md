@@ -4,8 +4,10 @@ This starter bundle gives new repos a copy-ready standards baseline.
 
 It is meant to work with the rest of this repo's defaults:
 
-- TypeScript-first apps and services usually use `pnpm`
+- TypeScript-first apps and services usually use `pnpm` and Node 26.5
+- Next.js apps pin `next` to 16.2.10
 - Python is mainly for scripting and library-driven cases, usually with `uv`
+- Markdown-only repositories use `pnpm`, Prettier, and `markdownlint-cli2`
 - frontend hosting usually defaults to Vercel
 - backend and infra-heavy workloads usually default to AWS
 - secrets should flow through 1Password and platform secret stores
@@ -38,6 +40,9 @@ If the repo uses static typing checks beyond the normal build flow, also add:
 
 - `typecheck`
 
+For Markdown-only repositories, `lint` and `format:check` are the required
+day-one commands; add the others only if the repository gains executable code.
+
 ## Suggested First Pass By Repo Type
 
 ### Next.js Or Vite Repo
@@ -64,6 +69,13 @@ If the repo uses static typing checks beyond the normal build flow, also add:
   `templates/code-quality/`
 - add `pytest`
 - keep the repo narrow and document why Python is the right fit
+
+### Markdown-Only Repo
+
+- use the `markdown` profile
+- install the generated repo-local `pnpm` dependencies
+- run `pnpm lint` and `pnpm format:check`
+- add those commands to CI
 
 ### Mixed Repo
 

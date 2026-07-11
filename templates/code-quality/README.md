@@ -18,6 +18,11 @@ Use the files that match the repo you are creating:
   - `.prettierrc.json` and `.markdownlint.json` if the repo has meaningful docs
   - `pyproject.toml`
   - `Makefile.python`
+- Markdown-only repo:
+  - `.prettierrc.json`
+  - `.prettierignore`
+  - `.markdownlint.json`
+  - `package.markdown.json`
 - mixed repo:
   - use both sets and merge them into the repo's real config files
 
@@ -43,3 +48,10 @@ add `ruff` to the repo's normal dev dependency mechanism and keep the
 `Makefile.python` gives a minimal `lint`, `format`, and `format-check` path for
 `uv`-first repos. Adjust it if the project uses Poetry, Hatch, or a different
 runner.
+
+### Markdown-Only Repo
+
+Use `package.markdown.json` as the `package.json` starter, or merge it into an
+existing `package.json`. It provides repo-local `prettier` and
+`markdownlint-cli2` with `lint`, `lint:md`, `format`, and `format:check`
+commands.

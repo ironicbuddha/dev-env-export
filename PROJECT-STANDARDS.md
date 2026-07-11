@@ -18,6 +18,7 @@ These are the default assumptions behind this baseline:
 
 - TypeScript-first apps and services: `pnpm`, TypeScript strict mode, Next.js,
   Vite, or Node.js services
+- Markdown-only repositories: `pnpm`, Prettier, and `markdownlint-cli2`
 - Python: mainly for scripting, automation, and cases where the library
   support is materially better
 - Frontend hosting: Vercel by default for Next.js frontends
@@ -25,6 +26,10 @@ These are the default assumptions behind this baseline:
   application/runtime choice
 - Secrets source of truth: 1Password
 - Repo quality tooling: repo-local installs, not machine-global installs
+
+The default runtime is Node 26.5. New Next.js apps pin `next` to version
+16.2.10 unless a documented compatibility constraint requires a different
+version.
 
 This baseline is opinionated on purpose. Projects can differ, but the default
 should be boring and explicit rather than improvised.
@@ -189,6 +194,10 @@ If the repo deploys user-facing software, add:
 - preview deployment or deployable artifact generation on pull requests
 - production deploy automation for the main branch or release flow
 
+For Markdown-only repositories, the required gate is `lint` plus
+`format:check`; test, build, type-check, deployment, and security gates apply
+only after executable code or a deployable surface is added.
+
 ## Recommended Project Profiles
 
 ### Next.js Product App
@@ -250,6 +259,19 @@ Default shape:
 - reproducible build or packaging flow
 - AWS deployment notes and runtime expectations documented early
 
+### Markdown-Only Repository
+
+Use this when the repository primarily contains documentation, specifications,
+or other Markdown content.
+
+Default shape:
+
+- `pnpm`
+- repo-local `prettier` and `markdownlint-cli2`
+- `.prettierrc.json`, `.prettierignore`, and `.markdownlint.json` committed
+- `lint`, `lint:md`, `format`, and `format:check` commands
+- `lint` and `format:check` enforced in CI
+
 ### Mixed Repo
 
 Use this when the repo contains both UI and backend code.
@@ -266,7 +288,8 @@ Default shape:
 When starting a new repo in this environment:
 
 1. Run `scripts/13-apply-project-standards.sh --repo /path/to/repo --profile <profile>`.
-2. Default to a TypeScript profile unless Python is justified by the workload.
+2. Default to a TypeScript profile unless the repo is Markdown-only or Python
+   is justified by the workload.
 3. Review and trim the generated `constitution.md`.
 4. Review any skipped files or merge warnings from the script output.
 5. Define the repo scripts and CI checks on day one.

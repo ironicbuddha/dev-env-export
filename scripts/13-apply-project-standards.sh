@@ -33,6 +33,7 @@ Profiles:
   vite         Vite frontend app
   ts-service   TypeScript API, Lambda, or service repo
   python       Python script or library-driven worker
+  markdown     Markdown-only documentation repo
   mixed        Frontend + backend split repo
 
 Options:
@@ -155,7 +156,7 @@ render_constitution() {
             backend_shape="none"
             package_manager="pnpm"
             deployment_target="Vercel"
-            runtime_versions="Node 22.x"
+            runtime_versions="Node 26.5 and Next.js 16.2.10"
             ;;
         vite)
             project_type="web-app"
@@ -164,7 +165,7 @@ render_constitution() {
             backend_shape="none"
             package_manager="pnpm"
             deployment_target="other"
-            runtime_versions="Node 22.x"
+            runtime_versions="Node 26.5"
             ;;
         ts-service)
             project_type="api"
@@ -173,7 +174,7 @@ render_constitution() {
             backend_shape="node-service"
             package_manager="pnpm"
             deployment_target="AWS"
-            runtime_versions="Node 22.x"
+            runtime_versions="Node 26.5"
             ;;
         python)
             project_type="worker"
@@ -184,6 +185,15 @@ render_constitution() {
             deployment_target="AWS"
             runtime_versions="Python 3.x"
             ;;
+        markdown)
+            project_type="documentation"
+            primary_language="Markdown"
+            frontend_stack="none"
+            backend_shape="none"
+            package_manager="pnpm"
+            deployment_target="other"
+            runtime_versions="Node 26.5"
+            ;;
         mixed)
             project_type="mixed"
             primary_language="mixed"
@@ -191,7 +201,7 @@ render_constitution() {
             backend_shape="node-service"
             package_manager="pnpm"
             deployment_target="Vercel + AWS"
-            runtime_versions="Node 22.x and Python 3.x"
+            runtime_versions="Node 26.5, Next.js 16.2.10, and Python 3.x"
             ;;
         *)
             echo "ERROR: Unsupported profile: $profile" >&2
@@ -240,8 +250,8 @@ content = template_path.read_text()
 
 replacements = {
     "{{PROJECT_NAME}}": project_name,
-    "{{web-app | api | lambda | worker | library | mixed}}": project_type,
-    "{{TypeScript | Python | mixed}}": primary_language,
+    "{{web-app | api | lambda | worker | library | documentation | mixed}}": project_type,
+    "{{TypeScript | Python | Markdown | mixed}}": primary_language,
     "{{Next.js | Vite | none}}": frontend_stack,
     "{{node-service | lambda | worker | python-script | none}}": backend_shape,
     "{{pnpm | npm | uv}}": package_manager,
@@ -295,8 +305,8 @@ write_rendered_file_safe() {
 
 merge_package_json_quality() {
     local target_repo_root="$1"
+    local quality_json="${2:-$QUALITY_DIR/package.quality.json}"
     local package_json="$target_repo_root/package.json"
-    local quality_json="$QUALITY_DIR/package.quality.json"
     local temp_file=""
 
     if [[ ! -f "$package_json" ]]; then
@@ -433,6 +443,22 @@ apply_ts_baseline() {
     merge_package_json_quality "$target_repo_root"
 }
 
+apply_markdown_baseline() {
+    local target_repo_root="$1"
+    local package_json="$target_repo_root/package.json"
+    local markdown_quality_json="$QUALITY_DIR/package.markdown.json"
+
+    write_file_safe "$QUALITY_DIR/.prettierrc.json" "$target_repo_root/.prettierrc.json" ".prettierrc.json"
+    write_file_safe "$QUALITY_DIR/.prettierignore" "$target_repo_root/.prettierignore" ".prettierignore"
+    write_file_safe "$QUALITY_DIR/.markdownlint.json" "$target_repo_root/.markdownlint.json" ".markdownlint.json"
+
+    if [[ -f "$package_json" ]]; then
+        merge_package_json_quality "$target_repo_root" "$markdown_quality_json"
+    else
+        write_file_safe "$markdown_quality_json" "$package_json" "package.json with Markdown quality tooling"
+    fi
+}
+
 apply_agent_direction() {
     local target_repo_root="$1"
 
@@ -484,9 +510,13 @@ print_summary() {
 
     echo "Next:"
     echo "  - Review $target_repo_root/constitution.md and trim any profile sections that do not apply"
-    if [[ "$PROFILE" == "next" || "$PROFILE" == "vite" || "$PROFILE" == "ts-service" || "$PROFILE" == "mixed" ]]; then
+    if [[ "$PROFILE" == "next" || "$PROFILE" == "vite" || "$PROFILE" == "ts-service" || "$PROFILE" == "markdown" || "$PROFILE" == "mixed" ]]; then
         echo "  - Install the repo-local JS tooling with the repo's package manager"
-        echo "  - Run lint, format:check, test, and build once the repo scripts are in place"
+        if [[ "$PROFILE" == "markdown" ]]; then
+            echo "  - Run lint and format:check once the repo-local tooling is installed"
+        else
+            echo "  - Run lint, format:check, test, and build once the repo scripts are in place"
+        fi
     fi
     if [[ "$PROFILE" == "python" || "$PROFILE" == "mixed" ]]; then
         echo "  - Review pyproject.toml and ensure Ruff is wired into the repo's real dev dependency flow"
@@ -534,7 +564,7 @@ if [[ -z "$TARGET_REPO" || -z "$PROFILE" ]]; then
 fi
 
 case "$PROFILE" in
-    next|vite|ts-service|python|mixed)
+    next|vite|ts-service|python|markdown|mixed)
         ;;
     *)
         echo "ERROR: Unsupported profile: $PROFILE" >&2
@@ -566,6 +596,9 @@ if [[ "$CONSTITUTION_ONLY" -ne 1 ]]; then
             ;;
         python)
             apply_python_baseline "$TARGET_REPO"
+            ;;
+        markdown)
+            apply_markdown_baseline "$TARGET_REPO"
             ;;
         mixed)
             apply_ts_baseline "$TARGET_REPO"

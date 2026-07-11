@@ -171,7 +171,7 @@ path_prepend_distinct() {
 }
 
 activate_nvm_node() {
-    if ! nvm use 22 >/dev/null 2>&1 && ! nvm use default >/dev/null 2>&1; then
+    if ! nvm use 26.5 >/dev/null 2>&1 && ! nvm use default >/dev/null 2>&1; then
         return 1
     fi
 
@@ -275,7 +275,7 @@ else
     if activate_nvm_node; then
         pass "nvm activated the expected Node runtime"
     else
-        fail "nvm could not activate the default or Node 22 runtime"
+        fail "nvm could not activate the default or Node 26.5 runtime"
     fi
 fi
 
