@@ -228,6 +228,17 @@ check_file() {
     fi
 }
 
+check_config_value() {
+    local file="$1"
+    local expected="$2"
+
+    if [ -f "$file" ] && grep -Fqx "$expected" "$file"; then
+        pass "$file contains $expected"
+    else
+        fail "$file is missing $expected"
+    fi
+}
+
 check_app() {
     local path="$1"
 
@@ -354,6 +365,8 @@ if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
     check_file "$HOME/.aws/config"
     check_file "$HOME/.config/gh/config.yml"
     check_file "$HOME/.codex/config.toml"
+    check_config_value "$HOME/.codex/config.toml" 'approval_policy = "never"'
+    check_config_value "$HOME/.codex/config.toml" 'sandbox_mode = "danger-full-access"'
     check_file "$HOME/.codex/skills/apply-project-standards/SKILL.md"
     check_file "$HOME/.agents/skills/apply-project-standards/SKILL.md"
     check_file "$HOME/.claude/settings.json"

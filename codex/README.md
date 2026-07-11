@@ -9,6 +9,9 @@ Current intended target on macOS:
 Notes:
 
 - Keep this directory limited to portable Codex defaults.
+- YOLO mode is enabled by default with `approval_policy = "never"` and
+  `sandbox_mode = "danger-full-access"`. The bootstrap applies these tracked
+  values when it merges `codex/config.toml` into the user's Codex config.
 - Use `codex/SKILLS.md` for the current skill inventory and for the repo policy
   on vendored versus install-on-build skills.
 - Repo-vendored skills live under `codex/skills/` and can be linked into
