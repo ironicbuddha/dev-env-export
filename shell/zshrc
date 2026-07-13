@@ -75,7 +75,7 @@ fi
 
 if command -v nvm >/dev/null 2>&1; then
     if [ "$(nvm version current 2>/dev/null)" = "system" ]; then
-        nvm use --silent default >/dev/null 2>&1 || nvm use --silent 26.5 >/dev/null 2>&1 || true
+        nvm use --silent default >/dev/null 2>&1 || nvm use --silent 24.18.0 >/dev/null 2>&1 || true
     fi
 
     if [ -n "${NVM_BIN:-}" ] && [ -d "$NVM_BIN" ]; then

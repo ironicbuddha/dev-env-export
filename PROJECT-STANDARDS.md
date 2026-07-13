@@ -27,7 +27,7 @@ These are the default assumptions behind this baseline:
 - Secrets source of truth: 1Password
 - Repo quality tooling: repo-local installs, not machine-global installs
 
-The default runtime is Node 26.5. New Next.js apps pin `next` to version
+The default runtime is Node 24.18.0 LTS. New Next.js apps pin `next` to version
 16.2.10 unless a documented compatibility constraint requires a different
 version.
 

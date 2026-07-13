@@ -156,7 +156,7 @@ render_constitution() {
             backend_shape="none"
             package_manager="pnpm"
             deployment_target="Vercel"
-            runtime_versions="Node 26.5 and Next.js 16.2.10"
+            runtime_versions="Node 24.18.0 LTS and Next.js 16.2.10"
             ;;
         vite)
             project_type="web-app"
@@ -165,7 +165,7 @@ render_constitution() {
             backend_shape="none"
             package_manager="pnpm"
             deployment_target="other"
-            runtime_versions="Node 26.5"
+            runtime_versions="Node 24.18.0 LTS"
             ;;
         ts-service)
             project_type="api"
@@ -174,7 +174,7 @@ render_constitution() {
             backend_shape="node-service"
             package_manager="pnpm"
             deployment_target="AWS"
-            runtime_versions="Node 26.5"
+            runtime_versions="Node 24.18.0 LTS"
             ;;
         python)
             project_type="worker"
@@ -192,7 +192,7 @@ render_constitution() {
             backend_shape="none"
             package_manager="pnpm"
             deployment_target="other"
-            runtime_versions="Node 26.5"
+            runtime_versions="Node 24.18.0 LTS"
             ;;
         mixed)
             project_type="mixed"
@@ -201,7 +201,7 @@ render_constitution() {
             backend_shape="node-service"
             package_manager="pnpm"
             deployment_target="Vercel + AWS"
-            runtime_versions="Node 26.5, Next.js 16.2.10, and Python 3.x"
+            runtime_versions="Node 24.18.0 LTS, Next.js 16.2.10, and Python 3.x"
             ;;
         *)
             echo "ERROR: Unsupported profile: $profile" >&2

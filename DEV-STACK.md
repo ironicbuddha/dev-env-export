@@ -22,7 +22,7 @@ defaults.
 
 ## Backend Stack
 
-- Node.js 26.5 and TypeScript for APIs, services, Lambdas, and microservice-style
+- Node.js 24.18.0 LTS and TypeScript for APIs, services, Lambdas, and microservice-style
   workloads
 - Python only where scripting ergonomics or library support make it the better
   tool
@@ -36,7 +36,7 @@ defaults.
 
 The bootstrap should stay friendly to this stack by default:
 
-- strong Node.js 26.5 support for TypeScript across frontend and backend work
+- strong Node.js 24.18.0 LTS support for TypeScript across frontend and backend work
 - Homebrew-managed `nvm` with Node versions installed through `nvm`
 - `pnpm` preferred for new TypeScript-first repos
 - `bun` available for modern JS or TS workflows where it is the better fit

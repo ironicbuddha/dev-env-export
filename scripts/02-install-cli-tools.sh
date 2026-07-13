@@ -227,7 +227,7 @@ path_prepend_distinct() {
 }
 
 activate_nvm_node() {
-    if ! nvm use 26.5 >/dev/null 2>&1 && ! nvm use default >/dev/null 2>&1; then
+    if ! nvm use "$BOOTSTRAP_NODE_VERSION" >/dev/null 2>&1 && ! nvm use default >/dev/null 2>&1; then
         return 1
     fi
 
@@ -495,15 +495,15 @@ if ! load_nvm; then
     exit 1
 fi
 
-# Install Node.js v26.5 via nvm and make it the default CLI runtime.
-if ! nvm ls 26.5 &> /dev/null; then
-    echo "Installing Node.js v26.5 via nvm..."
-    nvm install 26.5
+# Install the pinned Node.js LTS via nvm and make it the default CLI runtime.
+if ! nvm ls "$BOOTSTRAP_NODE_VERSION" &> /dev/null; then
+    echo "Installing Node.js v${BOOTSTRAP_NODE_VERSION} via nvm..."
+    nvm install "$BOOTSTRAP_NODE_VERSION"
 else
-    echo "  [SKIP] Node.js v26.5 already installed via nvm"
+    echo "  [SKIP] Node.js v${BOOTSTRAP_NODE_VERSION} already installed via nvm"
 fi
 
-nvm alias default 26.5 >/dev/null 2>&1 || true
+nvm alias default "$BOOTSTRAP_NODE_VERSION" >/dev/null 2>&1 || true
 
 if ! activate_nvm_node; then
     echo "ERROR: Could not activate the nvm-managed Node runtime."

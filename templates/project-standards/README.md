@@ -4,7 +4,7 @@ This starter bundle gives new repos a copy-ready standards baseline.
 
 It is meant to work with the rest of this repo's defaults:
 
-- TypeScript-first apps and services usually use `pnpm` and Node 26.5
+- TypeScript-first apps and services usually use `pnpm` and Node 24.18.0 LTS
 - Next.js apps pin `next` to 16.2.10
 - Python is mainly for scripting and library-driven cases, usually with `uv`
 - Markdown-only repositories use `pnpm`, Prettier, and `markdownlint-cli2`

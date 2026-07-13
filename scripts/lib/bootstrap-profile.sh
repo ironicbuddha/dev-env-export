@@ -1,6 +1,8 @@
 #!/bin/bash
 # Shared Bootstrap Profile helpers.
 
+BOOTSTRAP_NODE_VERSION="${BOOTSTRAP_NODE_VERSION:-24.18.0}"
+
 bootstrap_print_profiles() {
     cat <<'EOF'
 Canonical profiles:

@@ -154,7 +154,7 @@ DEV_ENV_REFRESH_BREW=1 ./scripts/01-install-brew.sh
 
 The npm steps are designed for `nvm`. If you have old `prefix` or
 `globalconfig` settings in `~/.npmrc`, the bootstrap scripts will remove those
-so Node 26.5 globals install under the active nvm-managed runtime.
+so Node 24.18.0 LTS globals install under the active nvm-managed runtime.
 
 Docker is Carlo Baseline tooling. In that profile it is installed in two pieces
 on purpose: the `docker` formula provides the CLI, and the Docker Desktop cask
