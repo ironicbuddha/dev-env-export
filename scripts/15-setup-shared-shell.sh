@@ -22,6 +22,27 @@ write_managed_block() {
     mkdir -p "$(dirname "$path")"
     touch "$path"
 
+    if ! awk -v begin="$begin_marker" -v end="$end_marker" '
+        $0 == begin {
+            if (inside == 1 || begin_count > 0) invalid = 1
+            inside = 1
+            begin_count++
+        }
+        $0 == end {
+            if (inside != 1 || end_count > 0) invalid = 1
+            inside = 0
+            end_count++
+        }
+        END {
+            if (inside == 1 || begin_count != end_count || begin_count > 1) invalid = 1
+            exit invalid
+        }
+    ' "$path"; then
+        echo "ERROR: Refusing to rewrite $path because its managed block markers are malformed." >&2
+        echo "       Repair or remove the $begin_marker / $end_marker block, then rerun." >&2
+        return 1
+    fi
+
     tmp_file="$(mktemp)"
     block_file="$(mktemp)"
 

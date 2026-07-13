@@ -72,6 +72,20 @@ Typical commands:
 - `format`
 - `format:check`
 
+### New Markdown-Only Repo
+
+Start with:
+
+- `prettier`
+- `markdownlint-cli2`
+
+Typical commands:
+
+- `lint`
+- `lint:md`
+- `format`
+- `format:check`
+
 ### Mixed Repo
 
 Use the combined baseline:
@@ -88,6 +102,8 @@ Use the combined baseline:
   manager, usually `pnpm`.
 - In Python repos, prefer `ruff` through project-local config and normal project
   tooling. `uv` is a good default when the repo already uses it.
+- In Markdown-only repos, install Prettier and `markdownlint-cli2` as
+  repo-local `pnpm` dev dependencies.
 - Do not treat these as machine bootstrap dependencies unless a specific CLI
   proves it needs to be global.
 

@@ -188,7 +188,9 @@ case "$BOOTSTRAP_PROFILE" in
         PIP_PACKAGES+=("${CARLO_BASELINE_PIP_PACKAGES[@]}")
         ;;
     shared-baseline)
-        PIP_PACKAGES+=("${SHARED_BASELINE_PIP_PACKAGES[@]}")
+        if [ "${#SHARED_BASELINE_PIP_PACKAGES[@]}" -gt 0 ]; then
+            PIP_PACKAGES+=("${SHARED_BASELINE_PIP_PACKAGES[@]}")
+        fi
         ;;
 esac
 

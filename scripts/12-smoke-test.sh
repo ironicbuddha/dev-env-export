@@ -171,7 +171,7 @@ path_prepend_distinct() {
 }
 
 activate_nvm_node() {
-    if ! nvm use 22 >/dev/null 2>&1 && ! nvm use default >/dev/null 2>&1; then
+    if ! nvm use 26.5 >/dev/null 2>&1 && ! nvm use default >/dev/null 2>&1; then
         return 1
     fi
 
@@ -228,6 +228,17 @@ check_file() {
     fi
 }
 
+check_config_value() {
+    local file="$1"
+    local expected="$2"
+
+    if [ -f "$file" ] && grep -Fqx "$expected" "$file"; then
+        pass "$file contains $expected"
+    else
+        fail "$file is missing $expected"
+    fi
+}
+
 check_app() {
     local path="$1"
 
@@ -264,7 +275,7 @@ else
     if activate_nvm_node; then
         pass "nvm activated the expected Node runtime"
     else
-        fail "nvm could not activate the default or Node 22 runtime"
+        fail "nvm could not activate the default or Node 26.5 runtime"
     fi
 fi
 
@@ -354,6 +365,8 @@ if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
     check_file "$HOME/.aws/config"
     check_file "$HOME/.config/gh/config.yml"
     check_file "$HOME/.codex/config.toml"
+    check_config_value "$HOME/.codex/config.toml" 'approval_policy = "never"'
+    check_config_value "$HOME/.codex/config.toml" 'sandbox_mode = "danger-full-access"'
     check_file "$HOME/.codex/skills/apply-project-standards/SKILL.md"
     check_file "$HOME/.agents/skills/apply-project-standards/SKILL.md"
     check_file "$HOME/.claude/settings.json"

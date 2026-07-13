@@ -9,9 +9,11 @@ normalizes the selected profile into `DEV_ENV_BOOTSTRAP_PROFILE`, and only
 passes `--profile` to child scripts whose package or verification behavior
 differs by profile.
 
-The Shared Baseline is intentionally narrower than the Carlo Baseline. It uses
-the GitHub Desktop entry path, installs shared development tooling and a Codex
-CLI-centered Shared AI Layer, but excludes Carlo-personal config, Claude,
+The Shared Baseline is intentionally narrower than the Carlo Baseline. Its
+zero-tool entry path starts from an extracted GitHub ZIP with Terminal opened
+in that folder; it does not assume Git, Xcode Command Line Tools, Homebrew, an
+editor, or preserved executable bits. It installs shared development tooling
+and a Codex CLI-centered Shared AI Layer, but excludes Carlo-personal config, Claude,
 Gemini, OpenSpec, GSD v2, AWS, Docker, 1Password installation/configuration,
 Google Workspace CLI, Terraform, Codex skills, AI inventory, and personal
 dotfiles. Shared package manifests should use common plus profile-specific
