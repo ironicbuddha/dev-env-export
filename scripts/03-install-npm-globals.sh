@@ -192,7 +192,16 @@ done
 # Enable corepack for pnpm/yarn support
 echo ""
 echo "Enabling corepack..."
-corepack enable || echo "  [WARN] corepack enable failed (may need sudo)"
+if ! corepack enable; then
+    echo "ERROR: corepack enable failed."
+    exit 1
+fi
+
+echo "Provisioning pnpm through corepack..."
+if ! COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack install --global pnpm@latest; then
+    echo "ERROR: corepack could not provision pnpm."
+    exit 1
+fi
 
 echo ""
 echo "========================================"

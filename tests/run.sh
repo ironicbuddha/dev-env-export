@@ -16,3 +16,6 @@ echo "Running bootstrap contract tests..."
 
 echo "Running resilience contract tests..."
 /bin/bash "$REPO_ROOT/tests/resilience_contract_test.sh"
+
+echo "Running npm globals contract tests..."
+/bin/bash "$REPO_ROOT/tests/npm_globals_contract_test.sh"
