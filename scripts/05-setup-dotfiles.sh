@@ -21,6 +21,10 @@ echo ""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXPORT_DIR="$(dirname "$SCRIPT_DIR")"
 INSTALL_CODEX_SKILLS_SCRIPT="$SCRIPT_DIR/14-install-codex-skills.sh"
+FILE_SAFETY_LIB="$SCRIPT_DIR/lib/file-safety.sh"
+
+# shellcheck disable=SC1090
+source "$FILE_SAFETY_LIB"
 
 # Backup directory (created lazily only if a file actually changes)
 BACKUP_DIR="$HOME/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)"
@@ -43,6 +47,7 @@ copy_with_backup() {
     local dest="$2"
     local dest_dir="$(dirname "$dest")"
     local backup_target
+    local had_existing=0
 
     # Create destination directory if needed
     mkdir -p "$dest_dir"
@@ -52,15 +57,19 @@ copy_with_backup() {
         return
     fi
 
-    # Backup existing file if it exists and differs
     if [ -f "$dest" ]; then
+        had_existing=1
         backup_target="$(backup_target_for "$dest")"
-        mkdir -p "$(dirname "$backup_target")"
-        cp "$dest" "$backup_target"
+    else
+        backup_target=""
+    fi
+
+    bootstrap_copy_file_with_backup "$src" "$dest" "$BACKUP_DIR" "$backup_target"
+
+    if [ "$had_existing" -eq 1 ]; then
         echo "  [BACKUP] Backed up existing $dest"
     fi
 
-    cp "$src" "$dest"
     echo "  [COPY] $src -> $dest"
 }
 
@@ -105,6 +114,12 @@ merge_toml_with_backup() {
     local tmp_file
 
     mkdir -p "$(dirname "$dest")"
+
+    if [ -L "$dest" ]; then
+        echo "ERROR: Refusing to merge into symlink destination: $dest" >&2
+        echo "       Replace or remove the link explicitly, then rerun." >&2
+        return 1
+    fi
 
     if [ ! -f "$dest" ]; then
         cp "$src" "$dest"

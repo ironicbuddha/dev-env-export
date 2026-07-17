@@ -13,10 +13,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
+RUNTIME_LIB="$SCRIPT_DIR/lib/runtime-environment.sh"
 BOOTSTRAP_PROFILE=""
 
 # shellcheck disable=SC1090
 source "$PROFILE_LIB"
+# shellcheck disable=SC1090
+source "$RUNTIME_LIB"
 
 usage() {
     cat <<'EOF'
@@ -111,77 +114,16 @@ strip_npmrc_conflicts() {
     fi
 }
 
-load_nvm() {
-    local nvm_prefix=""
-
-    export NVM_DIR="$HOME/.nvm"
-
-    if command -v brew >/dev/null 2>&1; then
-        nvm_prefix="$(brew --prefix nvm 2>/dev/null || true)"
-        if [ -n "$nvm_prefix" ] && [ -s "$nvm_prefix/nvm.sh" ]; then
-            # shellcheck disable=SC1090
-            . "$nvm_prefix/nvm.sh"
-            return 0
-        fi
-    fi
-
-    if [ -s "/opt/homebrew/opt/nvm/nvm.sh" ]; then
-        # shellcheck disable=SC1091
-        . "/opt/homebrew/opt/nvm/nvm.sh"
-        return 0
-    fi
-
-    if [ -s "/usr/local/opt/nvm/nvm.sh" ]; then
-        # shellcheck disable=SC1091
-        . "/usr/local/opt/nvm/nvm.sh"
-        return 0
-    fi
-
-    return 1
-}
-
-path_prepend_distinct() {
-    local entry="$1"
-
-    if [ -z "$entry" ]; then
-        return
-    fi
-
-    PATH=":$PATH:"
-    PATH="${PATH//:$entry:/:}"
-    PATH="${PATH#:}"
-    PATH="${PATH%:}"
-
-    if [ -n "$PATH" ]; then
-        export PATH="$entry:$PATH"
-    else
-        export PATH="$entry"
-    fi
-}
-
-activate_nvm_node() {
-    if ! nvm use "$BOOTSTRAP_NODE_VERSION" >/dev/null 2>&1 && ! nvm use default >/dev/null 2>&1; then
-        return 1
-    fi
-
-    if [ -n "${NVM_BIN:-}" ] && [ -d "$NVM_BIN" ]; then
-        path_prepend_distinct "$NVM_BIN"
-        hash -r 2>/dev/null || true
-    fi
-
-    return 0
-}
-
 strip_npmrc_conflicts
 
-if ! load_nvm; then
+if ! bootstrap_load_nvm; then
     echo "ERROR: nvm is required for this step and could not be loaded."
     echo "       Run 02-install-cli-tools.sh first and make sure nvm installed cleanly."
     exit 1
 fi
 
-if ! activate_nvm_node; then
-    echo "ERROR: Node.js could not be activated under nvm."
+if ! bootstrap_activate_nvm_node "$BOOTSTRAP_NODE_VERSION"; then
+    echo "ERROR: Exact Node.js $BOOTSTRAP_NODE_VERSION could not be activated under nvm."
     echo "       Run 02-install-cli-tools.sh first."
     exit 1
 fi

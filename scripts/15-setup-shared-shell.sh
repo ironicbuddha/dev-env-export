@@ -11,68 +11,22 @@ set -euo pipefail
 
 ZPROFILE="$HOME/.zprofile"
 ZSHRC="$HOME/.zshrc"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MANAGED_SHELL_LIB="$SCRIPT_DIR/lib/managed-shell-block.sh"
+BACKUP_DIR="$(mktemp -d "$HOME/.shared-shell-backup-$(date +%Y%m%d-%H%M%S)-XXXXXX")"
 
-write_managed_block() {
-    local path="$1"
-    local begin_marker="$2"
-    local end_marker="$3"
-    local tmp_file=""
-    local block_file=""
-
-    mkdir -p "$(dirname "$path")"
-    touch "$path"
-
-    if ! awk -v begin="$begin_marker" -v end="$end_marker" '
-        $0 == begin {
-            if (inside == 1 || begin_count > 0) invalid = 1
-            inside = 1
-            begin_count++
-        }
-        $0 == end {
-            if (inside != 1 || end_count > 0) invalid = 1
-            inside = 0
-            end_count++
-        }
-        END {
-            if (inside == 1 || begin_count != end_count || begin_count > 1) invalid = 1
-            exit invalid
-        }
-    ' "$path"; then
-        echo "ERROR: Refusing to rewrite $path because its managed block markers are malformed." >&2
-        echo "       Repair or remove the $begin_marker / $end_marker block, then rerun." >&2
-        return 1
-    fi
-
-    tmp_file="$(mktemp)"
-    block_file="$(mktemp)"
-
-    cat > "$block_file"
-
-    awk -v begin="$begin_marker" -v end="$end_marker" '
-        $0 == begin { skipping = 1; next }
-        $0 == end { skipping = 0; next }
-        skipping != 1 { print }
-    ' "$path" > "$tmp_file"
-
-    {
-        if [ -s "$tmp_file" ]; then
-            sed -e '${/^$/d;}' "$tmp_file"
-            echo ""
-        fi
-        cat "$block_file"
-    } > "$path"
-
-    rm -f "$tmp_file" "$block_file"
-}
+# shellcheck disable=SC1090
+source "$MANAGED_SHELL_LIB"
 
 echo "========================================"
 echo "Shared Shell Setup"
 echo "========================================"
 echo ""
 
-write_managed_block "$ZPROFILE" \
+bootstrap_write_managed_shell_block "$ZPROFILE" \
     "# BEGIN DEV ENV SHARED HOMEBREW" \
-    "# END DEV ENV SHARED HOMEBREW" <<'EOF'
+    "# END DEV ENV SHARED HOMEBREW" \
+    "$BACKUP_DIR" <<'EOF'
 # BEGIN DEV ENV SHARED HOMEBREW
 if [ -x "/opt/homebrew/bin/brew" ]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -82,9 +36,10 @@ fi
 # END DEV ENV SHARED HOMEBREW
 EOF
 
-write_managed_block "$ZSHRC" \
+bootstrap_write_managed_shell_block "$ZSHRC" \
     "# BEGIN DEV ENV SHARED RUNTIME PATHS" \
-    "# END DEV ENV SHARED RUNTIME PATHS" <<'EOF'
+    "# END DEV ENV SHARED RUNTIME PATHS" \
+    "$BACKUP_DIR" <<'EOF'
 # BEGIN DEV ENV SHARED RUNTIME PATHS
 export NVM_DIR="$HOME/.nvm"
 if command -v brew >/dev/null 2>&1; then
@@ -110,4 +65,5 @@ EOF
 echo "Installed minimal shared shell wiring:"
 echo "  - $ZPROFILE"
 echo "  - $ZSHRC"
+echo "Backups (when files changed): $BACKUP_DIR"
 echo ""

@@ -12,10 +12,19 @@ set -euo pipefail
 FAILURES=0
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
+RUNTIME_LIB="$SCRIPT_DIR/lib/runtime-environment.sh"
+EXPECTATIONS_LIB="$SCRIPT_DIR/lib/bootstrap-expectations.sh"
+APP_BUNDLE_LIB="$SCRIPT_DIR/lib/app-bundle.sh"
 BOOTSTRAP_PROFILE=""
 
 # shellcheck disable=SC1090
 source "$PROFILE_LIB"
+# shellcheck disable=SC1090
+source "$RUNTIME_LIB"
+# shellcheck disable=SC1090
+source "$EXPECTATIONS_LIB"
+# shellcheck disable=SC1090
+source "$APP_BUNDLE_LIB"
 
 usage() {
     cat <<'EOF'
@@ -75,113 +84,7 @@ fi
 
 export DEV_ENV_BOOTSTRAP_PROFILE="$BOOTSTRAP_PROFILE"
 
-load_homebrew() {
-    if command -v brew >/dev/null 2>&1; then
-        eval "$(brew shellenv)"
-        return 0
-    fi
-
-    if [ -x "/opt/homebrew/bin/brew" ]; then
-        eval "$(/opt/homebrew/bin/brew shellenv)"
-        return 0
-    fi
-
-    if [ -x "/usr/local/bin/brew" ]; then
-        eval "$(/usr/local/bin/brew shellenv)"
-        return 0
-    fi
-
-    return 1
-}
-
-load_nvm() {
-    local nvm_prefix=""
-
-    export NVM_DIR="$HOME/.nvm"
-
-    if command -v brew >/dev/null 2>&1; then
-        nvm_prefix="$(brew --prefix nvm 2>/dev/null || true)"
-        if [ -n "$nvm_prefix" ] && [ -s "$nvm_prefix/nvm.sh" ]; then
-            # shellcheck disable=SC1090
-            . "$nvm_prefix/nvm.sh"
-            return 0
-        fi
-    fi
-
-    if [ -s "/opt/homebrew/opt/nvm/nvm.sh" ]; then
-        # shellcheck disable=SC1091
-        . "/opt/homebrew/opt/nvm/nvm.sh"
-        return 0
-    fi
-
-    if [ -s "/usr/local/opt/nvm/nvm.sh" ]; then
-        # shellcheck disable=SC1091
-        . "/usr/local/opt/nvm/nvm.sh"
-        return 0
-    fi
-
-    return 1
-}
-
-resolve_python_bin() {
-    local brew_prefix=""
-
-    if command -v brew >/dev/null 2>&1; then
-        brew_prefix="$(brew --prefix python@3.13 2>/dev/null || true)"
-        if [ -n "$brew_prefix" ] && [ -x "$brew_prefix/bin/python3.13" ]; then
-            printf '%s\n' "$brew_prefix/bin/python3.13"
-            return
-        fi
-        if [ -n "$brew_prefix" ] && [ -x "$brew_prefix/libexec/bin/python3" ]; then
-            printf '%s\n' "$brew_prefix/libexec/bin/python3"
-            return
-        fi
-    fi
-
-    if command -v python3.13 >/dev/null 2>&1; then
-        command -v python3.13
-        return
-    fi
-
-    if command -v python3 >/dev/null 2>&1; then
-        command -v python3
-        return
-    fi
-
-    return 1
-}
-
-path_prepend_distinct() {
-    local entry="$1"
-
-    if [ -z "$entry" ]; then
-        return
-    fi
-
-    PATH=":$PATH:"
-    PATH="${PATH//:$entry:/:}"
-    PATH="${PATH#:}"
-    PATH="${PATH%:}"
-
-    if [ -n "$PATH" ]; then
-        export PATH="$entry:$PATH"
-    else
-        export PATH="$entry"
-    fi
-}
-
-activate_nvm_node() {
-    if ! nvm use "$BOOTSTRAP_NODE_VERSION" >/dev/null 2>&1 && ! nvm use default >/dev/null 2>&1; then
-        return 1
-    fi
-
-    if [ -n "${NVM_BIN:-}" ] && [ -d "$NVM_BIN" ]; then
-        path_prepend_distinct "$NVM_BIN"
-        hash -r 2>/dev/null || true
-    fi
-
-    return 0
-}
+bootstrap_load_expectations "$BOOTSTRAP_PROFILE"
 
 pass() {
     printf '[OK]   %s\n' "$1"
@@ -242,10 +145,10 @@ check_config_value() {
 check_app() {
     local path="$1"
 
-    if [ -d "$path" ]; then
-        pass "app present: $path"
+    if bootstrap_app_bundle_usable "$path"; then
+        pass "app present and usable: $path"
     else
-        fail "app missing: $path"
+        fail "app missing or unusable: $path"
     fi
 }
 
@@ -256,7 +159,7 @@ echo ""
 echo "Bootstrap profile: $(bootstrap_profile_label "$BOOTSTRAP_PROFILE") ($BOOTSTRAP_PROFILE)"
 echo ""
 
-if ! load_homebrew; then
+if ! bootstrap_load_homebrew; then
     fail "Homebrew could not be loaded"
 else
     pass "Homebrew shell environment loaded"
@@ -268,14 +171,14 @@ else
     pass "brew -> $(command -v brew)"
 fi
 
-if ! load_nvm; then
+if ! bootstrap_load_nvm; then
     fail "nvm could not be loaded"
 else
     pass "nvm loaded"
-    if activate_nvm_node; then
-        pass "nvm activated the expected Node runtime"
+    if bootstrap_activate_nvm_node "$BOOTSTRAP_NODE_VERSION"; then
+        pass "nvm activated exact Node $BOOTSTRAP_NODE_VERSION"
     else
-        fail "nvm could not activate the default or Node $BOOTSTRAP_NODE_VERSION runtime"
+        fail "nvm could not activate exact Node $BOOTSTRAP_NODE_VERSION"
     fi
 fi
 
@@ -283,32 +186,9 @@ echo ""
 echo "CLI checks"
 echo "----------"
 
-check_cmd "gh" "gh"
-check_cmd "git" "git"
-check_cmd "jq" "jq"
-check_cmd "python3" "python3"
-check_cmd "codex" "codex"
-check_cmd "pnpm" "pnpm"
-check_cmd "vercel" "vercel"
-check_cmd "node" "node"
-check_cmd "npm" "npm"
-check_cmd "uv" "uv"
-check_cmd "bun" "bun"
-check_cmd "pandoc" "pandoc"
-check_cmd "pdftotext" "pdftotext"
-check_cmd "pdftoppm" "pdftoppm"
-check_cmd "tesseract" "tesseract"
-check_cmd "magick" "magick"
-
-if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
-    check_cmd "aws" "aws"
-    check_cmd "gemini" "gemini"
-    check_cmd "gws" "gws"
-    check_cmd "op" "op"
-    check_cmd "claude" "claude"
-    check_cmd "gsd" "gsd"
-    check_cmd "docker" "docker"
-fi
+for required_command in "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"; do
+    check_cmd "$required_command" "$required_command"
+done
 
 if command -v node >/dev/null 2>&1; then
     NODE_PATH="$(command -v node)"
@@ -329,7 +209,7 @@ if command -v npm >/dev/null 2>&1; then
 fi
 
 PYTHON_BIN=""
-if PYTHON_BIN="$(resolve_python_bin 2>/dev/null)"; then
+if PYTHON_BIN="$(bootstrap_resolve_python_bin 2>/dev/null)"; then
     pass "baseline python resolved -> $PYTHON_BIN"
 else
     fail "could not resolve the baseline Python interpreter"
@@ -359,6 +239,34 @@ echo "-------------"
 check_file "$HOME/.zshrc"
 check_file "$HOME/.zprofile"
 
+if command -v zsh >/dev/null 2>&1; then
+    ZSH_SYNTAX_OK=1
+    for zsh_startup_file in "$HOME/.zprofile" "$HOME/.zshrc"; do
+        if ! zsh -n "$zsh_startup_file"; then
+            ZSH_SYNTAX_OK=0
+        fi
+    done
+    if [ "$ZSH_SYNTAX_OK" -eq 1 ]; then
+        pass "zsh startup files pass syntax validation"
+    else
+        fail "zsh startup files contain syntax errors"
+    fi
+
+    ZSH_PROBE='command -v brew >/dev/null 2>&1 && command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1 && command -v codex >/dev/null 2>&1 && actual_node="$(node --version)" && [ "${actual_node#v}" = "$BOOTSTRAP_NODE_VERSION" ]'
+    if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
+        ZSH_PROBE="$ZSH_PROBE && command -v openspec >/dev/null 2>&1"
+    fi
+
+    if ZDOTDIR="$HOME" BOOTSTRAP_NODE_VERSION="$BOOTSTRAP_NODE_VERSION" \
+            zsh -dilc "$ZSH_PROBE" >/dev/null 2>&1; then
+        pass "clean login-interactive zsh loads the required runtime"
+    else
+        fail "clean login-interactive zsh cannot load the required runtime"
+    fi
+else
+    fail "zsh missing; cannot verify the installed startup files"
+fi
+
 if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
     check_file "$HOME/.gitconfig"
     check_file "$HOME/.gitignore_global"
@@ -382,22 +290,14 @@ echo ""
 echo "App checks"
 echo "----------"
 
-check_app "/Applications/Warp.app"
-check_app "/Applications/Zed.app"
-check_app "/Applications/Raycast.app"
-check_app "/Applications/Hidden Bar.app"
-check_app "/Applications/Hammerspoon.app"
-check_app "/Applications/GitHub Desktop.app"
-
-if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
-    check_app "/Applications/1Password.app"
-    check_app "/Applications/Docker.app"
-fi
+for required_bundle in "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"; do
+    check_app "/Applications/$required_bundle"
+done
 
 echo ""
 echo "Notes"
 echo "-----"
-note "This smoke test checks install state and config placement, not login state."
+note "This smoke test checks install state and shell loading, not application authentication state."
 note "Zed CLI installation is still a manual follow-up from inside Zed."
 note "If auth flows are still pending, installed CLIs can exist without being signed in yet."
 note "Document OCR is expected to be a fallback when native extraction or PDF text parsing yields poor results."

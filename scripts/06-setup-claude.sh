@@ -19,9 +19,16 @@ echo ""
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXPORT_DIR="$(dirname "$SCRIPT_DIR")"
+RUNTIME_LIB="$SCRIPT_DIR/lib/runtime-environment.sh"
+JSON_MERGE_LIB="$SCRIPT_DIR/lib/json-merge.sh"
 CLAUDE_EXPORT="$EXPORT_DIR/claude"
 CLAUDE_HOME="$HOME/.claude"
 BACKUP_DIR="$HOME/.claude-backup-$(date +%Y%m%d-%H%M%S)"
+
+# shellcheck disable=SC1090
+source "$RUNTIME_LIB"
+# shellcheck disable=SC1090
+source "$JSON_MERGE_LIB"
 
 echo "Source: $CLAUDE_EXPORT"
 echo "Target: $CLAUDE_HOME"
@@ -62,20 +69,6 @@ copy_with_backup() {
     echo "  [COPY] $(basename "$dest")"
 }
 
-resolve_python_bin() {
-    if command -v python3 >/dev/null 2>&1; then
-        command -v python3
-        return
-    fi
-
-    if [ -x "/usr/bin/python3" ]; then
-        printf '%s\n' "/usr/bin/python3"
-        return
-    fi
-
-    return 1
-}
-
 merge_json_with_backup() {
     local src="$1"
     local dest="$2"
@@ -96,46 +89,13 @@ merge_json_with_backup() {
         return
     fi
 
-    if ! PYTHON_BIN="$(resolve_python_bin)"; then
+    if ! PYTHON_BIN="$(bootstrap_resolve_python_bin)"; then
         echo "  [WARN] python3 not available; preserving existing $label"
         return
     fi
 
     tmp_file="$(mktemp)"
-    "$PYTHON_BIN" - "$dest" "$src" "$tmp_file" <<'PY'
-import json
-import pathlib
-import sys
-
-dest_path = pathlib.Path(sys.argv[1])
-src_path = pathlib.Path(sys.argv[2])
-out_path = pathlib.Path(sys.argv[3])
-
-existing = json.loads(dest_path.read_text())
-incoming = json.loads(src_path.read_text())
-
-def merge(existing_value, incoming_value):
-    if isinstance(existing_value, dict) and isinstance(incoming_value, dict):
-        merged = dict(existing_value)
-        for key, value in incoming_value.items():
-            if key in merged:
-                merged[key] = merge(merged[key], value)
-            else:
-                merged[key] = value
-        return merged
-
-    if isinstance(existing_value, list) and isinstance(incoming_value, list):
-        merged = list(existing_value)
-        for item in incoming_value:
-            if item not in merged:
-                merged.append(item)
-        return merged
-
-    return incoming_value
-
-merged = merge(existing, incoming)
-out_path.write_text(json.dumps(merged, indent=2) + "\n")
-PY
+    bootstrap_merge_json "$dest" "$src" "$tmp_file" "$PYTHON_BIN"
 
     if cmp -s "$tmp_file" "$dest"; then
         rm -f "$tmp_file"

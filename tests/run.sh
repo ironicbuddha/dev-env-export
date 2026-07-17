@@ -13,3 +13,6 @@ find "$REPO_ROOT/scripts" "$REPO_ROOT/manifest" "$REPO_ROOT/tests" \
 
 echo "Running bootstrap contract tests..."
 /bin/bash "$REPO_ROOT/tests/bootstrap_contract_test.sh"
+
+echo "Running resilience contract tests..."
+/bin/bash "$REPO_ROOT/tests/resilience_contract_test.sh"

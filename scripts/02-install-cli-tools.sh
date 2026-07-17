@@ -16,12 +16,27 @@ REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 MANIFEST_FILE="$REPO_ROOT/manifest/homebrew-packages.sh"
 PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
 PREREQUISITES_LIB="$SCRIPT_DIR/lib/bootstrap-prerequisites.sh"
+RUNTIME_LIB="$SCRIPT_DIR/lib/runtime-environment.sh"
+EXPECTATIONS_LIB="$SCRIPT_DIR/lib/bootstrap-expectations.sh"
+APP_BUNDLE_LIB="$SCRIPT_DIR/lib/app-bundle.sh"
+CASK_STATE_LIB="$SCRIPT_DIR/lib/cask-state.sh"
+ARTIFACT_INTEGRITY_LIB="$SCRIPT_DIR/lib/artifact-integrity.sh"
 BOOTSTRAP_PROFILE=""
 
 # shellcheck disable=SC1090
 source "$PROFILE_LIB"
 # shellcheck disable=SC1090
 source "$PREREQUISITES_LIB"
+# shellcheck disable=SC1090
+source "$RUNTIME_LIB"
+# shellcheck disable=SC1090
+source "$EXPECTATIONS_LIB"
+# shellcheck disable=SC1090
+source "$APP_BUNDLE_LIB"
+# shellcheck disable=SC1090
+source "$CASK_STATE_LIB"
+# shellcheck disable=SC1090
+source "$ARTIFACT_INTEGRITY_LIB"
 
 usage() {
     cat <<'EOF'
@@ -81,25 +96,6 @@ fi
 
 export DEV_ENV_BOOTSTRAP_PROFILE="$BOOTSTRAP_PROFILE"
 
-load_homebrew() {
-    if command -v brew >/dev/null 2>&1; then
-        eval "$(brew shellenv)"
-        return 0
-    fi
-
-    if [ -x "/opt/homebrew/bin/brew" ]; then
-        eval "$(/opt/homebrew/bin/brew shellenv)"
-        return 0
-    fi
-
-    if [ -x "/usr/local/bin/brew" ]; then
-        eval "$(/usr/local/bin/brew shellenv)"
-        return 0
-    fi
-
-    return 1
-}
-
 echo "========================================"
 echo "Step 2: Installing Development CLI Tools"
 echo "========================================"
@@ -117,7 +113,7 @@ if ! command -v brew &> /dev/null; then
     fi
 
     # Load Homebrew into the current shell if step 1 just installed it.
-    load_homebrew || true
+    bootstrap_load_homebrew || true
 fi
 
 if ! command -v brew &> /dev/null; then
@@ -151,6 +147,9 @@ case "$BOOTSTRAP_PROFILE" in
         ;;
 esac
 
+bootstrap_load_expectations "$BOOTSTRAP_PROFILE"
+CASK_APPS=("${BOOTSTRAP_REQUIRED_CASKS[@]}")
+
 strip_npmrc_conflicts() {
     local npmrc_path="$HOME/.npmrc"
     local tmp_path=""
@@ -177,68 +176,6 @@ strip_npmrc_conflicts() {
         rm -f "$npmrc_path"
         echo "  [CLEANUP] Removed empty ~/.npmrc"
     fi
-}
-
-load_nvm() {
-    local nvm_prefix=""
-
-    export NVM_DIR="$HOME/.nvm"
-    mkdir -p "$NVM_DIR"
-
-    if command -v brew >/dev/null 2>&1; then
-        nvm_prefix="$(brew --prefix nvm 2>/dev/null || true)"
-        if [ -n "$nvm_prefix" ] && [ -s "$nvm_prefix/nvm.sh" ]; then
-            # shellcheck disable=SC1090
-            . "$nvm_prefix/nvm.sh"
-            return 0
-        fi
-    fi
-
-    if [ -s "/opt/homebrew/opt/nvm/nvm.sh" ]; then
-        # shellcheck disable=SC1091
-        . "/opt/homebrew/opt/nvm/nvm.sh"
-        return 0
-    fi
-
-    if [ -s "/usr/local/opt/nvm/nvm.sh" ]; then
-        # shellcheck disable=SC1091
-        . "/usr/local/opt/nvm/nvm.sh"
-        return 0
-    fi
-
-    return 1
-}
-
-path_prepend_distinct() {
-    local entry="$1"
-
-    if [ -z "$entry" ]; then
-        return
-    fi
-
-    PATH=":$PATH:"
-    PATH="${PATH//:$entry:/:}"
-    PATH="${PATH#:}"
-    PATH="${PATH%:}"
-
-    if [ -n "$PATH" ]; then
-        export PATH="$entry:$PATH"
-    else
-        export PATH="$entry"
-    fi
-}
-
-activate_nvm_node() {
-    if ! nvm use "$BOOTSTRAP_NODE_VERSION" >/dev/null 2>&1 && ! nvm use default >/dev/null 2>&1; then
-        return 1
-    fi
-
-    if [ -n "${NVM_BIN:-}" ] && [ -d "$NVM_BIN" ]; then
-        path_prepend_distinct "$NVM_BIN"
-        hash -r 2>/dev/null || true
-    fi
-
-    return 0
 }
 
 manifest_includes_tool() {
@@ -302,62 +239,14 @@ ensure_homebrew_taps() {
     done
 }
 
-resolve_python_bin() {
-    local brew_prefix=""
-
-    if command -v brew >/dev/null 2>&1; then
-        brew_prefix="$(brew --prefix python@3.13 2>/dev/null || true)"
-        if [ -n "$brew_prefix" ] && [ -x "$brew_prefix/bin/python3.13" ]; then
-            printf '%s\n' "$brew_prefix/bin/python3.13"
-            return
-        fi
-        if [ -n "$brew_prefix" ] && [ -x "$brew_prefix/libexec/bin/python3" ]; then
-            printf '%s\n' "$brew_prefix/libexec/bin/python3"
-            return
-        fi
-    fi
-
-    if command -v python3.13 >/dev/null 2>&1; then
-        command -v python3.13
-        return
-    fi
-
-    if command -v python3 >/dev/null 2>&1; then
-        command -v python3
-        return
-    fi
-
-    return 1
-}
-
-cask_app_present() {
-    local app="$1"
-    local app_bundle=""
-
-    while IFS= read -r app_bundle; do
-        if [ -n "$app_bundle" ] && [ -d "/Applications/$app_bundle" ]; then
-            return 0
-        fi
-    done < <(brew info --cask --json=v2 "$app" 2>/dev/null | jq -r '.casks[0].artifacts[]? | select(type == "object" and has("app")) | .app[0]')
-
-    return 1
-}
-
-cask_status() {
-    local app="$1"
-
-    if brew list --cask "$app" >/dev/null 2>&1 || cask_app_present "$app"; then
-        printf '%s\n' "installed"
-    else
-        printf '%s\n' "missing"
-    fi
-}
-
 install_bun_fallback() {
     local bun_version=""
     local asset_arch=""
     local asset_name=""
     local archive_url=""
+    local release_api_url=""
+    local release_metadata_path=""
+    local published_digest=""
     local archive_path=""
     local tmp_dir=""
     local install_dir=""
@@ -387,7 +276,7 @@ install_bun_fallback() {
     esac
 
     asset_name="bun-darwin-$asset_arch.zip"
-    archive_url="https://github.com/oven-sh/bun/releases/download/bun-v${bun_version}/${asset_name}"
+    release_api_url="https://api.github.com/repos/oven-sh/bun/releases/tags/bun-v${bun_version}"
     install_dir="$(brew --prefix)/bin"
 
     if [ ! -w "$install_dir" ]; then
@@ -397,6 +286,27 @@ install_bun_fallback() {
 
     tmp_dir="$(mktemp -d)"
     archive_path="$tmp_dir/$asset_name"
+    release_metadata_path="$tmp_dir/release.json"
+
+    if ! curl -fsSL -o "$release_metadata_path" "$release_api_url"; then
+        rm -rf "$tmp_dir"
+        echo "ERROR: Failed to fetch Bun release metadata for integrity verification."
+        return 1
+    fi
+
+    archive_url="$(jq -r --arg name "$asset_name" \
+        '.assets[]? | select(.name == $name) | .browser_download_url // empty' \
+        "$release_metadata_path" | head -n 1)"
+    published_digest="$(jq -r --arg name "$asset_name" \
+        '.assets[]? | select(.name == $name) | .digest // empty' \
+        "$release_metadata_path" | head -n 1)"
+    published_digest="${published_digest#sha256:}"
+
+    if [ -z "$archive_url" ] || [ -z "$published_digest" ]; then
+        rm -rf "$tmp_dir"
+        echo "ERROR: Bun release metadata did not publish the expected asset and SHA-256 digest."
+        return 1
+    fi
 
     echo "  [FALLBACK] Homebrew could not install bun; downloading the official Bun binary..."
     echo "             $archive_url"
@@ -407,6 +317,17 @@ install_bun_fallback() {
         return 1
     fi
 
+    if ! bootstrap_verify_sha256 "$archive_path" "$published_digest"; then
+        rm -rf "$tmp_dir"
+        echo "ERROR: Bun fallback archive failed SHA-256 verification."
+        return 1
+    fi
+
+    if ! unzip -tq "$archive_path" >/dev/null 2>&1; then
+        rm -rf "$tmp_dir"
+        echo "ERROR: Bun fallback archive is not a valid ZIP file."
+        return 1
+    fi
     unzip -q "$archive_path" -d "$tmp_dir"
     install -m 755 "$tmp_dir/bun-darwin-$asset_arch/bun" "$install_dir/bun"
     rm -rf "$tmp_dir"
@@ -465,20 +386,7 @@ echo "Installing applications via Homebrew Cask..."
 echo ""
 
 for app in "${CASK_APPS[@]}"; do
-    if brew list --cask "$app" &> /dev/null 2>&1; then
-        echo "  [SKIP] $app is already installed"
-    elif cask_app_present "$app"; then
-        echo "  [PRESERVE] $app app bundle already exists in /Applications"
-    else
-        if [ "$app" = "docker" ]; then
-            echo "  [INSTALL] Installing $app app bundle without cask-managed binaries..."
-            echo "            Docker CLI is provided by the docker formula to avoid sudo-only cask symlink steps."
-            brew install --cask --no-binaries "$app" || echo "  [WARN] Failed to install $app (may require manual install)"
-        else
-            echo "  [INSTALL] Installing $app..."
-            brew install --cask "$app" || echo "  [WARN] Failed to install $app (may require manual install)"
-        fi
-    fi
+    bootstrap_install_required_cask "$app" || exit 1
 done
 
 # -----------------------------------------------------------------------------
@@ -488,7 +396,7 @@ echo ""
 echo "Setting up NVM..."
 strip_npmrc_conflicts
 
-if ! load_nvm; then
+if ! bootstrap_load_nvm; then
     echo "ERROR: nvm could not be loaded after installation."
     echo "       Homebrew owns nvm in this repo, and nvm owns the Node runtime."
     exit 1
@@ -504,8 +412,8 @@ fi
 
 nvm alias default "$BOOTSTRAP_NODE_VERSION" >/dev/null 2>&1 || true
 
-if ! activate_nvm_node; then
-    echo "ERROR: Could not activate the nvm-managed Node runtime."
+if ! bootstrap_activate_nvm_node "$BOOTSTRAP_NODE_VERSION"; then
+    echo "ERROR: Could not activate exact nvm-managed Node $BOOTSTRAP_NODE_VERSION."
     exit 1
 fi
 
@@ -547,7 +455,7 @@ echo "Step 2 Complete: Development tools installed"
 echo "========================================"
 echo ""
 PYTHON_VERSION="not in PATH yet"
-if PYTHON_BIN="$(resolve_python_bin 2>/dev/null)"; then
+if PYTHON_BIN="$(bootstrap_resolve_python_bin 2>/dev/null)"; then
     PYTHON_VERSION="$("$PYTHON_BIN" --version 2>/dev/null || echo 'not in PATH yet')"
 fi
 
@@ -556,15 +464,15 @@ echo "  - Node.js (via nvm): $(node --version 2>/dev/null || echo 'not in PATH y
 echo "  - npm: $(npm --version 2>/dev/null || echo 'not in PATH yet')"
 echo "  - Python: $PYTHON_VERSION"
 echo "  - GitHub CLI: $(gh --version 2>/dev/null | head -1 || echo 'not in PATH yet')"
-echo "  - Raycast: $(cask_status raycast)"
-echo "  - Hidden Bar: $(cask_status hiddenbar)"
-echo "  - Hammerspoon: $(cask_status hammerspoon)"
-echo "  - GitHub Desktop: $(cask_status github)"
+echo "  - Raycast: $(bootstrap_cask_status raycast)"
+echo "  - Hidden Bar: $(bootstrap_cask_status hiddenbar)"
+echo "  - Hammerspoon: $(bootstrap_cask_status hammerspoon)"
+echo "  - GitHub Desktop: $(bootstrap_cask_status github)"
 if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
     echo "  - AWS CLI: $(aws --version 2>/dev/null | cut -d' ' -f1 || echo 'not in PATH yet')"
     echo "  - 1Password CLI: $(op --version 2>/dev/null || echo 'not in PATH yet')"
-    echo "  - BetterDisplay: $(cask_status betterdisplay)"
-    echo "  - Obsidian: $(cask_status obsidian)"
+    echo "  - BetterDisplay: $(bootstrap_cask_status betterdisplay)"
+    echo "  - Obsidian: $(bootstrap_cask_status obsidian)"
 fi
 echo ""
 echo "Node runtime policy: Homebrew installs nvm; nvm installs and owns Node."

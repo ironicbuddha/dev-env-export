@@ -25,7 +25,15 @@ want terminal-only sign-in behavior.
 Run a command with secrets loaded from an env file containing secret references:
 
 ```bash
-op run --env-file=onepassword/examples/project.env.tpl -- env | rg 'OPENAI|GITHUB'
+op run --env-file=onepassword/examples/project.env.tpl -- sh -c '
+  for name in OPENAI_API_KEY GITHUB_TOKEN; do
+    if printenv "$name" >/dev/null; then
+      printf "%s=set\n" "$name"
+    else
+      printf "%s=unset\n" "$name"
+    fi
+  done
+'
 ```
 
 Render a local file from a template:

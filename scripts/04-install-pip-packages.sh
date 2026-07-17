@@ -14,10 +14,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
+RUNTIME_LIB="$SCRIPT_DIR/lib/runtime-environment.sh"
 BOOTSTRAP_PROFILE=""
 
 # shellcheck disable=SC1090
 source "$PROFILE_LIB"
+# shellcheck disable=SC1090
+source "$RUNTIME_LIB"
 
 usage() {
     cat <<'EOF'
@@ -84,35 +87,7 @@ echo ""
 echo "Bootstrap profile: $(bootstrap_profile_label "$BOOTSTRAP_PROFILE") ($BOOTSTRAP_PROFILE)"
 echo ""
 
-resolve_python_bin() {
-    local brew_prefix=""
-
-    if command -v brew >/dev/null 2>&1; then
-        brew_prefix="$(brew --prefix python@3.13 2>/dev/null || true)"
-        if [ -n "$brew_prefix" ] && [ -x "$brew_prefix/bin/python3.13" ]; then
-            printf '%s\n' "$brew_prefix/bin/python3.13"
-            return
-        fi
-        if [ -n "$brew_prefix" ] && [ -x "$brew_prefix/libexec/bin/python3" ]; then
-            printf '%s\n' "$brew_prefix/libexec/bin/python3"
-            return
-        fi
-    fi
-
-    if command -v python3.13 >/dev/null 2>&1; then
-        command -v python3.13
-        return
-    fi
-
-    if command -v python3 >/dev/null 2>&1; then
-        command -v python3
-        return
-    fi
-
-    return 1
-}
-
-if ! PYTHON_BIN="$(resolve_python_bin)"; then
+if ! PYTHON_BIN="$(bootstrap_resolve_python_bin)"; then
     echo "ERROR: Python not found. Run 02-install-cli-tools.sh first."
     exit 1
 fi

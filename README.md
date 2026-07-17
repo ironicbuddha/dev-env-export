@@ -167,8 +167,11 @@ source and management path for MCP servers in this repo.
 
 If Homebrew refuses to install `bun` because the local Xcode Command Line Tools
 are too old, the bootstrap falls back to the official Bun release binary so the
-machine still lands in a usable state. After a CLT update or reinstall, you can
-switch Bun back to Homebrew ownership if you care about that detail.
+machine still lands in a usable state. The fallback reads the asset URL and
+SHA-256 digest from Bun's GitHub release metadata, rejects a missing or
+mismatched digest, and validates the ZIP before installation. After a CLT
+update or reinstall, you can switch Bun back to Homebrew ownership if you care
+about that detail.
 
 This repo keeps Homebrew as the primary machine-level package manager. For
 project-level JavaScript workflows, keep `npm` available but prefer `pnpm` for
@@ -177,6 +180,10 @@ new TypeScript-first repos. See `PACKAGE-MANAGERS.md`.
 The active Homebrew install set lives in
 `manifest/homebrew-packages.sh`. Use that file to cull stale apps from the
 default bootstrap and keep a visible review bucket for stuff you no longer use.
+Active formula and cask entries are required: an install failure stops the
+bootstrap, while review and optional buckets remain non-gating. App casks are
+only accepted when their bundle contains launchable macOS structure; a broken
+registered bundle is repaired or reported as a failure.
 
 The Carlo Baseline also installs repo-vendored Codex skills during
 `./scripts/05-setup-dotfiles.sh`, so Carlo machines pick up tracked local skills
@@ -226,10 +233,17 @@ bootstrap flow:
 /bin/bash tests/run.sh
 ```
 
-The suite checks shell syntax and exercises the master CLI with isolated
-fixtures. It locks successful completion, prerequisite exit `20` before
-Homebrew, generic child failure, log-writer failure, and rerun artifact
-isolation without installing software on the current machine.
+The suite checks shell syntax and exercises the public bootstrap contracts with
+isolated fixtures. It locks successful completion, prerequisite exit `20`
+before Homebrew, generic child failure, log-writer failure, rerun artifact
+isolation, exact Node activation, required path failures, app-bundle usability,
+shared JSON merge helpers, symlink refusal, atomic shell writes, and artifact
+digest rejection without installing software on the current machine.
+
+The path and smoke scripts share one profile expectation source and return
+nonzero when a required tool, app, or config is absent. The smoke test also
+requires the pinned Node version and proves that a clean login-interactive zsh
+can load the installed runtime.
 
 ### 4. Complete Manual Setup
 

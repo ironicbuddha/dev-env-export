@@ -1,6 +1,8 @@
 # Homebrew install manifest for the bootstrap flow.
 #
-# Keep active install targets in the arrays below.
+# Keep required install targets in the active arrays below. A failed active
+# formula or cask gates the selected bootstrap profile; only review/optional
+# arrays are non-gating and are not installed automatically.
 # Put stale, uncertain, or no-longer-used apps in REVIEW_CASK_APPS so they stay
 # visible without getting installed by default.
 
