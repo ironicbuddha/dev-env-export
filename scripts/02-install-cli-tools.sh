@@ -15,11 +15,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 MANIFEST_FILE="$REPO_ROOT/manifest/homebrew-packages.sh"
 PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
-MANUAL_ACTION_EXIT=20
+PREREQUISITES_LIB="$SCRIPT_DIR/lib/bootstrap-prerequisites.sh"
 BOOTSTRAP_PROFILE=""
 
 # shellcheck disable=SC1090
 source "$PROFILE_LIB"
+# shellcheck disable=SC1090
+source "$PREREQUISITES_LIB"
 
 usage() {
     cat <<'EOF'
@@ -416,14 +418,11 @@ install_bun_fallback() {
 # -----------------------------------------------------------------------------
 # Install Xcode Command Line Tools (provides build-essential equivalent)
 # -----------------------------------------------------------------------------
-echo "Checking for Xcode Command Line Tools..."
-if ! xcode-select -p &> /dev/null; then
-    echo "Installing Xcode Command Line Tools..."
-    xcode-select --install
-    echo "Manual action required: complete the installation dialog, then re-run this script."
-    exit "$MANUAL_ACTION_EXIT"
+if bootstrap_ensure_xcode_clt; then
+    :
 else
-    echo "  [SKIP] Xcode Command Line Tools already installed"
+    status=$?
+    exit "$status"
 fi
 
 # -----------------------------------------------------------------------------

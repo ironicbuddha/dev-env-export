@@ -133,14 +133,17 @@ names. The script validates the profile before doing install work and stops
 with exit code `20` if macOS still needs you to finish Xcode Command Line Tools
 installation. Complete the Apple installer, then run the same command again.
 
-Each bootstrap run writes timestamped logs under `logs/bootstrap-*` by default.
+Each bootstrap run writes artifacts to its own unique
+`logs/bootstrap-<timestamp>-<suffix>/` directory by default.
 If a step blows up on a fresh VM, keep that log directory around so the failure
 can be diagnosed without guessing.
 Each run now leaves behind `bootstrap.log`, `environment.txt`,
 `step-status.tsv`, `summary.txt`, and one log per step so you can see both the
 machine context and the exact step outcome/duration.
 If you want the logs somewhere else, set `DEV_ENV_LOG_DIR=/path/to/logs`
-before running `/bin/bash scripts/00-bootstrap.sh`.
+before running `/bin/bash scripts/00-bootstrap.sh`. The override is treated as
+a parent directory; every invocation still creates a unique `bootstrap-*`
+child so reruns never mix logs and status files.
 If you want command-by-command tracing inside each step, run
 `DEV_ENV_TRACE_STEPS=1 /bin/bash scripts/00-bootstrap.sh --profile carlo-baseline`.
 
@@ -184,6 +187,7 @@ defaults, or plugin manifests.
 To run the steps manually instead:
 
 ```bash
+./scripts/00-check-prerequisites.sh
 ./scripts/01-install-brew.sh
 ./scripts/02-install-cli-tools.sh --profile shared-baseline
 ./scripts/03-install-npm-globals.sh --profile shared-baseline
@@ -208,7 +212,26 @@ For the Carlo Baseline manual path, run the same first four steps with
 If `./scripts/02-install-cli-tools.sh` prompts for Xcode Command Line Tools,
 stop there, finish that install, and then re-run step 2 before continuing.
 
-### 3. Complete Manual Setup
+The master bootstrap, standalone Homebrew step, and CLI-tools step all require
+a selected and usable Xcode Command Line Tools installation. A missing or
+broken toolchain exits with status `20`; complete or repair the Apple install,
+then rerun the same command.
+
+### 3. Verify Bootstrap Contracts
+
+Run the repository's complete shell verification suite after changing the
+bootstrap flow:
+
+```bash
+/bin/bash tests/run.sh
+```
+
+The suite checks shell syntax and exercises the master CLI with isolated
+fixtures. It locks successful completion, prerequisite exit `20` before
+Homebrew, generic child failure, log-writer failure, and rerun artifact
+isolation without installing software on the current machine.
+
+### 4. Complete Manual Setup
 
 For the Shared Baseline:
 

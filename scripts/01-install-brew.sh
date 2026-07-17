@@ -11,6 +11,12 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PREREQUISITES_LIB="$SCRIPT_DIR/lib/bootstrap-prerequisites.sh"
+
+# shellcheck disable=SC1090
+source "$PREREQUISITES_LIB"
+
 echo "========================================"
 echo "Step 1: Installing Homebrew and Core CLI Tools"
 echo "========================================"
@@ -20,6 +26,13 @@ echo ""
 if [[ "$(uname)" != "Darwin" ]]; then
     echo "ERROR: This script is intended for macOS only."
     exit 1
+fi
+
+if bootstrap_ensure_xcode_clt; then
+    :
+else
+    status=$?
+    exit "$status"
 fi
 
 # Install Homebrew if not present

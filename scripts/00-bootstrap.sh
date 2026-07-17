@@ -83,8 +83,9 @@ fi
 export DEV_ENV_BOOTSTRAP_PROFILE="$BOOTSTRAP_PROFILE"
 
 RUN_ID="$(date '+%Y%m%d-%H%M%S')"
-DEFAULT_LOG_DIR="$REPO_ROOT/logs/bootstrap-$RUN_ID"
-LOG_DIR="${DEV_ENV_LOG_DIR:-$DEFAULT_LOG_DIR}"
+LOG_PARENT="${DEV_ENV_LOG_DIR:-$REPO_ROOT/logs}"
+mkdir -p "$LOG_PARENT"
+LOG_DIR="$(mktemp -d "$LOG_PARENT/bootstrap-$RUN_ID-XXXXXX")"
 BOOTSTRAP_LOG="$LOG_DIR/bootstrap.log"
 STEP_STATUS_FILE="$LOG_DIR/step-status.tsv"
 ENVIRONMENT_FILE="$LOG_DIR/environment.txt"
@@ -98,6 +99,7 @@ LAST_STEP_STATUS=0
 TRACE_STEPS="${DEV_ENV_TRACE_STEPS:-0}"
 
 COMMON_STEPS=(
+    "00-check-prerequisites.sh"
     "01-install-brew.sh"
     "02-install-cli-tools.sh"
     "03-install-npm-globals.sh"
@@ -488,7 +490,7 @@ fi
 
 for step in "${STEPS[@]}"; do
     if ! run_step "$step"; then
-        if [ "$step" = "02-install-cli-tools.sh" ] && [ "$LAST_STEP_STATUS" -eq "$MANUAL_ACTION_EXIT" ]; then
+        if [ "$LAST_STEP_STATUS" -eq "$MANUAL_ACTION_EXIT" ]; then
             echo ""
             echo "Manual action required:"
             echo "  - Finish installing Xcode Command Line Tools."
