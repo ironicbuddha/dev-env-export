@@ -114,6 +114,7 @@ CARLO_BASELINE_STEPS=(
     "06-setup-claude.sh"
     "07-setup-1password.sh"
     "08-setup-gemini.sh"
+    "14-install-codex-skills.sh"
 )
 
 SHARED_BASELINE_STEPS=(

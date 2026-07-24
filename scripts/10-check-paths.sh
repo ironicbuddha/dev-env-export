@@ -150,20 +150,11 @@ fi
 
 echo ""
 if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
-    if [ -L "$HOME/.codex/skills/apply-project-standards" ] || [ -d "$HOME/.codex/skills/apply-project-standards" ]; then
-        echo "[OK]   repo Codex skill -> $HOME/.codex/skills/apply-project-standards"
+    if [ -L "$HOME/.agents/skills" ] && [ -L "$HOME/.codex/skills" ] && [ -L "$HOME/.claude/skills" ]; then
+        echo "[OK]   Skill Hub projection links all agent harnesses"
     else
-        echo "[MISS] repo Codex skill"
-        echo "       Re-run scripts/05-setup-dotfiles.sh or scripts/14-install-codex-skills.sh."
-        FAILURES=$((FAILURES + 1))
-    fi
-
-    if [ -L "$HOME/.agents/skills/apply-project-standards" ] || [ -d "$HOME/.agents/skills/apply-project-standards" ]; then
-        echo "[OK]   shared agent skill -> $HOME/.agents/skills/apply-project-standards"
-    else
-        echo "[MISS] shared agent skill"
-        echo "       Re-run scripts/05-setup-dotfiles.sh or scripts/14-install-codex-skills.sh."
-        FAILURES=$((FAILURES + 1))
+        echo "[WARN] Skill Hub projection is unavailable"
+        echo "       Re-run scripts/14-install-codex-skills.sh after resolving any Hub warning."
     fi
 fi
 

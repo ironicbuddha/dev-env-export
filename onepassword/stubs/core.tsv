@@ -4,7 +4,6 @@ API Credential	aws - main account	dev-env,aws
 API Credential	openai - api credential	dev-env,openai
 API Credential	anthropic - api credential	dev-env,anthropic
 API Credential	firecrawl - api credential	dev-env,firecrawl
-API Credential	21st - agents api credential	dev-env,21st,ai
 API Credential	vercel - personal token	dev-env,vercel
 API Credential	npm - automation token	dev-env,npm
 API Credential	figma - personal access token	dev-env,figma

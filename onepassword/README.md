@@ -62,7 +62,6 @@ Typical secret references look like:
 op://Private/openai - api credential/api key
 op://Private/firecrawl - api credential/api key
 op://Private/github - personal access token/personal access token
-op://Private/21st - agents api credential/api key
 ```
 
 Or, when used in templates with variables:
@@ -70,7 +69,6 @@ Or, when used in templates with variables:
 ```text
 op://${VAULT:-Private}/openai - api credential/api key
 op://${VAULT:-Private}/firecrawl - api credential/api key
-op://${VAULT:-Private}/21st - agents api credential/api key
 ```
 
 Current repo convention:

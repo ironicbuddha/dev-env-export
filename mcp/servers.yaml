@@ -1,43 +1,12 @@
-source: docker-library
+source: manual-catalogue
 
-default_servers:
-  - name: context7
-    notes: Current docs and API reference lookups. High value and low setup drama.
-  - name: github
-    notes: Worth carrying by default because GitHub repo, PR, and issue work is part of the normal workflow.
-  - name: playwright
-    notes: Strong default for browser automation, UI verification, and real workflow checks.
-  - name: Sequential Thinking
-    notes: Default reasoning aid for tasks that benefit from explicit decomposition, stepwise planning, or deliberate multi-step analysis.
-  - name: Vercel
-    notes: Default for deploying and managing web applications.
-
+# This is a catalogue, not bootstrap input. No MCP server is installed or
+# configured by default; prefer a CLI or Skill Hub skill when it provides the
+# same capability.
 optional_servers:
+  - name: github
+    notes: Consider only when a project needs an MCP-only GitHub integration.
+  - name: playwright
+    notes: Prefer project-owned browser automation before a machine MCP setup.
   - name: figma
-    notes: Keep optional unless design-to-code work is active enough to justify it.
-  - name: firecrawl
-    notes: Keep optional unless web extraction or crawling is part of the active stack and the API key is already in place.
-  - name: docker
-    notes: Keep optional unless Docker Desktop MCP tooling is part of the normal local management workflow.
-  - name: Neon
-    notes: Default for managing PostgreSQL databases and serverless functions.
-  - name: SQLite
-    notes: Default for managing SQLite databases.
-  - name: AWS Core
-    notes: Default for managing AWS resources.
-  - name: NetOps
-    notes: Default for managing network resources.
-  - name: 21st-dev magic-mcp
-    notes: https://github.com/21st-dev/magic-mcp
-  - name: Chrome DevTools
-    notes: Default for browser automation, UI verification, and real workflow checks.
-  - name: Callout
-    notes: Default for identifying over-engineered code or patterns.
-  - name: Excalidraw
-    notes: Default for drawing diagrams and visualizing ideas.
-  - name: Markdownify
-    notes: A Model Context Protocol server for converting almost anything to Markdown.
-  - name: Miro
-    notes: Default for drawing diagrams and visualizing ideas.
-  - name: Obsidian
-    notes: Default for managing notes and knowledge base documents.
+    notes: Consider for active design-context work with an approved account.

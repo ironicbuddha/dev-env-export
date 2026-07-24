@@ -60,6 +60,7 @@ make_fixture() {
         06-setup-claude.sh \
         07-setup-1password.sh \
         08-setup-gemini.sh \
+        14-install-codex-skills.sh \
         10-check-paths.sh \
         12-smoke-test.sh \
         15-setup-shared-shell.sh

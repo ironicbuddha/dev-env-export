@@ -12,10 +12,9 @@ Notes:
 - YOLO mode is enabled by default with `approval_policy = "never"` and
   `sandbox_mode = "danger-full-access"`. The bootstrap applies these tracked
   values when it merges `codex/config.toml` into the user's Codex config.
-- Use `codex/SKILLS.md` for the current skill inventory and for the repo policy
-  on vendored versus install-on-build skills.
-- Repo-vendored skills live under `codex/skills/` and can be linked into
-  `~/.codex/skills` with `./scripts/14-install-codex-skills.sh`.
+- Reusable skills are selected from the public Skill Hub. Run
+  `./scripts/14-install-codex-skills.sh` to acquire or fast-forward its checkout
+  and apply the `carlo-baseline` selection.
 - Use `codex/STATUSLINE.md` for the current Codex statusline/context helper
   design.
 - Use `codex/codex-wrapper.sh` when you want to launch Codex with task/check/cmd

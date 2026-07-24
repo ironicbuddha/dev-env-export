@@ -70,12 +70,12 @@ Claude, Gemini, and 1Password.
 | `scripts/` | bootstrap and setup scripts |
 | `shell/` | zsh configuration |
 | `dotfiles/` | portable Git and GitHub CLI defaults |
-| `claude/` | Claude settings, commands, helper scripts, and plugin manifest |
+| `claude/` | Claude settings, commands, and helper scripts |
 | `gemini/` | Gemini CLI persona, settings defaults, and setup docs |
 | `zed/` | Zed user configuration tracked for bootstrap |
 | `warp/` | Warp launch configurations and related tracked files |
 | `codex/` | Codex CLI configuration tracked for bootstrap |
-| `mcp/` | curated default MCP server manifest and policy |
+| `mcp/` | manually applied MCP catalogue |
 | `onepassword/` | 1Password CLI usage docs and secret template examples |
 | `templates/` | starter config bundles and reusable repo scaffolds |
 | `manifest/` | install manifests and review buckets for bootstrap tooling |
@@ -319,7 +319,7 @@ Recommended follow-up:
 - In Zed, open `/Users/carlo/dev`, then use the `Restricted Mode` prompt or
   `workspace::ToggleWorktreeSecurity` to trust all projects in that folder
 - In Warp, open `Dev Env Bootstrap` from Launch Configurations
-- In Claude, use `claude/PLUGIN-MANIFEST.md` to install only the plugins you still use
+- In Claude, install plugins only for a concrete project need; none are part of the baseline
 - Run `./scripts/11-create-1password-stubs.sh --vault Private` to scaffold secret items in 1Password
 - Run `./scripts/09-inventory-ai-tooling.sh` to snapshot the local AI layer
 - Run `./scripts/10-check-paths.sh --profile carlo-baseline` to verify the
@@ -359,9 +359,8 @@ When you spin up a new repo from this environment, do not start from scratch.
 
 - Use [PROJECT-STANDARDS.md](/Users/carlo/dev/dev-env-export/PROJECT-STANDARDS.md)
   as the default standard for testing, deployment, security, and operations.
-- Carlo Baseline bootstrap runs already install repo-vendored Codex skills for
-  you.
-- Install or refresh the Codex skill manually with
+- Carlo Baseline applies the public Skill Hub's `carlo-baseline` selection.
+- Install or refresh that selection manually with
   [scripts/14-install-codex-skills.sh](/Users/carlo/dev/dev-env-export/scripts/14-install-codex-skills.sh)
   if you want to update an existing machine without rerunning the broader
   bootstrap.
@@ -381,7 +380,7 @@ When you spin up a new repo from this environment, do not start from scratch.
 Example:
 
 ```bash
-./scripts/14-install-codex-skills.sh --skill apply-project-standards
+./scripts/14-install-codex-skills.sh --skill-selection carlo-baseline
 
 ./scripts/13-apply-project-standards.sh \
   --repo ~/dev/my-api \

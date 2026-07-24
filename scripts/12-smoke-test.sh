@@ -271,8 +271,11 @@ if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
     check_file "$HOME/.codex/config.toml"
     check_config_value "$HOME/.codex/config.toml" 'approval_policy = "never"'
     check_config_value "$HOME/.codex/config.toml" 'sandbox_mode = "danger-full-access"'
-    check_file "$HOME/.codex/skills/apply-project-standards/SKILL.md"
-    check_file "$HOME/.agents/skills/apply-project-standards/SKILL.md"
+    if [ -L "$HOME/.agents/skills" ] && [ -L "$HOME/.codex/skills" ] && [ -L "$HOME/.claude/skills" ]; then
+        pass "Skill Hub projects skills through all selected harnesses"
+    else
+        note "Skill Hub projection is unavailable; resolve its warning and rerun step 14."
+    fi
     check_file "$HOME/.claude/settings.json"
     check_file "$HOME/.claude/statusline-command.sh"
     check_file "$HOME/.gemini/settings.json"

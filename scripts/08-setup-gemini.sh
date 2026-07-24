@@ -8,9 +8,7 @@
 # 1. Copies the tracked Gemini buddy-mode persona
 # 2. Merges portable repo defaults into ~/.gemini/settings.json
 # 3. Applies a narrow migration for legacy Gemini agent files with unsupported
-#    `skills:` frontmatter
-# 4. Links Codex skills into the shared ~/.agents/skills directory so Gemini
-#    can discover them
+#    `skills:` frontmatter. Skill Hub owns shared skill projection separately.
 # =============================================================================
 
 set -euo pipefail
@@ -29,8 +27,6 @@ GEMINI_HOME="$HOME/.gemini"
 GEMINI_SETTINGS="$GEMINI_HOME/settings.json"
 GEMINI_PERSONA="$GEMINI_HOME/GEMINI.md"
 GEMINI_AGENTS_DIR="$GEMINI_HOME/agents"
-SHARED_SKILLS_HOME="$HOME/.agents/skills"
-CODEX_SKILLS_HOME="$HOME/.codex/skills"
 BACKUP_DIR="$HOME/.gemini-backup-$(date +%Y%m%d-%H%M%S)"
 
 # shellcheck disable=SC1090
@@ -168,59 +164,9 @@ if fixed == 0:
 PY
 }
 
-link_codex_skills_for_gemini() {
-    local linked=0
-    local skill_name=""
-    local skill_path=""
-    local target_path=""
-
-    mkdir -p "$SHARED_SKILLS_HOME"
-
-    if [ ! -d "$CODEX_SKILLS_HOME" ]; then
-        echo "  [WARN] Codex skills directory not found at $CODEX_SKILLS_HOME"
-        return
-    fi
-
-    if [ -L "$SHARED_SKILLS_HOME/.system" ]; then
-        rm -f "$SHARED_SKILLS_HOME/.system"
-        echo "  [CLEAN] Removed internal Codex .system link"
-    fi
-
-    while IFS= read -r skill_path; do
-        skill_name="$(basename "$skill_path")"
-        target_path="$SHARED_SKILLS_HOME/$skill_name"
-
-        case "$skill_name" in
-            .*)
-                continue
-                ;;
-        esac
-
-        if [ -L "$target_path" ] && [ "$(readlink "$target_path")" = "$skill_path" ]; then
-            continue
-        fi
-
-        if [ -e "$target_path" ] && [ ! -L "$target_path" ]; then
-            echo "  [SKIP] $skill_name already exists at $target_path"
-            continue
-        fi
-
-        rm -f "$target_path"
-        ln -s "$skill_path" "$target_path"
-        echo "  [LINK] $skill_name"
-        linked=1
-    done < <(find "$CODEX_SKILLS_HOME" -maxdepth 1 -mindepth 1 -type d | sort)
-
-    if [ "$linked" -eq 0 ]; then
-        echo "  [SKIP] Shared Gemini skill links are already up to date"
-    fi
-}
-
 echo "Creating Gemini directories..."
 mkdir -p "$GEMINI_HOME"
-mkdir -p "$SHARED_SKILLS_HOME"
 echo "  [CREATE] ~/.gemini"
-echo "  [CREATE] ~/.agents/skills"
 
 echo ""
 echo "Copying Gemini persona..."
@@ -233,10 +179,6 @@ merge_json_with_backup "$GEMINI_EXPORT/settings.json" "$GEMINI_SETTINGS" "settin
 echo ""
 echo "Repairing legacy Gemini agent frontmatter..."
 repair_legacy_agent_frontmatter
-
-echo ""
-echo "Linking shared Codex skills for Gemini..."
-link_codex_skills_for_gemini
 
 echo ""
 echo "========================================"

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Apply Project Standards"
-  short_description: "Load the new-repo standards starter into a repo"
-  default_prompt: "Apply the dev-env-export project standards starter into the target repo using the right profile and review any skipped files or warnings."

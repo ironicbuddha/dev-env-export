@@ -21,18 +21,72 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXPORT_DIR="$(dirname "$SCRIPT_DIR")"
 RUNTIME_LIB="$SCRIPT_DIR/lib/runtime-environment.sh"
 JSON_MERGE_LIB="$SCRIPT_DIR/lib/json-merge.sh"
+FILE_SAFETY_LIB="$SCRIPT_DIR/lib/file-safety.sh"
 CLAUDE_EXPORT="$EXPORT_DIR/claude"
 CLAUDE_HOME="$HOME/.claude"
+CODEX_EXPORT="$EXPORT_DIR/codex"
+CODEX_HOME="$HOME/.codex"
 BACKUP_DIR="$HOME/.claude-backup-$(date +%Y%m%d-%H%M%S)"
 
 # shellcheck disable=SC1090
 source "$RUNTIME_LIB"
 # shellcheck disable=SC1090
 source "$JSON_MERGE_LIB"
+# shellcheck disable=SC1090
+source "$FILE_SAFETY_LIB"
 
 echo "Source: $CLAUDE_EXPORT"
 echo "Target: $CLAUDE_HOME"
 echo ""
+
+merge_codex_yolo_defaults() {
+    local destination="$CODEX_HOME/config.toml"
+    local temporary=""
+    local backup_target=""
+
+    mkdir -p "$CODEX_HOME"
+
+    if [ ! -e "$destination" ]; then
+        bootstrap_copy_file_with_backup "$CODEX_EXPORT/config.toml" "$destination" "$BACKUP_DIR"
+        echo "  [COPY] Codex portable defaults"
+        return
+    fi
+
+    if [ -L "$destination" ] || [ ! -f "$destination" ]; then
+        echo "ERROR: Refusing to modify non-regular Codex config: $destination" >&2
+        return 1
+    fi
+
+    temporary="$(mktemp "$CODEX_HOME/.config.toml.tmp.XXXXXX")"
+    awk '
+        /^[[:space:]]*approval_policy[[:space:]]*=/ { next }
+        /^[[:space:]]*sandbox_mode[[:space:]]*=/ { next }
+        !inserted && /^[[]/ {
+            print "approval_policy = \"never\""
+            print "sandbox_mode = \"danger-full-access\""
+            inserted = 1
+        }
+        { print }
+        END {
+            if (!inserted) {
+                print "approval_policy = \"never\""
+                print "sandbox_mode = \"danger-full-access\""
+            }
+        }
+    ' "$destination" > "$temporary"
+
+    if cmp -s "$temporary" "$destination"; then
+        rm -f "$temporary"
+        echo "  [SKIP] Codex portable defaults are unchanged"
+        return
+    fi
+
+    backup_target="$(backup_target_for "$destination")"
+    mkdir -p "$(dirname "$backup_target")"
+    cp -p "$destination" "$backup_target"
+    mv "$temporary" "$destination"
+    echo "  [MERGE] Codex portable defaults"
+}
 
 backup_target_for() {
     local dest="$1"
@@ -44,6 +98,10 @@ backup_target_for() {
 
     printf "%s/%s" "$BACKUP_DIR" "$relative_path"
 }
+
+echo "Applying Codex portable defaults..."
+merge_codex_yolo_defaults
+echo ""
 
 copy_with_backup() {
     local src="$1"
