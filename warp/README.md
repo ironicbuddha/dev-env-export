@@ -24,9 +24,8 @@ Notes:
   should only track local files that are intentionally portable.
 - If Warp CLI setup becomes part of the bootstrap flow, document it here rather
   than hiding it in unrelated scripts.
-- The tracked launch config in this repo opens:
-  - a split `dev-env-export` tab rooted in this repository
-  - a second `dev` tab rooted in `/Users/carlo/dev`
+- The tracked launch config leaves `cwd:` empty so Warp opens it from the
+  current working directory rather than a Carlo-specific checkout path.
 
 Keep this directory focused on portable launch configs and other explicit export
 artifacts, not ephemeral app state.

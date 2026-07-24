@@ -50,6 +50,10 @@ Create missing item stubs in a vault from the repo manifest:
 ./scripts/11-create-1password-stubs.sh --vault Private
 ```
 
+Stub creation is deliberately explicit and refuses to overwrite existing
+items. It is not part of either Bootstrap Profile and Shared Baseline only
+documents this workflow; it does not install or configure 1Password.
+
 ## Secret Reference Pattern
 
 Typical secret references look like:
@@ -80,8 +84,6 @@ Current repo convention:
   - `anthropic - api credential` -> `api key`
   - `firecrawl - api credential` -> `api key`
     when a project uses `FIRECRAWL_API_KEY`
-  - `21st - agents api credential` -> `api key`
-    when a project uses `AN_API_KEY`
   - `github - personal access token` -> `personal access token`
   - `aws - main account` -> `access key id`
   - `aws - main account` -> `secret access key`

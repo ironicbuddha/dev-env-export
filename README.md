@@ -53,7 +53,8 @@ Claude, Gemini, and 1Password.
 
 - shell defaults for macOS development
 - Homebrew-driven CLI and app installation
-- Git, GitHub CLI, AWS, Claude, Codex, Gemini, Zed, and Warp baseline config
+- portable Git and GitHub CLI defaults plus Carlo-only Claude, Codex, Gemini,
+  Zed, and Warp configuration
 - curated MCP server defaults and policy
 - document, PDF, and image tooling for AI-assisted read/write workflows
 - documented secret-handling policy built around 1Password
@@ -68,7 +69,7 @@ Claude, Gemini, and 1Password.
 | ---- | ------- |
 | `scripts/` | bootstrap and setup scripts |
 | `shell/` | zsh configuration |
-| `dotfiles/` | Git, GitHub CLI, AWS, and related user config |
+| `dotfiles/` | portable Git and GitHub CLI defaults |
 | `claude/` | Claude settings, commands, helper scripts, and plugin manifest |
 | `gemini/` | Gemini CLI persona, settings defaults, and setup docs |
 | `zed/` | Zed user configuration tracked for bootstrap |
@@ -165,11 +166,9 @@ so Node 24.18.0 LTS globals install under the active nvm-managed runtime.
 Corepack is enabled, but the bootstrap does not install a machine-wide pnpm:
 each project pins its own package manager through `packageManager`.
 
-Docker is Carlo Baseline tooling. In that profile it is installed in two pieces
-on purpose: the `docker` formula provides the CLI, and the Docker Desktop cask
-provides the app bundle. That avoids the privileged cask symlink step that can
-otherwise derail unattended bootstrap runs. Docker Desktop is also the default
-source and management path for MCP servers in this repo.
+Docker CLI and Docker Desktop are optional manual Homebrew installs. They are
+not Bootstrap Profile requirements and browser automation remains
+project-owned.
 
 If Homebrew refuses to install `bun` because the local Xcode Command Line Tools
 are too old, the bootstrap falls back to the official Bun release binary so the
@@ -407,7 +406,7 @@ Example:
 - bun
 - vercel
 - awscli
-- docker-related local tooling where needed
+- Docker CLI when installed manually for a project
 
 `taproom` remains documented optional tooling; it is not installed by either
 Bootstrap Profile.
@@ -425,15 +424,18 @@ Bootstrap Profile.
 
 - 1Password
 - 1Password CLI
-- BetterDisplay
-- Obsidian
-- Docker Desktop
-- Firefox
 - Claude desktop
 - Codex desktop
 
+### Optional Manual GUI Tools
+
+- Docker Desktop
+- Firefox
+
 ### Review Bucket
 
+- BetterDisplay
+- Obsidian
 - Sublime Text
 
 ### Optional Infra Tooling

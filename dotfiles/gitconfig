@@ -1,9 +1,5 @@
 # Git Configuration
-# Current macOS bootstrap defaults
-
-[user]
-  name = Carlo Kruger
-  email = ironicbuddha@gmail.com
+# Portable defaults only. Set identity during the First-Run Configuration Step.
 
 [core]
   editor = zed --wait

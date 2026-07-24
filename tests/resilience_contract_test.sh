@@ -61,6 +61,11 @@ test_profile_expectations_are_complete() {
     assert_array_excludes "openspec" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"
     assert_array_excludes "gsd" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"
     assert_array_excludes "taproom" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"
+    assert_array_excludes "docker" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"
+    assert_array_excludes "BetterDisplay.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
+    assert_array_excludes "Obsidian.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
+    assert_array_excludes "Docker.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
+    assert_array_excludes "Firefox.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
 
     bootstrap_load_expectations shared-baseline
     assert_array_excludes "bun" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"
@@ -300,8 +305,52 @@ test_dotfiles_entrypoint_refuses_external_symlink() {
     fi
 
     [ "$status" -ne 0 ] || fail "dotfiles entrypoint followed an external symlink"
-    assert_file_contains "$output_file" "Refusing to replace symlink destination"
+    assert_file_contains "$output_file" "Refusing to rewrite symlink shell file"
     assert_file_contains "$external_file" "external value"
+}
+
+test_dotfiles_entrypoint_preserves_shell_and_skips_identity_configuration() {
+    local fixture_root="$TEST_TMP_ROOT/dotfiles-managed-shell"
+    local home_dir="$fixture_root/home"
+    local output_file="$fixture_root/output.txt"
+
+    mkdir -p "$home_dir"
+    printf 'export UNRELATED_SHELL_SETTING=1\n' > "$home_dir/.zshrc"
+    printf 'export UNRELATED_LOGIN_SETTING=1\n' > "$home_dir/.zprofile"
+    printf '[user]\n  name = Existing User\n  email = existing@example.com\n' > "$home_dir/.gitconfig"
+
+    HOME="$home_dir" /bin/bash "$REPO_ROOT/scripts/05-setup-dotfiles.sh" \
+        > "$output_file" 2>&1
+
+    assert_file_contains "$home_dir/.zshrc" "export UNRELATED_SHELL_SETTING=1"
+    assert_file_contains "$home_dir/.zshrc" "# BEGIN DEV ENV CARLO RUNTIME PATHS"
+    assert_file_contains "$home_dir/.zshrc" "# BEGIN DEV ENV CARLO SHELL"
+    assert_file_contains "$home_dir/.zprofile" "export UNRELATED_LOGIN_SETTING=1"
+    assert_file_contains "$home_dir/.zprofile" "# BEGIN DEV ENV CARLO HOMEBREW"
+    assert_file_contains "$home_dir/.gitconfig" "name = Existing User"
+    assert_file_contains "$home_dir/.gitconfig" "email = existing@example.com"
+    if grep -Fq "Carlo Kruger" "$home_dir/.gitconfig"; then
+        fail "dotfiles entrypoint copied a personal Git identity"
+    fi
+    [ ! -e "$home_dir/.aws/config" ] || fail "dotfiles entrypoint copied named cloud profiles"
+    assert_file_contains "$output_file" "First-Run Configuration Step"
+}
+
+test_dotfiles_entrypoint_refuses_shared_profile() {
+    local fixture_root="$TEST_TMP_ROOT/dotfiles-shared-profile"
+    local output_file="$fixture_root/output.txt"
+    local status=0
+
+    mkdir -p "$fixture_root/home"
+    if HOME="$fixture_root/home" DEV_ENV_BOOTSTRAP_PROFILE=shared-baseline \
+            /bin/bash "$REPO_ROOT/scripts/05-setup-dotfiles.sh" > "$output_file" 2>&1; then
+        status=0
+    else
+        status=$?
+    fi
+
+    [ "$status" -eq 2 ] || fail "dotfiles entrypoint accepted shared profile, got $status"
+    assert_file_contains "$output_file" "Shared Baseline uses 15-setup-shared-shell.sh"
 }
 
 test_shared_shell_entrypoint_preserves_file_before_atomic_replace() {
@@ -330,6 +379,39 @@ test_shared_shell_entrypoint_preserves_file_before_atomic_replace() {
         > "$output_file" 2>&1
     assert_file_contains "$shell_file" "export ORIGINAL=1"
     assert_file_contains "$shell_file" "# BEGIN DEV ENV SHARED HOMEBREW"
+    assert_file_contains "$fixture_root/home/.zshrc" "DEV_ENV_UV_ENV_DIR"
+    assert_file_contains "$fixture_root/home/.zshrc" "nvm use --silent default"
+    if grep -Fq "ZSH_THEME" "$fixture_root/home/.zshrc"; then
+        fail "shared shell setup installed Carlo shell preferences"
+    fi
+}
+
+test_op_inject_refuses_symlink_output() {
+    local fixture_root="$TEST_TMP_ROOT/op-inject-symlink"
+    local fake_bin="$fixture_root/bin"
+    local template="$fixture_root/template.env.tpl"
+    local external_file="$fixture_root/external.env"
+    local output_file="$fixture_root/.env"
+    local command_output="$fixture_root/output.txt"
+    local status=0
+
+    mkdir -p "$fake_bin"
+    printf 'VALUE=op://Private/item/field\n' > "$template"
+    printf 'external value\n' > "$external_file"
+    ln -s "$external_file" "$output_file"
+    printf '#!/bin/bash\nexit 0\n' > "$fake_bin/op"
+    chmod +x "$fake_bin/op"
+
+    if PATH="$fake_bin:$PATH" /bin/bash "$REPO_ROOT/scripts/08-op-inject-template.sh" \
+            --in-file "$template" --out-file "$output_file" --force > "$command_output" 2>&1; then
+        status=0
+    else
+        status=$?
+    fi
+
+    [ "$status" -ne 0 ] || fail "op inject followed a symlink output"
+    assert_file_contains "$command_output" "Refusing to replace symlink destination"
+    assert_file_contains "$external_file" "external value"
 }
 
 run_test() {
@@ -350,6 +432,9 @@ run_test test_copy_refuses_symlink_destination
 run_test test_managed_shell_write_is_atomic_and_backed_up
 run_test test_path_check_returns_nonzero_for_required_miss
 run_test test_dotfiles_entrypoint_refuses_external_symlink
+run_test test_dotfiles_entrypoint_preserves_shell_and_skips_identity_configuration
+run_test test_dotfiles_entrypoint_refuses_shared_profile
 run_test test_shared_shell_entrypoint_preserves_file_before_atomic_replace
+run_test test_op_inject_refuses_symlink_output
 
 echo "1..$TEST_COUNT"

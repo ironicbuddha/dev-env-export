@@ -36,7 +36,6 @@ CARLO_BASELINE_BREW_PACKAGES=(
 
     # Cloud, infrastructure, and personal workflow CLIs
     awscli
-    docker
     gemini-cli
     googleworkspace-cli
 )
@@ -64,13 +63,18 @@ SHARED_BASELINE_CASK_APPS=(
 CARLO_BASELINE_CASK_APPS=(
     1password
     1password-cli
-    betterdisplay
-    obsidian
+)
+
+OPTIONAL_MANUAL_CASKS=(
+    # Install manually only when a project needs them. They are not profile
+    # requirements and do not carry application state through bootstrap.
     docker
     firefox
 )
 
 REVIEW_CASK_APPS=(
-    # No longer part of the default workflow as of March 2026.
+    # Removed from the active Carlo Baseline as of July 2026.
+    betterdisplay
+    obsidian
     sublime-text
 )

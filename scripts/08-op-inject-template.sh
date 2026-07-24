@@ -8,6 +8,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1090
+source "$SCRIPT_DIR/lib/file-safety.sh"
+
 IN_FILE=""
 OUT_FILE=""
 FORCE=0
@@ -64,13 +68,37 @@ if [[ ! -f "$IN_FILE" ]]; then
     exit 1
 fi
 
-if [[ -f "$OUT_FILE" && "$FORCE" -ne 1 ]]; then
+if [[ -e "$OUT_FILE" && "$FORCE" -ne 1 ]]; then
     echo "ERROR: Output file already exists: $OUT_FILE"
     echo "       Re-run with --force to overwrite it."
     exit 1
 fi
 
-mkdir -p "$(dirname "$OUT_FILE")"
-op inject --in-file "$IN_FILE" --out-file "$OUT_FILE"
+OUT_DIR="$(dirname "$OUT_FILE")"
+OUT_BACKUP_DIR="$OUT_DIR/.dev-env-op-inject-backups"
+mkdir -p "$OUT_DIR"
+
+if [[ -L "$OUT_FILE" ]]; then
+    echo "ERROR: Refusing to replace symlink destination: $OUT_FILE" >&2
+    echo "       Replace or remove the link explicitly, then rerun." >&2
+    exit 1
+fi
+
+if [[ -e "$OUT_FILE" && ! -f "$OUT_FILE" ]]; then
+    echo "ERROR: Refusing to replace non-file destination: $OUT_FILE" >&2
+    exit 1
+fi
+
+TEMP_OUT_FILE="$(mktemp "$OUT_DIR/.${OUT_FILE##*/}.op-inject.XXXXXX")"
+if ! op inject --in-file "$IN_FILE" --out-file "$TEMP_OUT_FILE"; then
+    rm -f "$TEMP_OUT_FILE"
+    exit 1
+fi
+
+if ! bootstrap_copy_file_with_backup "$TEMP_OUT_FILE" "$OUT_FILE" "$OUT_BACKUP_DIR"; then
+    rm -f "$TEMP_OUT_FILE"
+    exit 1
+fi
+rm -f "$TEMP_OUT_FILE"
 
 echo "Rendered $IN_FILE -> $OUT_FILE"

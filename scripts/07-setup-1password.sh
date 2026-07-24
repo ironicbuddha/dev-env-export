@@ -7,10 +7,41 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
+PROFILE_INPUT="${DEV_ENV_BOOTSTRAP_PROFILE:-carlo-baseline}"
+
+# shellcheck disable=SC1090
+source "$PROFILE_LIB"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --profile) PROFILE_INPUT="${2:-}"; shift 2 ;;
+        --profile=*) PROFILE_INPUT="${1#--profile=}"; shift ;;
+        -h|--help)
+            echo "Usage: ./scripts/07-setup-1password.sh [--profile PROFILE]"
+            bootstrap_print_profiles
+            exit 0
+            ;;
+        *) echo "ERROR: Unknown option: $1" >&2; exit 2 ;;
+    esac
+done
+
+if ! BOOTSTRAP_PROFILE="$(bootstrap_normalize_profile "$PROFILE_INPUT")"; then
+    echo "ERROR: Unknown Bootstrap Profile: $PROFILE_INPUT" >&2
+    exit 2
+fi
+
 echo "========================================"
 echo "Step 7: Setting Up 1Password"
 echo "========================================"
 echo ""
+
+if [ "$BOOTSTRAP_PROFILE" = "shared-baseline" ]; then
+    echo "Shared Baseline does not install or configure 1Password."
+    echo "Use your preferred secret manager; 1Password guidance is in SECRETS.md."
+    exit 0
+fi
 
 APP_PATH="/Applications/1Password.app"
 

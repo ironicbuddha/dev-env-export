@@ -9,17 +9,17 @@ windows:
     tabs:
       - title: dev-env-export
         layout:
-          cwd: /Users/carlo/dev/dev-env-export
+          cwd: ""
           split_direction: vertical
           panes:
-            - cwd: /Users/carlo/dev/dev-env-export
+            - cwd: ""
               is_focused: true
               commands:
                 - exec: clear
                 - exec: git status --short
-            - cwd: /Users/carlo/dev/dev-env-export
+            - cwd: ""
         color: blue
       - title: dev
         layout:
-          cwd: /Users/carlo/dev
+          cwd: ""
         color: cyan

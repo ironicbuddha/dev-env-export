@@ -14,10 +14,6 @@ bootstrap_cask_bundle_name() {
         hammerspoon) printf '%s\n' "Hammerspoon.app" ;;
         github) printf '%s\n' "GitHub Desktop.app" ;;
         1password) printf '%s\n' "1Password.app" ;;
-        betterdisplay) printf '%s\n' "BetterDisplay.app" ;;
-        obsidian) printf '%s\n' "Obsidian.app" ;;
-        docker) printf '%s\n' "Docker.app" ;;
-        firefox) printf '%s\n' "Firefox.app" ;;
         *) return 1 ;;
     esac
 }
@@ -39,7 +35,7 @@ bootstrap_load_expectations() {
     case "$profile" in
         carlo-baseline)
             BOOTSTRAP_REQUIRED_COMMANDS+=(
-                aws gemini gws docker op claude bun vercel
+                aws gemini gws op claude bun vercel
             )
             BOOTSTRAP_REQUIRED_CASKS+=("${CARLO_BASELINE_CASK_APPS[@]}")
             ;;
