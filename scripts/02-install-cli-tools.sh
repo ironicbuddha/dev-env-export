@@ -103,6 +103,10 @@ echo ""
 echo "Bootstrap profile: $(bootstrap_profile_label "$BOOTSTRAP_PROFILE") ($BOOTSTRAP_PROFILE)"
 echo ""
 
+if ! bootstrap_ensure_apple_silicon; then
+    exit 1
+fi
+
 # Ensure Homebrew is available (self-heal by running step 1 if needed)
 if ! command -v brew &> /dev/null; then
     echo "Homebrew not found. Bootstrapping via 01-install-brew.sh..."

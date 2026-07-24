@@ -107,23 +107,20 @@ copy_with_backup() {
     local src="$1"
     local dest="$2"
     local backup_target
-    local dest_dir="$(dirname "$dest")"
-
-    mkdir -p "$dest_dir"
-
-    if [ -f "$dest" ] && ! cmp -s "$src" "$dest"; then
-        backup_target="$(backup_target_for "$dest")"
-        mkdir -p "$(dirname "$backup_target")"
-        cp "$dest" "$backup_target"
-        echo "  [BACKUP] $dest"
-    fi
 
     if [ -f "$dest" ] && cmp -s "$src" "$dest"; then
         echo "  [SKIP] $(basename "$dest") is unchanged"
         return
     fi
 
-    cp "$src" "$dest"
+    backup_target="$(backup_target_for "$dest")"
+    if ! bootstrap_copy_file_with_backup "$src" "$dest" "$BACKUP_DIR" "$backup_target"; then
+        return 1
+    fi
+
+    if [ -f "$backup_target" ]; then
+        echo "  [BACKUP] $dest"
+    fi
     echo "  [COPY] $(basename "$dest")"
 }
 
@@ -133,6 +130,16 @@ merge_json_with_backup() {
     local label="$3"
     local backup_target
     local tmp_file
+
+    if [ -L "$dest" ]; then
+        echo "ERROR: Refusing to replace symlink destination: $dest" >&2
+        return 1
+    fi
+
+    if [ -e "$dest" ] && [ ! -f "$dest" ]; then
+        echo "ERROR: Refusing to replace non-file destination: $dest" >&2
+        return 1
+    fi
 
     mkdir -p "$(dirname "$dest")"
 

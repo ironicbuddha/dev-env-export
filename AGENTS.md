@@ -28,6 +28,25 @@ When the repo and older documentation disagree, use this priority order:
 The inventory and merge docs explain how the repo got here. They do not define
 the target state anymore.
 
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues is the planning tracker; external PRs are not a request surface.
+Implementation may use a work branch merged directly into `main` without a PR.
+See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the standard `needs-triage`, `needs-info`, `ready-for-agent`,
+`ready-for-human`, and `wontfix` labels. See
+`docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This is a single-context repository using root `CONTEXT.md` and `docs/adr/`.
+See `docs/agents/domain.md`.
+
 ## What Agents Should Optimize For
 
 - fast setup of a fresh macOS dev machine or VM

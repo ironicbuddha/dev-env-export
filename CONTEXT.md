@@ -3,10 +3,12 @@
 <!-- BEGIN HANDOFF DISCOVERY -->
 ## Handoff Discovery
 
-Before starting work in this repository, check `/Users/carlo/dev/handoff-docs` for handoff documents whose metadata `source_repo` matches this repository path. Load the most recently modified matching handoff document into context before making changes.
+Before starting work in this repository, load the most recent handoff named
+below. Older external handoffs under `/Users/carlo/dev/handoff-docs` are
+historical continuity sources only.
 
-Most recent handoff: `/Users/carlo/dev/handoff-docs/dev-env-export-handoff-2026-07-09-204557.md`
-Last updated: 2026-07-09 20:45
+Most recent handoff: `.handoff/carlo-baseline-refresh-wayfinder-handoff-2026-07-23-113811.md`
+Last updated: 2026-07-23 11:38 SAST
 <!-- END HANDOFF DISCOVERY -->
 
 ## Project Snapshot
@@ -39,11 +41,11 @@ with `carlo` and `shared` accepted as aliases for ergonomics.
 _Avoid_: mode, variant, script fork
 
 **Bootstrap Entry Path**:
-The expected starting route before this repo's scripts run. For the Shared
-Baseline, the zero-tool entry path is a GitHub ZIP archive extracted on macOS,
+The expected starting route before this repo's scripts run. For both Bootstrap
+Profiles, the zero-tool entry path is a GitHub ZIP archive extracted on macOS,
 with Terminal opened in the extracted folder. No Git CLI, Xcode Command Line
 Tools, Homebrew, editor, or executable file modes are assumed. GitHub Desktop
-and a normal Git clone remain supported acquisition paths.
+and a normal Git clone remain supported acquisition paths after bootstrap.
 _Avoid_: clone method, install prerequisite
 
 **Shared AI Layer**:
@@ -68,10 +70,57 @@ but does not install 1Password, configure accounts, create vaults, copy items,
 enable SSH agents, or assume Carlo's secret model.
 _Avoid_: shared 1Password setup, secret bootstrap
 
+**First-Run Configuration Step**:
+The explicit completion-time setup for Carlo Baseline identity-bearing values,
+such as Git identity and named cloud profiles. It never copies personal
+credentials or a master `.env`; secrets remain in 1Password and project
+environment templates stay non-secret.
+_Avoid_: silent identity copy, master env file, secret bootstrap
+
+**Skill Hub**:
+The independently version-controlled, publicly accessible catalogue that is the
+canonical source for Carlo's selected reusable agent skills. Agent harnesses
+consume chosen skills from this shared source rather than maintaining separate
+editable copies.
+_Avoid_: vendored Codex skills, copied global skills
+
+**Skill Selection**:
+A named, version-controlled manifest in the Skill Hub that declares the
+curated subset of vendored skills made available to an agent harness. It keeps
+the Hub catalogue broader than a machine's globally linked skills.
+_Avoid_: global-all-skills install, harness-specific copied selections
+
+**CLI-First Agent Extension**:
+A capability delivered through a standalone command-line tool or shared skill
+rather than a preconfigured plugin or MCP server. Plugins and MCP servers are
+only retained where they provide a concrete capability that the CLI/skill path
+cannot.
+_Avoid_: default MCP stack, preloaded plugin bundle
+
+**Clean-Machine Acceptance**:
+The documented successful Carlo Baseline run on a clean Apple Silicon macOS
+machine. Contract fixtures and local smoke checks support it but do not replace
+this release gate.
+_Avoid_: local-only acceptance, fixture-only acceptance
+
+**Recovery-Safe Configuration Write**:
+A config update that backs up an existing regular file, refuses symlink and
+non-file targets, and uses atomic replacement where practical. Backups are
+retained for manual cleanup rather than deleted by later bootstrap reruns.
+_Avoid_: follow-link overwrite, automatic backup pruning, destructive rerun
+
+**Bootstrap Run Log**:
+A durable, per-invocation diagnostic record stored by default under
+`~/Library/Logs/dev-env-bootstrap`, with `DEV_ENV_LOG_DIR` available as an
+explicit parent-directory override. It contains the run summary, environment
+snapshots, step statuses, and step output.
+_Avoid_: extraction-local-only logs, shared rerun log files
+
 ## Current Reality
 
 - Primary virtualization path: Parallels
 - Primary guest OS for this repo: macOS
+- Primary hardware architecture: Apple Silicon; Intel Macs are out of scope
 - Preferred terminal: Warp
 - Preferred editor: Zed
 - Preferred secret store: 1Password

@@ -20,7 +20,7 @@ skills, or project state. Complete authentication explicitly after bootstrap.
 
 ## Skills and extensions
 
-The public [Skill Hub](https://github.com/ironicbuddha/skill-hub) is the
+The public [Skill Hub](https://github.com/ironicbuddha/skills-hub) is the
 canonical source of reusable skills. Carlo Baseline applies its named
 `carlo-baseline` profile through `scripts/14-install-codex-skills.sh`; the Hub
 projects the selected skills through `~/.agents/skills`, `~/.codex/skills`, and
