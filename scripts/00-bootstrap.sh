@@ -12,11 +12,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
+PREREQUISITES_LIB="$SCRIPT_DIR/lib/bootstrap-prerequisites.sh"
 MANUAL_ACTION_EXIT=20
 BOOTSTRAP_PROFILE=""
 
 # shellcheck disable=SC1090
 source "$PROFILE_LIB"
+# shellcheck disable=SC1090
+source "$PREREQUISITES_LIB"
 
 usage() {
     cat <<'EOF'
@@ -83,7 +86,7 @@ fi
 export DEV_ENV_BOOTSTRAP_PROFILE="$BOOTSTRAP_PROFILE"
 
 RUN_ID="$(date '+%Y%m%d-%H%M%S')"
-LOG_PARENT="${DEV_ENV_LOG_DIR:-$REPO_ROOT/logs}"
+LOG_PARENT="${DEV_ENV_LOG_DIR:-$HOME/Library/Logs/dev-env-bootstrap}"
 mkdir -p "$LOG_PARENT"
 LOG_DIR="$(mktemp -d "$LOG_PARENT/bootstrap-$RUN_ID-XXXXXX")"
 BOOTSTRAP_LOG="$LOG_DIR/bootstrap.log"
@@ -484,6 +487,11 @@ fi
 if [[ "$(uname)" != "Darwin" ]]; then
     echo ""
     echo "ERROR: This bootstrap flow is intended for macOS only."
+    BOOTSTRAP_OUTCOME="failed"
+    exit 1
+fi
+
+if ! bootstrap_ensure_apple_silicon; then
     BOOTSTRAP_OUTCOME="failed"
     exit 1
 fi

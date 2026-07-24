@@ -1,6 +1,25 @@
 #!/bin/bash
 # Shared prerequisite checks for bootstrap entry paths that can reach Homebrew.
 
+bootstrap_apple_silicon_usable() {
+    [ "$(uname -m)" = "arm64" ]
+}
+
+bootstrap_ensure_apple_silicon() {
+    if bootstrap_apple_silicon_usable; then
+        return 0
+    fi
+
+    if [ "$(sysctl -n hw.optional.arm64 2>/dev/null || true)" = "1" ]; then
+        echo "ERROR: This Apple Silicon Mac is running this bootstrap under Rosetta." >&2
+        echo "       Open a native arm64 Terminal session, then rerun this command." >&2
+        return 1
+    fi
+
+    echo "ERROR: This bootstrap supports Apple Silicon Macs only (detected: $(uname -m))." >&2
+    return 1
+}
+
 bootstrap_xcode_clt_usable() {
     local clang_path=""
 

@@ -28,6 +28,10 @@ if [[ "$(uname)" != "Darwin" ]]; then
     exit 1
 fi
 
+if ! bootstrap_ensure_apple_silicon; then
+    exit 1
+fi
+
 if bootstrap_ensure_xcode_clt; then
     :
 else

@@ -97,19 +97,23 @@ This path assumes only macOS, Terminal, an internet connection, and the
 extracted repository. It does not assume Xcode Command Line Tools, Git,
 Homebrew, an editor, GitHub Desktop, or executable file permissions.
 
-For the Carlo Baseline, clone or copy the repo however you normally do:
+For either profile, the primary fresh-machine route is a GitHub ZIP archive:
+
+1. Download the repository ZIP from GitHub in Safari or another browser.
+2. Extract it in Finder and open Terminal in the extracted folder.
+3. Run the profile command below with `/bin/bash`; executable file modes are
+   not required.
+
+GitHub Desktop and a normal Git clone are supported later conveniences:
 
 ```bash
 git clone <repo-url> dev-env-export
 cd dev-env-export
 ```
 
-If the repo is being moved manually between machines, unpack it and `cd` into
-the project root before running scripts.
-
-GitHub Desktop and a normal Git clone are also supported acquisition paths.
 Do not assume Homebrew, Git CLI, `gh`, Node, Python tooling, or AI CLIs already
-exist before the Shared Baseline bootstrap runs.
+exist before either Bootstrap Profile runs. This bootstrap supports Apple
+Silicon Macs only; Intel Macs are outside its contract.
 
 ### 2. Choose A Bootstrap Profile
 
@@ -134,7 +138,8 @@ with exit code `20` if macOS still needs you to finish Xcode Command Line Tools
 installation. Complete the Apple installer, then run the same command again.
 
 Each bootstrap run writes artifacts to its own unique
-`logs/bootstrap-<timestamp>-<suffix>/` directory by default.
+`~/Library/Logs/dev-env-bootstrap/bootstrap-<timestamp>-<suffix>/` directory by
+default, outside the extracted ZIP or checkout.
 If a step blows up on a fresh VM, keep that log directory around so the failure
 can be diagnosed without guessing.
 Each run now leaves behind `bootstrap.log`, `environment.txt`,

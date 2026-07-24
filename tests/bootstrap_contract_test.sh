@@ -71,6 +71,7 @@ make_fixture() {
     cp "$REPO_ROOT/tests/fixtures/xcode-select-stub.sh" "$fixture_root/fake-bin/xcode-select"
     cp "$REPO_ROOT/tests/fixtures/xcrun-stub.sh" "$fixture_root/fake-bin/xcrun"
     cp "$REPO_ROOT/tests/fixtures/clang-stub.sh" "$fixture_root/fake-bin/clang"
+    cp "$REPO_ROOT/tests/fixtures/sysctl-stub.sh" "$fixture_root/fake-bin/sysctl"
     cp "$REPO_ROOT/tests/fixtures/tee-stub.sh" "$fixture_root/fake-bin/tee"
     chmod +x "$fixture_root/fake-bin/"* "$fixture_root/scripts/"*.sh
 }
@@ -81,17 +82,42 @@ run_bootstrap() {
     local output_file="$3"
     local status=0
     local real_tee=""
+    local env_args=()
 
     real_tee="$(command -v tee)"
+    env_args=(
+        "PATH=$fixture_root/fake-bin:$PATH"
+        "HOME=$fixture_root/home"
+        "TEST_ACTION_LOG=$fixture_root/actions.log"
+        "TEST_STEP_ORDER=$fixture_root/steps.log"
+        "TEST_FAKE_CLANG=$fixture_root/fake-bin/clang"
+        "TEST_REAL_TEE=$real_tee"
+    )
+    if [ -n "$log_parent" ]; then
+        env_args+=("DEV_ENV_LOG_DIR=$log_parent")
+    fi
+
+    if env "${env_args[@]}" \
+            /bin/bash "$fixture_root/scripts/00-bootstrap.sh" --profile shared-baseline \
+            > "$output_file" 2>&1; then
+        status=0
+    else
+        status=$?
+    fi
+
+    return "$status"
+}
+
+run_direct_entrypoint() {
+    local fixture_root="$1"
+    local script_name="$2"
+    local output_file="$3"
+    local status=0
 
     if PATH="$fixture_root/fake-bin:$PATH" \
             HOME="$fixture_root/home" \
-            DEV_ENV_LOG_DIR="$log_parent" \
             TEST_ACTION_LOG="$fixture_root/actions.log" \
-            TEST_STEP_ORDER="$fixture_root/steps.log" \
-            TEST_FAKE_CLANG="$fixture_root/fake-bin/clang" \
-            TEST_REAL_TEE="$real_tee" \
-            /bin/bash "$fixture_root/scripts/00-bootstrap.sh" --profile shared-baseline \
+            /bin/bash "$fixture_root/scripts/$script_name" \
             > "$output_file" 2>&1; then
         status=0
     else
@@ -303,6 +329,84 @@ test_reused_log_parent_keeps_runs_isolated() {
     done
 }
 
+test_default_log_parent_is_durable_user_log_directory() {
+    local fixture_root="$TEST_TMP_ROOT/default-log-parent"
+    local output_file="$fixture_root/output.txt"
+    local log_parent="$fixture_root/home/Library/Logs/dev-env-bootstrap"
+    local run_dir=""
+    local status=0
+
+    make_fixture "$fixture_root"
+
+    if TEST_CLT_STATE=usable run_bootstrap "$fixture_root" "" "$output_file"; then
+        status=0
+    else
+        status=$?
+    fi
+
+    assert_equals "0" "$status" "the default durable log parent should support a successful run"
+    run_dir="$(single_run_dir "$log_parent")"
+    assert_file_contains "$run_dir/environment.txt" "dev_env_log_dir_override=unset"
+}
+
+test_direct_entrypoints_reject_intel_before_side_effects() {
+    local fixture_root="$TEST_TMP_ROOT/intel-direct-entrypoints"
+    local prerequisites_output="$fixture_root/prerequisites-output.txt"
+    local brew_output="$fixture_root/brew-output.txt"
+    local status=0
+
+    make_fixture "$fixture_root"
+    cp "$REPO_ROOT/scripts/01-install-brew.sh" "$fixture_root/scripts/01-install-brew.sh"
+    chmod +x "$fixture_root/scripts/01-install-brew.sh"
+
+    if TEST_UNAME_MACHINE=x86_64 run_direct_entrypoint \
+            "$fixture_root" "00-check-prerequisites.sh" "$prerequisites_output"; then
+        status=0
+    else
+        status=$?
+    fi
+    assert_equals "1" "$status" "the prerequisite entrypoint must reject Intel Macs"
+
+    if TEST_UNAME_MACHINE=x86_64 run_direct_entrypoint \
+            "$fixture_root" "01-install-brew.sh" "$brew_output"; then
+        status=0
+    else
+        status=$?
+    fi
+    assert_equals "1" "$status" "the Homebrew entrypoint must reject Intel Macs"
+
+    if [ -e "$fixture_root/actions.log" ]; then
+        fail "direct entrypoints touched Xcode or Homebrew before rejecting Intel"
+    fi
+}
+
+test_intel_mac_is_rejected_before_bootstrap_steps() {
+    local fixture_root="$TEST_TMP_ROOT/intel-rejected"
+    local log_parent="$fixture_root/logs"
+    local output_file="$fixture_root/output.txt"
+    local run_dir=""
+    local status=0
+
+    make_fixture "$fixture_root"
+    mkdir -p "$log_parent"
+
+    if TEST_UNAME_MACHINE=x86_64 TEST_HW_OPTIONAL_ARM64=0 TEST_CLT_STATE=usable \
+            run_bootstrap "$fixture_root" "$log_parent" "$output_file"; then
+        status=0
+    else
+        status=$?
+    fi
+
+    assert_equals "1" "$status" "Intel Macs are outside the bootstrap contract"
+    if [ -s "$fixture_root/steps.log" ]; then
+        fail "bootstrap ran steps on an unsupported Intel Mac"
+    fi
+
+    run_dir="$(single_run_dir "$log_parent")"
+    assert_file_contains "$run_dir/summary.txt" "outcome=failed"
+    assert_file_contains "$output_file" "Apple Silicon Macs only"
+}
+
 run_test() {
     local name="$1"
 
@@ -317,5 +421,8 @@ run_test test_selected_but_broken_clt_exits_before_homebrew
 run_test test_child_failure_records_failed_step
 run_test test_tee_failure_is_not_reported_as_success
 run_test test_reused_log_parent_keeps_runs_isolated
+run_test test_default_log_parent_is_durable_user_log_directory
+run_test test_intel_mac_is_rejected_before_bootstrap_steps
+run_test test_direct_entrypoints_reject_intel_before_side_effects
 
 echo "1..$TEST_COUNT"
