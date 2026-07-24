@@ -20,7 +20,9 @@ Follow-up TODOs:
 ## Core Principles
 
 ### I. Code Quality & Maintainability (NON-NEGOTIABLE)
+
 All code MUST meet the following standards:
+
 - **Type Safety**: TypeScript strict mode enabled; no `any` types without explicit justification
 - **Code Structure**: Follow single responsibility principle; functions <50 lines, files <500 lines
 - **Documentation**: All public APIs documented with JSDoc; complex logic requires inline comments
@@ -31,21 +33,25 @@ All code MUST meet the following standards:
 **Rationale**: Q-Agent is a critical QA platform where code quality directly impacts user trust and testing accuracy. Maintainable code reduces bugs and enables rapid feature development.
 
 ### II. Testing Standards (NON-NEGOTIABLE)
+
 Test-Driven Development (TDD) is mandatory for all new features:
+
 - **Test-First Workflow**: Tests written → User approved → Tests fail → Implementation → Tests pass
 - **Coverage Requirements**: Minimum 80% code coverage; critical paths require 100%
 - **Test Types Required**:
-  * **Unit Tests**: All services, utilities, and business logic (Jest)
-  * **Integration Tests**: API routes, database operations, external service integrations
-  * **Contract Tests**: API endpoints must have contract tests validating request/response schemas
-  * **E2E Tests**: Critical user flows (authentication, test generation, execution) using Playwright
+  - **Unit Tests**: All services, utilities, and business logic (Jest)
+  - **Integration Tests**: API routes, database operations, external service integrations
+  - **Contract Tests**: API endpoints must have contract tests validating request/response schemas
+  - **E2E Tests**: Critical user flows (authentication, test generation, execution) using Playwright
 - **Test Quality**: Tests must be deterministic, fast (<5s per suite), and isolated
 - **Continuous Testing**: All tests run on PR creation; must pass before merge
 
 **Rationale**: As an autonomous testing platform, Q-Agent must exemplify testing best practices. Comprehensive testing prevents regressions and ensures reliability for users depending on test generation accuracy.
 
 ### III. User Experience Consistency
+
 All user-facing features MUST maintain consistency across the platform:
+
 - **Design System**: Use Shadcn/ui components exclusively; custom components require design review
 - **Accessibility**: WCAG 2.1 AA compliance mandatory; keyboard navigation for all interactive elements
 - **Responsive Design**: Mobile-first approach; test on 3 breakpoints (mobile/tablet/desktop)
@@ -57,7 +63,9 @@ All user-facing features MUST maintain consistency across the platform:
 **Rationale**: Consistent UX reduces cognitive load and training time. Q-Agent users need confidence that the platform works predictably across all features and devices.
 
 ### IV. Performance & Scalability
+
 System performance MUST meet the following benchmarks:
+
 - **Response Time**: API endpoints <200ms p95; database queries optimized with indexes
 - **Page Load**: Initial page load <2s; Time to Interactive (TTI) <3s on 3G
 - **Bundle Size**: JavaScript bundles <250KB gzipped; lazy-load non-critical components
@@ -69,7 +77,9 @@ System performance MUST meet the following benchmarks:
 **Rationale**: Performance directly impacts user productivity. Slow test generation or execution monitoring degrades the value proposition of an autonomous testing platform.
 
 ### V. Security & Data Protection (NON-NEGOTIABLE)
+
 Security is paramount for handling sensitive test data and user information:
+
 - **Authentication**: NextAuth.js with bcrypt; session tokens expire after 7 days
 - **Authorization**: Role-Based Access Control (RBAC); principle of least privilege enforced
 - **Input Validation**: All user inputs validated server-side using Zod schemas
@@ -83,7 +93,9 @@ Security is paramount for handling sensitive test data and user information:
 **Rationale**: Q-Agent handles sensitive business requirements, test cases, and potentially proprietary information. Security breaches would destroy user trust and violate compliance requirements.
 
 ### VI. Infrastructure Reliability & Containerization
+
 Deployment infrastructure MUST be reliable, reproducible, and maintainable:
+
 - **Container Standards**: Use multi-stage Docker builds; Alpine-based images for minimal size
 - **Volume Management**: Named volumes with consistent naming across all compose files and scripts
 - **Volume Naming**: Use full project-prefixed names (e.g., `docker_postgres-dev-data`) consistently
@@ -102,7 +114,9 @@ Deployment infrastructure MUST be reliable, reproducible, and maintainable:
 ## Development Standards
 
 ### Quality Gates
+
 All pull requests MUST pass the following gates before merge:
+
 1. **Automated Checks**:
    - CI/CD pipeline green (all tests passing)
    - ESLint and TypeScript compilation with zero errors
@@ -123,29 +137,33 @@ All pull requests MUST pass the following gates before merge:
    - Manual testing checklist completed for UI changes
 
 ### Breaking Changes Policy
+
 - **Major Version**: Breaking API changes, database schema migrations requiring data migration
 - **Minor Version**: New features, backward-compatible API additions, optional new fields
 - **Patch Version**: Bug fixes, performance improvements, documentation updates
 - All breaking changes MUST include:
-  * Migration guide with before/after examples
-  * Deprecation warnings added 1 minor version before removal
-  * Changelog entry with upgrade instructions
+  - Migration guide with before/after examples
+  - Deprecation warnings added 1 minor version before removal
+  - Changelog entry with upgrade instructions
 
 ## Compliance & Monitoring
 
 ### Constitution Enforcement
+
 - **Pre-commit Hooks**: Automated linting, formatting, and test execution
 - **PR Templates**: Checklist includes constitution compliance verification
 - **Quarterly Reviews**: Architecture and code quality audits against constitution principles
 - **Violation Process**: Documented exceptions require justification and remediation plan
 
 ### Performance Monitoring
+
 - **Continuous Monitoring**: Real-time APM tracking response times, error rates, and throughput
 - **Alerting**: Automated alerts for performance degradation (>20% regression)
 - **Quarterly Benchmarks**: Performance regression testing against baseline metrics
 - **User Analytics**: Track feature usage and user satisfaction scores
 
 ### Security Reviews
+
 - **Monthly**: Dependency vulnerability scans and updates
 - **Quarterly**: Penetration testing and security audit
 - **Annually**: Comprehensive security assessment by external auditor
@@ -154,6 +172,7 @@ All pull requests MUST pass the following gates before merge:
 ## Governance
 
 ### Amendment Process
+
 1. **Proposal**: Submit amendment via pull request to this constitution file
 2. **Discussion**: Minimum 7-day comment period for core team feedback
 3. **Approval**: Requires 2/3 majority vote from core maintainers
@@ -162,11 +181,13 @@ All pull requests MUST pass the following gates before merge:
 6. **Communication**: Announce changes via team channels and update agent guidance files
 
 ### Version Semantics
+
 - **MAJOR**: Backward-incompatible principle removals or redefinitions (e.g., removing TDD requirement)
 - **MINOR**: New principles added or materially expanded guidance (e.g., adding accessibility standards)
 - **PATCH**: Clarifications, wording improvements, typo fixes, non-semantic changes
 
 ### Compliance Verification
+
 - All pull requests MUST verify compliance with current constitution version
 - Complexity introduced that violates principles requires documented justification
 - Agents (Claude, Copilot, Gemini, etc.) MUST consult this constitution before code generation

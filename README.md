@@ -20,22 +20,22 @@ For the current direction of the repo, start here:
 3. `AGENTS.md`
 
 Older Ubuntu-era inventory and merge artifacts have been removed from the
-active tree. Use [HISTORICAL.md](/Users/carlo/dev/dev-env-export/HISTORICAL.md)
+active tree. Use [HISTORICAL.md](HISTORICAL.md)
 for a guide to what was removed and how to recover it from Git history.
-Use [SECRETS.md](/Users/carlo/dev/dev-env-export/SECRETS.md) for the current
+Use [SECRETS.md](SECRETS.md) for the current
 secret-management policy.
-Use [SECRETS-CHECKLIST.md](/Users/carlo/dev/dev-env-export/SECRETS-CHECKLIST.md)
+Use [SECRETS-CHECKLIST.md](SECRETS-CHECKLIST.md)
 for the recommended 1Password population checklist.
-Use [DEV-STACK.md](/Users/carlo/dev/dev-env-export/DEV-STACK.md) for the
+Use [DEV-STACK.md](DEV-STACK.md) for the
 current language, framework, and hosting stack this machine should support.
-Use [PACKAGE-MANAGERS.md](/Users/carlo/dev/dev-env-export/PACKAGE-MANAGERS.md)
+Use [PACKAGE-MANAGERS.md](PACKAGE-MANAGERS.md)
 for the package-manager policy across Homebrew, npm, pnpm, and uv.
-Use [CODE-QUALITY.md](/Users/carlo/dev/dev-env-export/CODE-QUALITY.md) for the
+Use [CODE-QUALITY.md](CODE-QUALITY.md) for the
 default linting and formatting baseline new repos should start with.
-Use [PROJECT-STANDARDS.md](/Users/carlo/dev/dev-env-export/PROJECT-STANDARDS.md)
+Use [PROJECT-STANDARDS.md](PROJECT-STANDARDS.md)
 for the default testing, deployment, security, and delivery baseline new repos
 should start with.
-Use [AI-STACK.md](/Users/carlo/dev/dev-env-export/AI-STACK.md) for the current
+Use [AI-STACK.md](AI-STACK.md) for the current
 AI-tooling inventory and tracking policy.
 
 ## Current Goal
@@ -55,13 +55,13 @@ Claude, Gemini, and 1Password.
 - Homebrew-driven CLI and app installation
 - portable Git and GitHub CLI defaults plus Carlo-only Claude, Codex, Gemini,
   Zed, and Warp configuration
-- curated MCP server defaults and policy
+- manually applied MCP catalogue and policy
 - document, PDF, and image tooling for AI-assisted read/write workflows
 - documented secret-handling policy built around 1Password
 - new-project standards and constitution templates for TypeScript-first repos,
   with Python support where it is justified
 - bootstrap scripts for a fresh machine or Parallels VM
-- archived Ubuntu VM artifacts for reference only
+- Git-recoverable Ubuntu-era history
 
 ## Repository Layout
 
@@ -357,24 +357,24 @@ The framework and hosting stack is documented in
 
 When you spin up a new repo from this environment, do not start from scratch.
 
-- Use [PROJECT-STANDARDS.md](/Users/carlo/dev/dev-env-export/PROJECT-STANDARDS.md)
+- Use [PROJECT-STANDARDS.md](PROJECT-STANDARDS.md)
   as the default standard for testing, deployment, security, and operations.
 - Carlo Baseline applies the public Skill Hub's `carlo-baseline` selection.
 - Install or refresh that selection manually with
-  [scripts/14-install-codex-skills.sh](/Users/carlo/dev/dev-env-export/scripts/14-install-codex-skills.sh)
+  [scripts/14-install-codex-skills.sh](scripts/14-install-codex-skills.sh)
   if you want to update an existing machine without rerunning the broader
   bootstrap.
 - Run
-  [scripts/13-apply-project-standards.sh](/Users/carlo/dev/dev-env-export/scripts/13-apply-project-standards.sh)
+  [scripts/13-apply-project-standards.sh](scripts/13-apply-project-standards.sh)
   to copy the starter into a target repo with a profile-aware baseline.
-- That script also deploys the standard agent direction files from
-  `agent-direction/` as root `AGENTS.md` and `CLAUDE.md` unless you use
-  `--constitution-only`.
+- That script writes the concise `agent-direction/AGENTS.md` starter and a
+  relative `CLAUDE.md -> AGENTS.md` symlink unless you use `--constitution-only`.
+  On tools that do not support symlinks, copy `AGENTS.md` to `CLAUDE.md` instead.
 - Copy
-  [templates/project-standards/constitution.md](/Users/carlo/dev/dev-env-export/templates/project-standards/constitution.md)
+  [templates/project-standards/constitution.md](templates/project-standards/constitution.md)
   into the new repo as `constitution.md`.
 - Merge the right files from
-  [templates/code-quality/](/Users/carlo/dev/dev-env-export/templates/code-quality/)
+  [templates/code-quality/](templates/code-quality/)
   for the repo's lint and format baseline.
 
 Example:
@@ -430,12 +430,6 @@ Bootstrap Profile.
 
 - Docker Desktop
 - Firefox
-
-### Review Bucket
-
-- BetterDisplay
-- Obsidian
-- Sublime Text
 
 ### Optional Infra Tooling
 

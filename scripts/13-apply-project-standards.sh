@@ -134,6 +134,40 @@ write_file_safe() {
     record_applied "Wrote $label to $dest"
 }
 
+write_relative_symlink_safe() {
+    local target="$1"
+    local dest="$2"
+    local label="$3"
+    local backup=""
+
+    if [[ -L "$dest" && "$(readlink "$dest")" == "$target" ]]; then
+        record_skipped "$label already linked to $target"
+        return
+    fi
+
+    if [[ ( -e "$dest" || -L "$dest" ) && "$FORCE" -ne 1 ]]; then
+        record_skipped "$label skipped because $dest already exists"
+        record_warning "Use --force to replace $dest with a symlink to $target"
+        return
+    fi
+
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+        record_applied "Would link $label to $target"
+        return
+    fi
+
+    mkdir -p "$(dirname "$dest")"
+
+    if [[ -e "$dest" || -L "$dest" ]]; then
+        backup="$(backup_path_for "$dest")"
+        mv "$dest" "$backup"
+        record_applied "Backed up $dest to $backup"
+    fi
+
+    ln -s "$target" "$dest"
+    record_applied "Linked $label to $target"
+}
+
 render_constitution() {
     local profile="$1"
     local project_name="$2"
@@ -467,13 +501,13 @@ apply_agent_direction() {
         return
     fi
 
-    if [[ ! -f "$AGENT_DIRECTION_DIR/AGENTS.md" || ! -f "$AGENT_DIRECTION_DIR/CLAUDE.md" ]]; then
-        record_warning "Agent direction package must include AGENTS.md and CLAUDE.md"
+    if [[ ! -f "$AGENT_DIRECTION_DIR/AGENTS.md" ]]; then
+        record_warning "Agent direction package must include AGENTS.md"
         return
     fi
 
     write_file_safe "$AGENT_DIRECTION_DIR/AGENTS.md" "$target_repo_root/AGENTS.md" "AGENTS.md"
-    write_file_safe "$AGENT_DIRECTION_DIR/CLAUDE.md" "$target_repo_root/CLAUDE.md" "CLAUDE.md"
+    write_relative_symlink_safe "AGENTS.md" "$target_repo_root/CLAUDE.md" "CLAUDE.md"
 }
 
 print_summary() {

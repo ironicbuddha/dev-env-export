@@ -25,3 +25,6 @@ echo "Running uv environment contract tests..."
 
 echo "Running Skill Hub contract tests..."
 /bin/bash "$REPO_ROOT/tests/skill_hub_contract_test.sh"
+
+echo "Running project standards contract tests..."
+/bin/bash "$REPO_ROOT/tests/project_standards_contract_test.sh"
