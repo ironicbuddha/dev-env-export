@@ -253,10 +253,6 @@ if command -v zsh >/dev/null 2>&1; then
     fi
 
     ZSH_PROBE='command -v brew >/dev/null 2>&1 && command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1 && command -v codex >/dev/null 2>&1 && actual_node="$(node --version)" && [ "${actual_node#v}" = "$BOOTSTRAP_NODE_VERSION" ]'
-    if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
-        ZSH_PROBE="$ZSH_PROBE && command -v openspec >/dev/null 2>&1"
-    fi
-
     if ZDOTDIR="$HOME" BOOTSTRAP_NODE_VERSION="$BOOTSTRAP_NODE_VERSION" \
             zsh -dilc "$ZSH_PROBE" >/dev/null 2>&1; then
         pass "clean login-interactive zsh loads the required runtime"

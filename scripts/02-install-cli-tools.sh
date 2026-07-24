@@ -198,9 +198,6 @@ brew_formula_ref() {
         bun)
             printf '%s\n' "oven-sh/bun/bun"
             ;;
-        taproom)
-            printf '%s\n' "gromgit/brewtils/taproom"
-            ;;
         *)
             printf '%s\n' "$tool"
             ;;
@@ -213,9 +210,6 @@ brew_required_tap() {
     case "$tool" in
         bun)
             printf '%s\n' "oven-sh/bun"
-            ;;
-        taproom)
-            printf '%s\n' "gromgit/brewtils"
             ;;
         *)
             return 1

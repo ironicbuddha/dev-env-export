@@ -171,7 +171,7 @@ if PYTHON_BIN="$(bootstrap_resolve_python_bin 2>/dev/null)"; then
     echo "[OK]   baseline python -> $PYTHON_BIN"
 else
     echo "[MISS] baseline python"
-    echo "       Python 3.13 should come from scripts/02-install-cli-tools.sh."
+    echo "       Python 3.14 should come from scripts/02-install-cli-tools.sh."
     FAILURES=$((FAILURES + 1))
 fi
 
@@ -190,7 +190,6 @@ echo ""
 echo "Notes:"
 echo "- This script loads Homebrew and nvm the same way the repo expects your shell to."
 echo "- If this script succeeds but your interactive shell still misses tools, run: exec zsh"
-echo "- The tracked zsh config unaliases oh-my-zsh's git-plugin \`gsd\` alias so the GSD CLI wins."
 echo "- Gemini auth is usually completed by launching gemini once and following the OAuth flow."
 echo "- OCR should be a fallback path after native parsers or PDF text extraction, not the default."
 echo "- playwright is intentionally not checked here because this repo expects project-local usage via npx."

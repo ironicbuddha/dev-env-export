@@ -83,13 +83,17 @@ bootstrap_activate_nvm_node() {
     [ "${actual_version#v}" = "$expected_version" ]
 }
 
-bootstrap_resolve_python_bin() {
+bootstrap_uv_environment_dir() {
+    printf '%s\n' "${DEV_ENV_UV_ENV_DIR:-$HOME/.local/share/dev-env-bootstrap/python}"
+}
+
+bootstrap_resolve_homebrew_python_bin() {
     local brew_prefix=""
 
     if command -v brew >/dev/null 2>&1; then
-        brew_prefix="$(brew --prefix python@3.13 2>/dev/null || true)"
-        if [ -n "$brew_prefix" ] && [ -x "$brew_prefix/bin/python3.13" ]; then
-            printf '%s\n' "$brew_prefix/bin/python3.13"
+        brew_prefix="$(brew --prefix python@3.14 2>/dev/null || true)"
+        if [ -n "$brew_prefix" ] && [ -x "$brew_prefix/bin/python3.14" ]; then
+            printf '%s\n' "$brew_prefix/bin/python3.14"
             return 0
         fi
         if [ -n "$brew_prefix" ] && [ -x "$brew_prefix/libexec/bin/python3" ]; then
@@ -98,20 +102,22 @@ bootstrap_resolve_python_bin() {
         fi
     fi
 
-    if command -v python3.13 >/dev/null 2>&1; then
-        command -v python3.13
-        return 0
-    fi
-
-    if command -v python3 >/dev/null 2>&1; then
-        command -v python3
-        return 0
-    fi
-
-    if [ -x "/usr/bin/python3" ]; then
-        printf '%s\n' "/usr/bin/python3"
+    if command -v python3.14 >/dev/null 2>&1; then
+        command -v python3.14
         return 0
     fi
 
     return 1
+}
+
+bootstrap_resolve_python_bin() {
+    local uv_environment_dir=""
+
+    uv_environment_dir="$(bootstrap_uv_environment_dir)"
+    if [ -x "$uv_environment_dir/bin/python" ]; then
+        printf '%s\n' "$uv_environment_dir/bin/python"
+        return 0
+    fi
+
+    bootstrap_resolve_homebrew_python_bin
 }

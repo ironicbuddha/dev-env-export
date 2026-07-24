@@ -19,3 +19,6 @@ echo "Running resilience contract tests..."
 
 echo "Running npm globals contract tests..."
 /bin/bash "$REPO_ROOT/tests/npm_globals_contract_test.sh"
+
+echo "Running uv environment contract tests..."
+/bin/bash "$REPO_ROOT/tests/uv_environment_contract_test.sh"

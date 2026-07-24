@@ -19,8 +19,3 @@ fi
 if [ -d "$HOME/.local/bin" ] ; then
     PATH="$HOME/.local/bin:$PATH"
 fi
-
-# Python user-site scripts from the baseline Homebrew-managed Python.
-if [ -d "$HOME/Library/Python/3.13/bin" ] ; then
-    PATH="$HOME/Library/Python/3.13/bin:$PATH"
-fi

@@ -31,15 +31,15 @@ bootstrap_load_expectations() {
     source "$BOOTSTRAP_EXPECTATIONS_MANIFEST"
 
     BOOTSTRAP_REQUIRED_COMMANDS=(
-        brew git gh jq make mole python3 uv bun pandoc pdftotext pdftoppm
-        tesseract magick codex pnpm vercel node npm
+        brew git gh jq make mole python3 uv pandoc pdftotext pdftoppm
+        tesseract magick codex node npm corepack
     )
     BOOTSTRAP_REQUIRED_CASKS=("${COMMON_CASK_APPS[@]}")
 
     case "$profile" in
         carlo-baseline)
             BOOTSTRAP_REQUIRED_COMMANDS+=(
-                aws gemini gws docker op taproom claude openspec gsd
+                aws gemini gws docker op claude bun vercel
             )
             BOOTSTRAP_REQUIRED_CASKS+=("${CARLO_BASELINE_CASK_APPS[@]}")
             ;;

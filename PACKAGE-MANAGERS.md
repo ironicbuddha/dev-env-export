@@ -88,7 +88,7 @@ Do not bolt on weird global `pnpm` setup unless you actually need it.
 Preferred path:
 
 - enable Corepack
-- let projects declare their package manager explicitly
+- let projects declare their package manager explicitly with `packageManager`
 - use `pnpm` through the Node toolchain rather than inventing another machine
   bootstrap snowflake
 
@@ -100,8 +100,7 @@ Keep global CLI installs simple:
 
 - Codex CLI via `npm`
 - Claude Code via `npm`
-- OpenSpec CLI via `npm`
-- Vercel CLI via `npm`
+- Vercel CLI via `npm` for Carlo Baseline only
 
 That keeps the machine bootstrap stable and avoids turning package-manager
 preferences into a global-runtime mess.
@@ -135,6 +134,10 @@ Use these defaults unless a project gives you a good reason not to:
 - existing `npm` project: leave it on `npm`
 - Python package workflows: prefer `uv` when it fits, otherwise normal project
   virtualenv tooling
+
+The bootstrap uses a dedicated uv environment only for its shared document/OCR
+libraries. It does not install Python packages into the user site; each project
+continues to own its own environment and dependencies.
 
 ## Migration Stance
 

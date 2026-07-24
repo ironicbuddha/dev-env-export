@@ -9,9 +9,8 @@
 COMMON_BREW_PACKAGES=(
     # Development
     nvm
-    python@3.13
+    python@3.14
     uv
-    bun
 
     # Collaboration and build tools
     git
@@ -32,8 +31,8 @@ SHARED_BASELINE_BREW_PACKAGES=(
 )
 
 CARLO_BASELINE_BREW_PACKAGES=(
-    # Development convenience
-    taproom
+    # Runtime and deployment convenience
+    bun
 
     # Cloud, infrastructure, and personal workflow CLIs
     awscli
@@ -43,6 +42,9 @@ CARLO_BASELINE_BREW_PACKAGES=(
 )
 
 OPTIONAL_CLI_TOOLS=(
+    # Optional development convenience
+    taproom
+
     # Optional infrastructure tooling
     terraform
 )

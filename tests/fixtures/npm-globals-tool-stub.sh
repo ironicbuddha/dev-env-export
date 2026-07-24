@@ -30,19 +30,9 @@ case "$tool_name" in
     corepack)
         if [ "${1:-}" = "enable" ]; then
             exit 0
-        elif [ "${1:-}" = "install" ] && [ "${2:-}" = "--global" ] && \
-                [ "${3:-}" = "pnpm@latest" ]; then
-            : > "$TEST_PNPM_MARKER"
         else
             exit 1
         fi
-        ;;
-    pnpm)
-        if [ ! -f "$TEST_PNPM_MARKER" ]; then
-            echo "corepack implicit download prompt" >> "$TEST_ACTION_LOG"
-            exit 90
-        fi
-        [ "${1:-}" = "--version" ] && printf '%s\n' "11.13.1"
         ;;
     codex)
         printf '%s\n' "codex-cli 0.144.5"

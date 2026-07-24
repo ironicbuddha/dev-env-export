@@ -8,7 +8,7 @@ the core coding workflow already in place:
 - `zsh` + Homebrew
 - Warp as the primary terminal
 - Zed as the primary editor
-- Codex, Claude, Gemini, OpenSpec, and GSD v2 CLI tooling
+- Codex, Claude, and Gemini CLI tooling
 - reusable shell config, dotfiles, tracked app config, and setup scripts
 
 ## Source Of Truth
@@ -47,14 +47,13 @@ Use this repo to provision:
 - a disposable development VM that should still feel like the main workstation
 
 The target experience is a modern macOS setup centered on Zed, Warp, Codex,
-Claude, Gemini, OpenSpec, GSD v2, and 1Password.
+Claude, Gemini, and 1Password.
 
 ## What This Repo Owns
 
 - shell defaults for macOS development
 - Homebrew-driven CLI and app installation
-- Git, GitHub CLI, AWS, Claude, Codex, Gemini, OpenSpec, GSD v2, Zed, and Warp baseline config
-- GSD v2 install, shell-path, and migration guidance
+- Git, GitHub CLI, AWS, Claude, Codex, Gemini, Zed, and Warp baseline config
 - curated MCP server defaults and policy
 - document, PDF, and image tooling for AI-assisted read/write workflows
 - documented secret-handling policy built around 1Password
@@ -163,6 +162,8 @@ DEV_ENV_REFRESH_BREW=1 ./scripts/01-install-brew.sh
 The npm steps are designed for `nvm`. If you have old `prefix` or
 `globalconfig` settings in `~/.npmrc`, the bootstrap scripts will remove those
 so Node 24.18.0 LTS globals install under the active nvm-managed runtime.
+Corepack is enabled, but the bootstrap does not install a machine-wide pnpm:
+each project pins its own package manager through `packageManager`.
 
 Docker is Carlo Baseline tooling. In that profile it is installed in two pieces
 on purpose: the `docker` formula provides the CLI, and the Docker Desktop cask
@@ -282,22 +283,13 @@ gemini
 gws auth setup
 codex login
 claude auth login
-gsd config
 ```
 
 Desktop apps such as 1Password, Warp, Zed, Docker, Claude, and Codex may still
 require normal first-launch/login steps.
 
-`openspec` is installed as an npm global under the active `nvm` Node runtime
-during `./scripts/03-install-npm-globals.sh`.
-
 `gemini` is CLI-only here. Launch it once and complete the OAuth flow if it
 prompts for authentication.
-
-`gsd` is now the standalone GSD v2 CLI installed from the `gsd-pi` npm
-package. On first launch it runs a setup wizard and stores global preferences
-under `~/.gsd/preferences.md`. The tracked shell config also removes the
-oh-my-zsh git-plugin `gsd` alias so the CLI command resolves cleanly.
 
 **Warp Agent Mode (Autonomous Operation):**
 
@@ -324,8 +316,6 @@ Recommended follow-up:
 - In Google Workspace CLI, run `gws auth setup` if Workspace automation is part
   of the current machine workflow
 - In Gemini CLI, launch `gemini` once and complete OAuth if prompted
-- In GSD, run `gsd config` once to initialize provider and tool settings
-- In projects that still use legacy `.planning/` state, launch `gsd` there and run `/gsd migrate`
 - In Zed, run `Cmd+Shift+P` and execute `cli: install`
 - In Zed, open `/Users/carlo/dev`, then use the `Restricted Mode` prompt or
   `workspace::ToggleWorktreeSecurity` to trust all projects in that folder
@@ -403,23 +393,24 @@ Example:
 
 - Homebrew
 - git, gh, jq
-- nvm-managed node, npm, corepack, pnpm, bun
-- python3, uv
+- nvm-managed node, npm, and Corepack
+- Python 3.14 and uv, with the document/OCR stack in a bootstrap-owned uv environment
 - pandoc, poppler, tesseract, imagemagick
 - codex
-- vercel
 - make, gcc
 
 ### Carlo Baseline Additional CLI
 
 - gemini-cli (`gemini`)
-- gsd-pi (`gsd`, `gsd-cli`)
 - googleworkspace-cli (`gws`)
 - claude
-- OpenSpec (`openspec`)
+- bun
+- vercel
 - awscli
 - docker-related local tooling where needed
-- taproom
+
+`taproom` remains documented optional tooling; it is not installed by either
+Bootstrap Profile.
 
 ### Shared Baseline GUI Tools
 
@@ -468,8 +459,7 @@ Default policy:
 - use OCR only when extraction is empty, badly garbled, or obviously incomplete
 
 The bootstrap installs the local CLI pieces for that path, and the Python
-bootstrap adds the common document libraries used to read and write those file
-types.
+bootstrap adds the common document libraries to its dedicated uv environment.
 
 ## Package Manager Policy
 

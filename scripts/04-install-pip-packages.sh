@@ -1,13 +1,12 @@
 #!/bin/bash
 # =============================================================================
-# 04-install-pip-packages.sh - Install Python pip Packages
+# 04-install-pip-packages.sh - Install Bootstrap Python Packages
 # =============================================================================
 # Bootstrap script for current macOS workflow
 # Target: macOS with Homebrew
 #
-# This script installs a small set of convenience Python libraries at the user
-# level. On Homebrew Python this may require --break-system-packages because the
-# interpreter is externally managed.
+# This script creates a bootstrap-owned uv environment for the retained
+# document/OCR Python stack. Project dependencies stay in project environments.
 # =============================================================================
 
 set -euo pipefail
@@ -81,44 +80,42 @@ fi
 export DEV_ENV_BOOTSTRAP_PROFILE="$BOOTSTRAP_PROFILE"
 
 echo "========================================"
-echo "Step 4: Installing Python pip Packages"
+echo "Step 4: Installing Bootstrap Python Packages"
 echo "========================================"
 echo ""
 echo "Bootstrap profile: $(bootstrap_profile_label "$BOOTSTRAP_PROFILE") ($BOOTSTRAP_PROFILE)"
 echo ""
 
-if ! PYTHON_BIN="$(bootstrap_resolve_python_bin)"; then
-    echo "ERROR: Python not found. Run 02-install-cli-tools.sh first."
+if ! PYTHON_BIN="$(bootstrap_resolve_homebrew_python_bin)"; then
+    echo "ERROR: Homebrew Python 3.14 not found. Run 02-install-cli-tools.sh first."
     exit 1
 fi
 
-if ! "$PYTHON_BIN" -m pip --version >/dev/null 2>&1; then
-    echo "ERROR: Selected Python does not have pip available: $PYTHON_BIN"
+if ! command -v uv >/dev/null 2>&1; then
+    echo "ERROR: uv not found. Run 02-install-cli-tools.sh first."
     exit 1
 fi
 
-echo "Using Python: $("$PYTHON_BIN" --version) [$PYTHON_BIN]"
-echo "Using pip: $("$PYTHON_BIN" -m pip --version)"
+UV_ENV_DIR="$(bootstrap_uv_environment_dir)"
+
+echo "Using Homebrew Python: $("$PYTHON_BIN" --version) [$PYTHON_BIN]"
+echo "Creating or updating bootstrap uv environment: $UV_ENV_DIR"
+if ! uv venv --python "$PYTHON_BIN" "$UV_ENV_DIR"; then
+    echo "ERROR: uv could not create the bootstrap Python environment."
+    exit 1
+fi
+
+UV_PYTHON_BIN="$UV_ENV_DIR/bin/python"
+if [ ! -x "$UV_PYTHON_BIN" ]; then
+    echo "ERROR: bootstrap uv environment does not contain Python: $UV_PYTHON_BIN"
+    exit 1
+fi
+
+echo "Using bootstrap Python: $UV_PYTHON_BIN"
 echo ""
 
 # -----------------------------------------------------------------------------
-# Detect pip install flags that work with Homebrew Python
-# -----------------------------------------------------------------------------
-PIP_INSTALL_ARGS=(--user)
-
-if "$PYTHON_BIN" -m pip install --dry-run --user pip >/dev/null 2>&1; then
-    echo "Using standard user-site pip installs."
-elif "$PYTHON_BIN" -m pip install --dry-run --user --break-system-packages pip >/dev/null 2>&1; then
-    PIP_INSTALL_ARGS+=(--break-system-packages)
-    echo "Using user-site pip installs with --break-system-packages."
-else
-    echo "ERROR: Unable to determine a safe pip install mode for this Python."
-    echo "       Consider using project virtual environments instead."
-    exit 1
-fi
-
-# -----------------------------------------------------------------------------
-# Install pip packages (user-level to avoid permission issues)
+# Install Python packages into the bootstrap-owned uv environment.
 # -----------------------------------------------------------------------------
 echo ""
 echo "Installing pip packages..."
@@ -170,24 +167,23 @@ case "$BOOTSTRAP_PROFILE" in
 esac
 
 for package in "${PIP_PACKAGES[@]}"; do
-    if "$PYTHON_BIN" -m pip show "$package" &> /dev/null; then
+    if uv pip show --python "$UV_PYTHON_BIN" "$package" &> /dev/null; then
         echo "  [SKIP] $package is already installed"
     else
         echo "  [INSTALL] Installing $package..."
-        "$PYTHON_BIN" -m pip install "${PIP_INSTALL_ARGS[@]}" "$package"
+        uv pip install --python "$UV_PYTHON_BIN" "$package"
     fi
 done
 
 echo ""
 echo "========================================"
-echo "Step 4 Complete: pip packages installed"
+echo "Step 4 Complete: bootstrap Python packages installed"
 echo "========================================"
 echo ""
 echo "Installed packages:"
-"$PYTHON_BIN" -m pip list --user 2>/dev/null | head -20 || true
+uv pip list --python "$UV_PYTHON_BIN" 2>/dev/null | head -20 || true
 echo ""
-echo "Note: Packages are installed at the user level for convenience only."
-echo "      Project-specific dependencies should still live in project virtualenvs."
-echo "      User site-packages: $("$PYTHON_BIN" -m site --user-site)"
+echo "Note: Packages live in the bootstrap-owned uv environment."
+echo "      Project-specific dependencies should still live in project environments."
 echo ""
 echo "Next: Run 05-setup-dotfiles.sh"

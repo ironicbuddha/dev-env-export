@@ -156,7 +156,6 @@ echo ""
 COMMON_NPM_PACKAGES=(
     corepack                    # Provides the pnpm/yarn shims; do not also install pnpm globally
     @openai/codex              # Codex CLI
-    vercel                     # Vercel CLI
 )
 
 SHARED_BASELINE_NPM_PACKAGES=(
@@ -164,8 +163,7 @@ SHARED_BASELINE_NPM_PACKAGES=(
 
 CARLO_BASELINE_NPM_PACKAGES=(
     @anthropic-ai/claude-code   # Claude Code CLI
-    @fission-ai/openspec       # OpenSpec agentic framework CLI
-    gsd-pi                     # GSD v2 standalone CLI
+    vercel                     # Vercel CLI
 )
 
 NPM_PACKAGES=("${COMMON_NPM_PACKAGES[@]}")
@@ -197,12 +195,6 @@ if ! corepack enable; then
     exit 1
 fi
 
-echo "Provisioning pnpm through corepack..."
-if ! COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack install --global pnpm@latest; then
-    echo "ERROR: corepack could not provision pnpm."
-    exit 1
-fi
-
 echo ""
 echo "========================================"
 echo "Step 3 Complete: npm packages installed"
@@ -212,15 +204,13 @@ echo "Installed packages:"
 npm list -g --depth=0 2>/dev/null || true
 echo ""
 echo "Codex version: $(codex --version 2>/dev/null || echo 'not in PATH yet')"
-echo "pnpm version: $(pnpm --version 2>/dev/null || echo 'not in PATH yet')"
-echo "Vercel version: $(vercel --version 2>/dev/null | head -1 || echo 'not in PATH yet')"
 if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
     echo "Claude Code version: $(claude --version 2>/dev/null || echo 'not in PATH yet')"
-    echo "OpenSpec version: $(openspec --version 2>/dev/null || echo 'not in PATH yet')"
-    echo "GSD version: $(gsd --version 2>/dev/null || echo 'not in PATH yet')"
+    echo "Vercel version: $(vercel --version 2>/dev/null | head -1 || echo 'not in PATH yet')"
 fi
 echo ""
 echo "Note: These CLIs are installed under the active nvm-managed Node version."
 echo "      If they are not found in a new shell, make sure nvm loads correctly."
+echo "      Corepack is enabled; projects select pnpm through packageManager."
 echo ""
 echo "Next: Run 04-install-pip-packages.sh"

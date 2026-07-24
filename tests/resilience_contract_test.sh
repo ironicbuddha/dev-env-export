@@ -36,19 +36,35 @@ assert_array_contains() {
     fail "array does not contain: $wanted"
 }
 
+assert_array_excludes() {
+    local unwanted="$1"
+    shift
+    local item=""
+
+    for item in "$@"; do
+        [ "$item" = "$unwanted" ] && fail "array unexpectedly contains $unwanted"
+    done
+
+    return 0
+}
+
 test_profile_expectations_are_complete() {
     # shellcheck disable=SC1091
     source "$REPO_ROOT/scripts/lib/bootstrap-expectations.sh"
 
     bootstrap_load_expectations carlo-baseline
 
-    assert_array_contains "openspec" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"
-    assert_array_contains "betterdisplay" "${BOOTSTRAP_REQUIRED_CASKS[@]}"
-    assert_array_contains "obsidian" "${BOOTSTRAP_REQUIRED_CASKS[@]}"
-    assert_array_contains "firefox" "${BOOTSTRAP_REQUIRED_CASKS[@]}"
-    assert_array_contains "BetterDisplay.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
-    assert_array_contains "Obsidian.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
-    assert_array_contains "Firefox.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
+    assert_array_contains "bun" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"
+    assert_array_contains "vercel" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"
+    assert_array_contains "corepack" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"
+    assert_array_excludes "pnpm" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"
+    assert_array_excludes "openspec" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"
+    assert_array_excludes "gsd" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"
+    assert_array_excludes "taproom" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"
+
+    bootstrap_load_expectations shared-baseline
+    assert_array_excludes "bun" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"
+    assert_array_excludes "vercel" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"
 }
 
 test_runtime_activation_requires_exact_node() {
