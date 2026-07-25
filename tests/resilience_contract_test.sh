@@ -24,6 +24,15 @@ assert_file_contains() {
     grep -Fq "$expected" "$file" || fail "$file does not contain: $expected"
 }
 
+assert_file_does_not_contain() {
+    local file="$1"
+    local unexpected="$2"
+
+    if grep -Fq "$unexpected" "$file"; then
+        fail "$file unexpectedly contains: $unexpected"
+    fi
+}
+
 assert_array_contains() {
     local wanted="$1"
     shift
@@ -336,6 +345,14 @@ test_dotfiles_entrypoint_preserves_shell_and_skips_identity_configuration() {
     assert_file_contains "$output_file" "First-Run Configuration Step"
 }
 
+test_smoke_test_loads_startup_files_and_skips_named_cloud_profiles() {
+    local smoke_test="$REPO_ROOT/scripts/12-smoke-test.sh"
+
+    assert_file_contains "$smoke_test" 'zsh -ilc "$ZSH_PROBE"'
+    assert_file_does_not_contain "$smoke_test" 'zsh -dilc "$ZSH_PROBE"'
+    assert_file_does_not_contain "$smoke_test" 'check_file "$HOME/.aws/config"'
+}
+
 test_dotfiles_entrypoint_refuses_shared_profile() {
     local fixture_root="$TEST_TMP_ROOT/dotfiles-shared-profile"
     local output_file="$fixture_root/output.txt"
@@ -433,6 +450,7 @@ run_test test_managed_shell_write_is_atomic_and_backed_up
 run_test test_path_check_returns_nonzero_for_required_miss
 run_test test_dotfiles_entrypoint_refuses_external_symlink
 run_test test_dotfiles_entrypoint_preserves_shell_and_skips_identity_configuration
+run_test test_smoke_test_loads_startup_files_and_skips_named_cloud_profiles
 run_test test_dotfiles_entrypoint_refuses_shared_profile
 run_test test_shared_shell_entrypoint_preserves_file_before_atomic_replace
 run_test test_op_inject_refuses_symlink_output

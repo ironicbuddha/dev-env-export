@@ -254,7 +254,7 @@ if command -v zsh >/dev/null 2>&1; then
 
     ZSH_PROBE='command -v brew >/dev/null 2>&1 && command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1 && command -v codex >/dev/null 2>&1 && actual_node="$(node --version)" && [ "${actual_node#v}" = "$BOOTSTRAP_NODE_VERSION" ]'
     if ZDOTDIR="$HOME" BOOTSTRAP_NODE_VERSION="$BOOTSTRAP_NODE_VERSION" \
-            zsh -dilc "$ZSH_PROBE" >/dev/null 2>&1; then
+            zsh -ilc "$ZSH_PROBE" >/dev/null 2>&1; then
         pass "clean login-interactive zsh loads the required runtime"
     else
         fail "clean login-interactive zsh cannot load the required runtime"
@@ -266,7 +266,6 @@ fi
 if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
     check_file "$HOME/.gitconfig"
     check_file "$HOME/.gitignore_global"
-    check_file "$HOME/.aws/config"
     check_file "$HOME/.config/gh/config.yml"
     check_file "$HOME/.codex/config.toml"
     check_config_value "$HOME/.codex/config.toml" 'approval_policy = "never"'
