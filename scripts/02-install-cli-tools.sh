@@ -428,9 +428,10 @@ if [[ "$NODE_PATH" != "$NVM_DIR"/versions/node/* ]]; then
 fi
 
 if brew list node >/dev/null 2>&1; then
-    echo "  [WARN] Homebrew node is still installed."
-    echo "         This repo no longer uses Homebrew to own the Node runtime."
-    echo "         Consider removing it with: brew uninstall node"
+    echo "  [INFO] Homebrew Node is installed but is not the Carlo Baseline runtime."
+    echo "         It is retained: bootstrap never removes existing Homebrew packages."
+    echo "         Node and npm above are verified as nvm-owned."
+    echo "         To review dependents before an optional manual removal: brew uses --installed node"
 fi
 
 # -----------------------------------------------------------------------------

@@ -397,6 +397,13 @@ Example:
 - codex
 - make, gcc
 
+Carlo Baseline keeps macOS `/bin/zsh` as the login-shell default and never
+edits `/etc/shells` or changes a user's login shell. It also verifies that
+`node` and `npm` are nvm-owned; an already-installed Homebrew `node` is left
+in place because bootstrap does not remove existing Homebrew packages. Review
+its dependents with `brew uses --installed node` before any optional manual
+removal.
+
 ### Carlo Baseline Additional CLI
 
 - gemini-cli (`gemini`)

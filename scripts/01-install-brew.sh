@@ -81,7 +81,6 @@ CORE_TOOLS=(
     jq
     curl
     wget
-    zsh
 )
 
 for tool in "${CORE_TOOLS[@]}"; do
@@ -93,27 +92,14 @@ for tool in "${CORE_TOOLS[@]}"; do
     fi
 done
 
-# Set zsh as default shell
+# Login-shell policy
 echo ""
-echo "Configuring default shell..."
-TARGET_SHELL="$(brew --prefix)/bin/zsh"
-if [ ! -x "$TARGET_SHELL" ]; then
-    TARGET_SHELL="$(command -v zsh)"
-fi
-
-if [ -n "$TARGET_SHELL" ] && [ "$SHELL" != "$TARGET_SHELL" ]; then
-    if grep -qx "$TARGET_SHELL" /etc/shells; then
-        if chsh -s "$TARGET_SHELL"; then
-            echo "  [OK] Default shell set to $TARGET_SHELL"
-        else
-            echo "  [WARN] Could not set default shell automatically. Run: chsh -s $TARGET_SHELL"
-        fi
-    else
-        echo "  [WARN] $TARGET_SHELL is not listed in /etc/shells."
-        echo "         Add it first, then run: chsh -s $TARGET_SHELL"
-    fi
+echo "Login shell policy: macOS /bin/zsh is the Carlo Baseline default."
+if [ "$SHELL" = "/bin/zsh" ]; then
+    echo "  [INFO] macOS zsh is already the login shell."
 else
-    echo "  [SKIP] zsh is already the default shell"
+    echo "  [INFO] Carlo Baseline does not change your login shell."
+    echo "         To choose macOS zsh explicitly, run: chsh -s /bin/zsh"
 fi
 
 # Initialize Git LFS
@@ -132,6 +118,6 @@ echo "  - git-lfs"
 echo "  - jq ($(jq --version))"
 echo "  - curl ($(curl --version | head -1 | cut -d' ' -f2))"
 echo "  - wget"
-echo "  - zsh ($(zsh --version | cut -d' ' -f2))"
+echo "  - macOS zsh ($(/bin/zsh --version | cut -d' ' -f2))"
 echo ""
 echo "Next: Run 02-install-cli-tools.sh"
