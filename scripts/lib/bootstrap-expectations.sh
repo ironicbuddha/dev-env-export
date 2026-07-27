@@ -14,7 +14,6 @@ bootstrap_cask_bundle_name() {
         hammerspoon) printf '%s\n' "Hammerspoon.app" ;;
         github) printf '%s\n' "GitHub Desktop.app" ;;
         1password) printf '%s\n' "1Password.app" ;;
-        affinity) printf '%s\n' "Affinity.app" ;;
         audio-hijack) printf '%s\n' "Audio Hijack.app" ;;
         chatgpt) printf '%s\n' "ChatGPT.app" ;;
         claude) printf '%s\n' "Claude.app" ;;

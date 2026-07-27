@@ -26,7 +26,7 @@ than an application bundle.
 
 - ~~8dio Downloader~~
 - ~~Ableton Live 12 Suite~~
-- Affinity
+- ~~Affinity~~
 - ~~AgBr
 - ~~Akai Professional - LPD8 MK2 - Software Center~~
 - ~~Atomic Chat~~
