@@ -8,7 +8,8 @@ to keep each layer boring and reliable.
 ## Source Of Truth
 
 - Homebrew is the primary machine-level package manager.
-- Homebrew installs `nvm`, and `nvm` manages the active Node runtime.
+- Homebrew installs `nvm`; `nvm` is the sole manager of the active Carlo
+  Baseline Node runtime.
 - `npm` remains available for compatibility and global CLI installs.
 - `pnpm` is the preferred package manager for new TypeScript-first projects.
 - `uv` is the preferred fast package tool for modern Python workflows when it
@@ -30,16 +31,20 @@ installers just because a tool technically supports it.
 
 ### Let `nvm` Own Node
 
-Do not install Node from Homebrew in the default bootstrap path.
+Do not install Node from Homebrew in the default bootstrap path. If `node` is
+already installed through Homebrew, preserve it as existing machine state; it
+does not participate in the Carlo Baseline runtime.
 
 In this repo:
 
 - Homebrew owns `nvm`
-- `nvm` owns the active Node versions
+- `nvm` owns the active Node versions, `npm`, Corepack, and global Node CLIs
 - `npm` global CLIs should install under the active `nvm` Node
 
-That keeps Node versioning boring and avoids a split-brain fight between
-Homebrew Node and `nvm` Node.
+The bootstrap verifies that `node` and `npm` resolve from the active `nvm`
+version. An installed Homebrew `node` is harmless as long as it does not win
+PATH; bootstrap never removes it automatically. Before an optional manual
+removal, review dependents with `brew uses --installed node`.
 
 ### Keep `npm`
 
