@@ -368,6 +368,16 @@ test_baseline_reports_non_invasive_shell_and_node_policy() {
     assert_file_does_not_contain "$cli_install" "brew uninstall node"
 }
 
+test_bun_uses_homebrew_core_without_a_third_party_tap() {
+    local cli_install="$REPO_ROOT/scripts/02-install-cli-tools.sh"
+
+    assert_file_does_not_contain "$cli_install" "oven-sh/bun/bun"
+    assert_file_does_not_contain "$cli_install" 'brew tap "$tap"'
+    assert_file_does_not_contain "$cli_install" "ensure_homebrew_taps"
+    assert_file_contains "$cli_install" 'brew install "$tool"'
+    assert_file_contains "$cli_install" "install_bun_fallback || exit 1"
+}
+
 test_dotfiles_entrypoint_refuses_shared_profile() {
     local fixture_root="$TEST_TMP_ROOT/dotfiles-shared-profile"
     local output_file="$fixture_root/output.txt"
@@ -467,6 +477,7 @@ run_test test_dotfiles_entrypoint_refuses_external_symlink
 run_test test_dotfiles_entrypoint_preserves_shell_and_skips_identity_configuration
 run_test test_smoke_test_loads_startup_files_and_skips_named_cloud_profiles
 run_test test_baseline_reports_non_invasive_shell_and_node_policy
+run_test test_bun_uses_homebrew_core_without_a_third_party_tap
 run_test test_dotfiles_entrypoint_refuses_shared_profile
 run_test test_shared_shell_entrypoint_preserves_file_before_atomic_replace
 run_test test_op_inject_refuses_symlink_output

@@ -195,48 +195,6 @@ manifest_includes_tool() {
     return 1
 }
 
-brew_formula_ref() {
-    local tool="$1"
-
-    case "$tool" in
-        bun)
-            printf '%s\n' "oven-sh/bun/bun"
-            ;;
-        *)
-            printf '%s\n' "$tool"
-            ;;
-    esac
-}
-
-brew_required_tap() {
-    local tool="$1"
-
-    case "$tool" in
-        bun)
-            printf '%s\n' "oven-sh/bun"
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-}
-
-ensure_homebrew_taps() {
-    local tool=""
-    local tap=""
-
-    for tool in "${CLI_TOOLS[@]}"; do
-        if tap="$(brew_required_tap "$tool" 2>/dev/null)"; then
-            if brew tap | grep -qx "$tap"; then
-                echo "  [SKIP] Homebrew tap $tap already configured"
-            else
-                echo "  [INSTALL] Adding Homebrew tap $tap for $tool..."
-                brew tap "$tap"
-            fi
-        fi
-    done
-}
-
 install_bun_fallback() {
     local bun_version=""
     local asset_arch=""
@@ -351,22 +309,14 @@ echo ""
 echo "Installing CLI tools via Homebrew..."
 echo ""
 
-ensure_homebrew_taps
-
 for tool in "${CLI_TOOLS[@]}"; do
-    tool_ref="$(brew_formula_ref "$tool")"
-
     if [ "$tool" = "bun" ] && command -v bun >/dev/null 2>&1; then
         echo "  [SKIP] $tool is already available -> $(command -v bun)"
-    elif brew list "$tool" &> /dev/null || brew list "$tool_ref" &> /dev/null; then
+    elif brew list "$tool" &> /dev/null; then
         echo "  [SKIP] $tool is already installed"
     else
-        if [ "$tool_ref" = "$tool" ]; then
-            echo "  [INSTALL] Installing $tool..."
-        else
-            echo "  [INSTALL] Installing $tool via $tool_ref..."
-        fi
-        if ! brew install "$tool_ref"; then
+        echo "  [INSTALL] Installing $tool..."
+        if ! brew install "$tool"; then
             if [ "$tool" = "bun" ]; then
                 install_bun_fallback || exit 1
             else
