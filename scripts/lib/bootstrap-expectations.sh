@@ -14,6 +14,26 @@ bootstrap_cask_bundle_name() {
         hammerspoon) printf '%s\n' "Hammerspoon.app" ;;
         github) printf '%s\n' "GitHub Desktop.app" ;;
         1password) printf '%s\n' "1Password.app" ;;
+        affinity) printf '%s\n' "Affinity.app" ;;
+        audio-hijack) printf '%s\n' "Audio Hijack.app" ;;
+        chatgpt) printf '%s\n' "ChatGPT.app" ;;
+        claude) printf '%s\n' "Claude.app" ;;
+        command-x) printf '%s\n' "Command X.app" ;;
+        google-chrome) printf '%s\n' "Google Chrome.app" ;;
+        google-drive) printf '%s\n' "Google Drive.app" ;;
+        libreoffice) printf '%s\n' "LibreOffice.app" ;;
+        loopback) printf '%s\n' "Loopback.app" ;;
+        macdown) printf '%s\n' "MacDown.app" ;;
+        macwhisper) printf '%s\n' "MacWhisper.app" ;;
+        microsoft-teams) printf '%s\n' "Microsoft Teams.app" ;;
+        miro) printf '%s\n' "Miro.app" ;;
+        nordvpn) printf '%s\n' "NordVPN.app" ;;
+        obsidian) printf '%s\n' "Obsidian.app" ;;
+        slack) printf '%s\n' "Slack.app" ;;
+        utm) printf '%s\n' "UTM.app" ;;
+        vlc) printf '%s\n' "VLC.app" ;;
+        whatsapp) printf '%s\n' "WhatsApp.app" ;;
+        zoom) printf '%s\n' "zoom.us.app" ;;
         *) return 1 ;;
     esac
 }

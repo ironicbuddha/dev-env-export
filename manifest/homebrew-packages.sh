@@ -62,6 +62,28 @@ SHARED_BASELINE_CASK_APPS=(
 CARLO_BASELINE_CASK_APPS=(
     1password
     1password-cli
+
+    # Carlo's selected productivity and communication apps.
+    affinity
+    audio-hijack
+    chatgpt
+    claude
+    command-x
+    google-chrome
+    google-drive
+    libreoffice
+    loopback
+    macdown
+    macwhisper
+    microsoft-teams
+    miro
+    nordvpn
+    obsidian
+    slack
+    utm
+    vlc
+    whatsapp
+    zoom
 )
 
 OPTIONAL_MANUAL_CASKS=(
@@ -74,6 +96,5 @@ OPTIONAL_MANUAL_CASKS=(
 REVIEW_CASK_APPS=(
     # Removed from the active Carlo Baseline as of July 2026.
     betterdisplay
-    obsidian
     sublime-text
 )
