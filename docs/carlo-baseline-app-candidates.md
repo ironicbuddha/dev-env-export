@@ -27,37 +27,37 @@ than an application bundle.
 - ~~8dio Downloader~~
 - ~~Ableton Live 12 Suite~~
 - Affinity
-- AgBr
+- ~~AgBr
 - ~~Akai Professional - LPD8 MK2 - Software Center~~
-- Atomic Chat
+- ~~Atomic Chat~~
 - ~~Audacity~~
-- ~~Audio Hijack~~
-- BetterDisplay
+- Audio Hijack
+- ~~BetterDisplay~~
 - BuhoCleaner
-- ChatGPT Atlas
+- ~~ChatGPT Atlas~~
 - ChatGPT Classic
 - ChatGPT
 - Claude
 - Command X
-- Complete Access Hub
-- CrossOver
-- CrystalFetch
-- DaisyDisk
-- darktable
-- Disk Speed Test
-- Downie 4
-- draw.io
-- Dropbox
+- ~~Complete Access Hub~~
+- ~~CrossOver~~
+- ~~CrystalFetch~~
+- ~~DaisyDisk~~
+- ~~darktable~~
+- ~~Disk Speed Test~~
+- ~~Downie 4~~
+- ~~draw.io~~
+- ~~Dropbox
 - ~~DS Tantra 2~~
 - ~~Essential Keyboards~~
-- Firefox
+- ~~Firefox~~
 - ~~Foundry Virtual Tabletop~~
 - Google Chrome
 - Google Docs
 - Google Drive
 - Google Sheets
 - Google Slides
-- HandBrake
+- ~~HandBrake
 - ~~Heavyocity Portal~~
 - ~~iLok License Manager~~
 - ~~inMusic Software Center~~
@@ -65,12 +65,12 @@ than an application bundle.
 - ~~iZotope Product Portal~~
 - Keynote Creator Studio
 - LibreOffice
-- LM Studio
-- ~~Loopback~~
+- ~~LM Studio
+- Loopback
 - MacDown
 - MacWhisper
 - Microsoft Teams
-- Minimal Hub
+- ~~Minimal Hub~~
 - Miro
 - ~~Mixed In Key 11~~
 - ~~MPC Beats~~
@@ -79,15 +79,15 @@ than an application bundle.
 - NordVPN
 - Numbers Creator Studio
 - Obsidian
-- OneDrive
+- ~~OneDrive~~
 - Pages Creator Studio
-- Parallels Desktop
+- ~~Parallels Desktop~~
 - ~~PaulXStretch~~
 - ~~Pocket Bard~~
-- qbittorrent
+- ~~qbittorrent~~
 - ~~RetroArch~~
-- RVRSE
-- Scrivener
+- ~~RVRSE~~
+- ~~Scrivener~~
 - Slack
 - ~~SoundID Reference Measure~~
 - ~~SoundID Reference~~
@@ -95,14 +95,14 @@ than an application bundle.
 - ~~Spotify~~
 - ~~Steam~~
 - ~~TH-U Slate~~
-- Tor Browser
+- ~~Tor Browser~~
 - ~~Tracktion Download Manager~~
 - ~~UA Connect~~
 - ~~UJAM~~
 - Unzip - RAR ZIP 7Z Unarchiver
 - UTM
 - ~~VCV Rack 2 Free~~
-- Visual Studio Code
+- ~~Visual Studio Code~~
 - ~~Vital~~
 - VLC
 - ~~Waves Central~~
