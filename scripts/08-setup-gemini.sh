@@ -39,7 +39,7 @@ source "$FILE_SAFETY_LIB"
 
 if ! command -v gemini >/dev/null 2>&1; then
     echo "ERROR: Gemini CLI is not installed or not in PATH."
-    echo "       Install the Homebrew formula first via 02-install-cli-tools.sh."
+    echo "       Run 03-install-npm-globals.sh so nvm installs @google/gemini-cli."
     exit 1
 fi
 

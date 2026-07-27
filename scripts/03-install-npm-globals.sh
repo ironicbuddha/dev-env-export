@@ -163,6 +163,7 @@ SHARED_BASELINE_NPM_PACKAGES=(
 
 CARLO_BASELINE_NPM_PACKAGES=(
     @anthropic-ai/claude-code   # Claude Code CLI
+    @google/gemini-cli          # Gemini CLI
     vercel                     # Vercel CLI
 )
 
@@ -206,6 +207,7 @@ echo ""
 echo "Codex version: $(codex --version 2>/dev/null || echo 'not in PATH yet')"
 if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
     echo "Claude Code version: $(claude --version 2>/dev/null || echo 'not in PATH yet')"
+    echo "Gemini CLI version: $(gemini --version 2>/dev/null || echo 'not in PATH yet')"
     echo "Vercel version: $(vercel --version 2>/dev/null | head -1 || echo 'not in PATH yet')"
 fi
 echo ""

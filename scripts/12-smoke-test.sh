@@ -211,6 +211,15 @@ if command -v npm >/dev/null 2>&1; then
     fi
 fi
 
+if command -v gemini >/dev/null 2>&1; then
+    GEMINI_PATH="$(command -v gemini)"
+    if [[ "$GEMINI_PATH" == "$HOME/.nvm/versions/node/"* ]]; then
+        pass "gemini is owned by nvm -> $GEMINI_PATH"
+    else
+        fail "gemini is not coming from nvm -> $GEMINI_PATH"
+    fi
+fi
+
 PYTHON_BIN=""
 if PYTHON_BIN="$(bootstrap_resolve_python_bin 2>/dev/null)"; then
     pass "baseline python resolved -> $PYTHON_BIN"

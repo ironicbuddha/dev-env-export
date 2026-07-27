@@ -46,6 +46,9 @@ version. An installed Homebrew `node` is harmless as long as it does not win
 PATH; bootstrap never removes it automatically. Before an optional manual
 removal, review dependents with `brew uses --installed node`.
 
+Carlo Baseline installs Node-distributed AI CLIs, including Gemini CLI, through
+the active nvm-managed npm runtime rather than Homebrew.
+
 ### Keep `npm`
 
 Do not remove `npm` from the machine.

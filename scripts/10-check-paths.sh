@@ -151,6 +151,17 @@ if command -v npm >/dev/null 2>&1; then
     fi
 fi
 
+if command -v gemini >/dev/null 2>&1; then
+    GEMINI_PATH="$(command -v gemini)"
+    if [[ "$GEMINI_PATH" == "$HOME/.nvm/versions/node/"* ]]; then
+        echo "[OK]   gemini is owned by nvm -> $GEMINI_PATH"
+    else
+        echo "[MISS] gemini is not coming from nvm -> $GEMINI_PATH"
+        echo "       Re-run scripts/03-install-npm-globals.sh or exec zsh to restore nvm precedence."
+        FAILURES=$((FAILURES + 1))
+    fi
+fi
+
 echo ""
 if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
     if skill_hub_projection_valid; then

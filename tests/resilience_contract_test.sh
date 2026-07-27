@@ -378,6 +378,18 @@ test_bun_uses_homebrew_core_without_a_third_party_tap() {
     assert_file_contains "$cli_install" "install_bun_fallback || exit 1"
 }
 
+test_gemini_uses_nvm_managed_npm() {
+    local brew_manifest="$REPO_ROOT/manifest/homebrew-packages.sh"
+    local npm_globals="$REPO_ROOT/scripts/03-install-npm-globals.sh"
+    local path_check="$REPO_ROOT/scripts/10-check-paths.sh"
+    local smoke_test="$REPO_ROOT/scripts/12-smoke-test.sh"
+
+    assert_file_does_not_contain "$brew_manifest" "gemini-cli"
+    assert_file_contains "$npm_globals" "@google/gemini-cli"
+    assert_file_contains "$path_check" "gemini is owned by nvm"
+    assert_file_contains "$smoke_test" "gemini is owned by nvm"
+}
+
 test_dotfiles_entrypoint_refuses_shared_profile() {
     local fixture_root="$TEST_TMP_ROOT/dotfiles-shared-profile"
     local output_file="$fixture_root/output.txt"
@@ -478,6 +490,7 @@ run_test test_dotfiles_entrypoint_preserves_shell_and_skips_identity_configurati
 run_test test_smoke_test_loads_startup_files_and_skips_named_cloud_profiles
 run_test test_baseline_reports_non_invasive_shell_and_node_policy
 run_test test_bun_uses_homebrew_core_without_a_third_party_tap
+run_test test_gemini_uses_nvm_managed_npm
 run_test test_dotfiles_entrypoint_refuses_shared_profile
 run_test test_shared_shell_entrypoint_preserves_file_before_atomic_replace
 run_test test_op_inject_refuses_symlink_output

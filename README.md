@@ -404,9 +404,13 @@ in place because bootstrap does not remove existing Homebrew packages. Review
 its dependents with `brew uses --installed node` before any optional manual
 removal.
 
+Gemini CLI is installed as `@google/gemini-cli` through the active nvm Node,
+not through Homebrew. Its settings and OAuth sign-in state under `~/.gemini`
+remain user-managed.
+
 ### Carlo Baseline Additional CLI
 
-- gemini-cli (`gemini`)
+- Gemini CLI (`gemini`, installed through nvm-managed npm)
 - googleworkspace-cli (`gws`)
 - claude
 - bun

@@ -22,7 +22,9 @@ case "$tool_name" in
         if [ "${1:-}" = "--version" ]; then
             printf '%s\n' "11.16.0"
         elif [ "${1:-}" = "list" ]; then
-            printf '%s\n' "fixture npm globals"
+            exit 1
+        elif [ "${1:-}" = "install" ] && [ "${2:-}" = "-g" ]; then
+            exit 0
         else
             exit 1
         fi
@@ -39,5 +41,8 @@ case "$tool_name" in
         ;;
     vercel)
         printf '%s\n' "Vercel CLI 56.3.1"
+        ;;
+    gemini)
+        printf '%s\n' "Gemini CLI 0.52.0"
         ;;
 esac

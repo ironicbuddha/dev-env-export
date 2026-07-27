@@ -28,7 +28,7 @@ cp "$REPO_ROOT/scripts/lib/bootstrap-profile.sh" "$FIXTURE_ROOT/scripts/lib/boot
 cp "$REPO_ROOT/scripts/lib/runtime-environment.sh" "$FIXTURE_ROOT/scripts/lib/runtime-environment.sh"
 cp "$REPO_ROOT/tests/fixtures/nvm-stub.sh" "$FIXTURE_ROOT/nvm/nvm.sh"
 
-for tool in brew node npm corepack codex vercel; do
+for tool in brew node npm corepack codex claude gemini vercel; do
     cp "$REPO_ROOT/tests/fixtures/npm-globals-tool-stub.sh" "$NODE_BIN/$tool"
     chmod +x "$NODE_BIN/$tool"
 done
@@ -40,7 +40,7 @@ if PATH="$NODE_BIN:/usr/bin:/bin" \
         TEST_FAKE_NODE_BIN="$NODE_BIN" \
         TEST_NVM_PREFIX="$FIXTURE_ROOT/nvm" \
         /bin/bash "$FIXTURE_ROOT/scripts/03-install-npm-globals.sh" \
-        --profile shared-baseline > "$OUTPUT_FILE" 2>&1; then
+        --profile carlo-baseline > "$OUTPUT_FILE" 2>&1; then
     STATUS=0
 else
     STATUS=$?
@@ -61,6 +61,10 @@ fi
 
 if grep -Fq 'pnpm --version' "$ACTION_LOG"; then
     fail "step 3 must not invoke pnpm before a project pins its version"
+fi
+
+if ! grep -Fq 'npm install -g @google/gemini-cli' "$ACTION_LOG"; then
+    fail "Carlo Baseline must install Gemini CLI through nvm-managed npm"
 fi
 
 echo "ok 1 - corepack_is_enabled_without_global_pnpm_provisioning"

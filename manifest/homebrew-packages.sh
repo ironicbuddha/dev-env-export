@@ -36,7 +36,6 @@ CARLO_BASELINE_BREW_PACKAGES=(
 
     # Cloud, infrastructure, and personal workflow CLIs
     awscli
-    gemini-cli
     googleworkspace-cli
 )
 
