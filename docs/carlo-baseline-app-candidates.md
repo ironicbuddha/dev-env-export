@@ -24,14 +24,14 @@ than an application bundle.
 
 ## Candidates
 
-- 8dio Downloader
-- Ableton Live 12 Suite
+- ~~8dio Downloader~~
+- ~~Ableton Live 12 Suite~~
 - Affinity
 - AgBr
-- Akai Professional - LPD8 MK2 - Software Center
+- ~~Akai Professional - LPD8 MK2 - Software Center~~
 - Atomic Chat
-- Audacity
-- Audio Hijack
+- ~~Audacity~~
+- ~~Audio Hijack~~
 - BetterDisplay
 - BuhoCleaner
 - ChatGPT Atlas
@@ -48,66 +48,66 @@ than an application bundle.
 - Downie 4
 - draw.io
 - Dropbox
-- DS Tantra 2
-- Essential Keyboards
+- ~~DS Tantra 2~~
+- ~~Essential Keyboards~~
 - Firefox
-- Foundry Virtual Tabletop
+- ~~Foundry Virtual Tabletop~~
 - Google Chrome
 - Google Docs
 - Google Drive
 - Google Sheets
 - Google Slides
 - HandBrake
-- Heavyocity Portal
-- iLok License Manager
-- inMusic Software Center
-- iZotope Audiolens
-- iZotope Product Portal
+- ~~Heavyocity Portal~~
+- ~~iLok License Manager~~
+- ~~inMusic Software Center~~
+- ~~iZotope Audiolens~~
+- ~~iZotope Product Portal~~
 - Keynote Creator Studio
 - LibreOffice
 - LM Studio
-- Loopback
+- ~~Loopback~~
 - MacDown
 - MacWhisper
 - Microsoft Teams
 - Minimal Hub
 - Miro
-- Mixed In Key 11
-- MPC Beats
-- Muse Hub
-- Native Access
+- ~~Mixed In Key 11~~
+- ~~MPC Beats~~
+- ~~Muse Hub~~
+- ~~Native Access~~
 - NordVPN
 - Numbers Creator Studio
 - Obsidian
 - OneDrive
 - Pages Creator Studio
 - Parallels Desktop
-- PaulXStretch
-- Pocket Bard
+- ~~PaulXStretch~~
+- ~~Pocket Bard~~
 - qbittorrent
-- RetroArch
+- ~~RetroArch~~
 - RVRSE
 - Scrivener
 - Slack
-- SoundID Reference Measure
-- SoundID Reference
-- SoundID Virtual Monitoring PRO Measure
-- Spotify
-- Steam
-- TH-U Slate
+- ~~SoundID Reference Measure~~
+- ~~SoundID Reference~~
+- ~~SoundID Virtual Monitoring PRO Measure~~
+- ~~Spotify~~
+- ~~Steam~~
+- ~~TH-U Slate~~
 - Tor Browser
-- Tracktion Download Manager
-- UA Connect
-- UJAM
+- ~~Tracktion Download Manager~~
+- ~~UA Connect~~
+- ~~UJAM~~
 - Unzip - RAR ZIP 7Z Unarchiver
 - UTM
-- VCV Rack 2 Free
+- ~~VCV Rack 2 Free~~
 - Visual Studio Code
-- Vital
+- ~~Vital~~
 - VLC
-- Waves Central
+- ~~Waves Central~~
 - WhatsApp
-- Youlean Loudness Meter 2
+- ~~Youlean Loudness Meter 2~~
 - zoom.us
 - ZoomLauncher
 
