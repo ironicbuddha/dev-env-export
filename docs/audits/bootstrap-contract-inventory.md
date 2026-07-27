@@ -99,6 +99,16 @@ records one clean Apple Silicon ZIP-first `carlo-baseline` run in which all 12
 steps passed. It establishes the release acceptance contract, including the
 manual authentication boundary. It does not establish repeat-run behavior.
 
+### Transient cask failure
+
+An earlier reviewed run, `tmp/bootstrap-20260727-161117-lhtqtJ/`, failed in
+step 02 when a required Affinity cask download ended with a connection reset.
+Because required casks are gating and the step has no retry policy, the
+transient vendor failure aborted the full run. Affinity has since been removed
+from the active package manifest, so this is evidence about the cask adapter's
+failure behavior rather than a current package requirement. That local run
+directory is no longer present in this checkout.
+
 ### Repeat-run failure
 
 The latest locally preserved run,
