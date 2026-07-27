@@ -277,6 +277,7 @@ test_path_check_returns_nonzero_for_required_miss() {
     cp "$REPO_ROOT/scripts/lib/bootstrap-profile.sh" "$fixture_root/scripts/lib/bootstrap-profile.sh"
     cp "$REPO_ROOT/scripts/lib/runtime-environment.sh" "$fixture_root/scripts/lib/runtime-environment.sh"
     cp "$REPO_ROOT/scripts/lib/app-bundle.sh" "$fixture_root/scripts/lib/app-bundle.sh"
+    cp "$REPO_ROOT/scripts/lib/skill-hub-projection.sh" "$fixture_root/scripts/lib/skill-hub-projection.sh"
     printf '%s\n' \
         'bootstrap_load_expectations() {' \
         '    BOOTSTRAP_REQUIRED_COMMANDS=(definitely-missing-bootstrap-command)' \

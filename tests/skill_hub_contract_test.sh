@@ -23,6 +23,17 @@ assert_file_contains() {
     grep -Fq -- "$expected" "$file" || fail "$file does not contain: $expected"
 }
 
+assert_projection_is_invalid() {
+    local home_dir="$1"
+    local expected_reason="$2"
+
+    if skill_hub_projection_valid "$home_dir"; then
+        fail "Skill Hub projection unexpectedly validated for $home_dir"
+    fi
+    [[ "$SKILL_HUB_PROJECTION_REASON" == *"$expected_reason"* ]] || \
+        fail "projection reason did not contain: $expected_reason"
+}
+
 make_git_stub() {
     local bin_dir="$1"
 
@@ -150,6 +161,42 @@ test_failed_first_clone_does_not_block_a_later_retry() {
     assert_file_contains "$TEST_TMP_ROOT/retry/hub-bootstrap.log" "--profile carlo-baseline --no-input"
 }
 
+test_canonical_projection_is_readable_through_every_harness() {
+    local home_dir="$TEST_TMP_ROOT/canonical/home"
+
+    mkdir -p "$home_dir/.agents/skills" "$home_dir/.claude" "$home_dir/.codex" "$home_dir/source/implement"
+    printf '%s\n' '---' 'name: implement' '---' > "$home_dir/source/implement/SKILL.md"
+    ln -s "$home_dir/source/implement" "$home_dir/.agents/skills/implement"
+    ln -s "$home_dir/.agents/skills" "$home_dir/.claude/skills"
+    ln -s "$home_dir/.agents/skills" "$home_dir/.codex/skills"
+
+    skill_hub_projection_valid "$home_dir" || fail "$SKILL_HUB_PROJECTION_REASON"
+}
+
+test_broken_harness_projection_is_rejected() {
+    local home_dir="$TEST_TMP_ROOT/broken-projection/home"
+
+    mkdir -p "$home_dir/.agents/skills/implement" "$home_dir/.claude" "$home_dir/.codex"
+    printf '%s\n' '---' 'name: implement' '---' > "$home_dir/.agents/skills/implement/SKILL.md"
+    ln -s "$home_dir/.agents/skills" "$home_dir/.claude/skills"
+    ln -s "$home_dir/.agents/missing-skills" "$home_dir/.codex/skills"
+
+    assert_projection_is_invalid "$home_dir" "Codex skill projection is missing or broken"
+}
+
+test_missing_claude_projection_is_rejected() {
+    local home_dir="$TEST_TMP_ROOT/missing-claude/home"
+
+    mkdir -p "$home_dir/.agents/skills/implement" "$home_dir/.codex"
+    printf '%s\n' '---' 'name: implement' '---' > "$home_dir/.agents/skills/implement/SKILL.md"
+    ln -s "$home_dir/.agents/skills" "$home_dir/.codex/skills"
+
+    assert_projection_is_invalid "$home_dir" "Claude skill projection is missing or broken"
+}
+
+# shellcheck disable=SC1091
+source "$REPO_ROOT/scripts/lib/skill-hub-projection.sh"
+
 test_existing_valid_hub_is_fast_forwarded_and_applied
 TEST_COUNT=$((TEST_COUNT + 1))
 test_user_managed_hub_is_skipped_without_touching_skill_targets
@@ -157,6 +204,12 @@ TEST_COUNT=$((TEST_COUNT + 1))
 test_dangling_hub_symlink_is_not_replaced
 TEST_COUNT=$((TEST_COUNT + 1))
 test_failed_first_clone_does_not_block_a_later_retry
+TEST_COUNT=$((TEST_COUNT + 1))
+test_canonical_projection_is_readable_through_every_harness
+TEST_COUNT=$((TEST_COUNT + 1))
+test_broken_harness_projection_is_rejected
+TEST_COUNT=$((TEST_COUNT + 1))
+test_missing_claude_projection_is_rejected
 TEST_COUNT=$((TEST_COUNT + 1))
 
 echo "PASS: $TEST_COUNT Skill Hub contract tests"

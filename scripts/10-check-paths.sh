@@ -14,6 +14,7 @@ PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
 RUNTIME_LIB="$SCRIPT_DIR/lib/runtime-environment.sh"
 EXPECTATIONS_LIB="$SCRIPT_DIR/lib/bootstrap-expectations.sh"
 APP_BUNDLE_LIB="$SCRIPT_DIR/lib/app-bundle.sh"
+SKILL_HUB_PROJECTION_LIB="$SCRIPT_DIR/lib/skill-hub-projection.sh"
 BOOTSTRAP_PROFILE=""
 
 # shellcheck disable=SC1090
@@ -24,6 +25,8 @@ source "$RUNTIME_LIB"
 source "$EXPECTATIONS_LIB"
 # shellcheck disable=SC1090
 source "$APP_BUNDLE_LIB"
+# shellcheck disable=SC1090
+source "$SKILL_HUB_PROJECTION_LIB"
 
 usage() {
     cat <<'EOF'
@@ -150,10 +153,10 @@ fi
 
 echo ""
 if [ "$BOOTSTRAP_PROFILE" = "carlo-baseline" ]; then
-    if [ -L "$HOME/.agents/skills" ] && [ -L "$HOME/.codex/skills" ] && [ -L "$HOME/.claude/skills" ]; then
-        echo "[OK]   Skill Hub projection links all agent harnesses"
+    if skill_hub_projection_valid; then
+        echo "[OK]   Skill Hub projection is readable through all selected harnesses"
     else
-        echo "[WARN] Skill Hub projection is unavailable"
+        echo "[WARN] Skill Hub projection is unavailable: $SKILL_HUB_PROJECTION_REASON"
         echo "       Re-run scripts/14-install-codex-skills.sh after resolving any Hub warning."
     fi
 fi
