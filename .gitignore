@@ -43,6 +43,7 @@ bugs/
 /.scratch/
 /downloads/
 /upstream/
+/tmp
 
 # Archives
 *.zip
