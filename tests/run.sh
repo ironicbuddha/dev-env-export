@@ -37,7 +37,7 @@ run_suite \
     "$REPO_ROOT/tests/bootstrap_contract_test.sh"
 
 run_suite \
-    "source-policy,helper,step" \
+    "classified-per-test" \
     "resilience contract tests" \
     "$REPO_ROOT/tests/resilience_contract_test.sh"
 
@@ -52,7 +52,7 @@ run_suite \
     "$REPO_ROOT/tests/uv_environment_contract_test.sh"
 
 run_suite \
-    "helper,step" \
+    "classified-per-test" \
     "Skill Hub contract tests" \
     "$REPO_ROOT/tests/skill_hub_contract_test.sh"
 

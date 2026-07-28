@@ -477,30 +477,31 @@ test_op_inject_refuses_symlink_output() {
 }
 
 run_test() {
-    local name="$1"
+    local evidence_class="$1"
+    local name="$2"
 
     TEST_COUNT=$((TEST_COUNT + 1))
     "$name"
-    echo "ok $TEST_COUNT - ${name#test_}"
+    echo "ok $TEST_COUNT - [evidence=$evidence_class] ${name#test_}"
 }
 
-run_test test_profile_expectations_are_complete
-run_test test_runtime_activation_requires_exact_node
-run_test test_app_bundle_must_be_launchable
-run_test test_required_cask_failure_is_gating_and_broken_bundle_repairs
-run_test test_json_merge_preserves_existing_and_adds_defaults
-run_test test_artifact_digest_rejects_tampering
-run_test test_copy_refuses_symlink_destination
-run_test test_managed_shell_write_is_atomic_and_backed_up
-run_test test_path_check_returns_nonzero_for_required_miss
-run_test test_dotfiles_entrypoint_refuses_external_symlink
-run_test test_dotfiles_entrypoint_preserves_shell_and_skips_identity_configuration
-run_test test_smoke_test_loads_startup_files_and_skips_named_cloud_profiles
-run_test test_baseline_reports_non_invasive_shell_and_node_policy
-run_test test_bun_uses_homebrew_core_without_a_third_party_tap
-run_test test_gemini_uses_nvm_managed_npm
-run_test test_dotfiles_entrypoint_refuses_shared_profile
-run_test test_shared_shell_entrypoint_preserves_file_before_atomic_replace
-run_test test_op_inject_refuses_symlink_output
+run_test helper test_profile_expectations_are_complete
+run_test helper test_runtime_activation_requires_exact_node
+run_test helper test_app_bundle_must_be_launchable
+run_test helper test_required_cask_failure_is_gating_and_broken_bundle_repairs
+run_test helper test_json_merge_preserves_existing_and_adds_defaults
+run_test helper test_artifact_digest_rejects_tampering
+run_test helper test_copy_refuses_symlink_destination
+run_test helper test_managed_shell_write_is_atomic_and_backed_up
+run_test step test_path_check_returns_nonzero_for_required_miss
+run_test step test_dotfiles_entrypoint_refuses_external_symlink
+run_test step test_dotfiles_entrypoint_preserves_shell_and_skips_identity_configuration
+run_test source-policy test_smoke_test_loads_startup_files_and_skips_named_cloud_profiles
+run_test source-policy test_baseline_reports_non_invasive_shell_and_node_policy
+run_test source-policy test_bun_uses_homebrew_core_without_a_third_party_tap
+run_test source-policy test_gemini_uses_nvm_managed_npm
+run_test step test_dotfiles_entrypoint_refuses_shared_profile
+run_test step test_shared_shell_entrypoint_preserves_file_before_atomic_replace
+run_test step test_op_inject_refuses_symlink_output
 
 echo "1..$TEST_COUNT"

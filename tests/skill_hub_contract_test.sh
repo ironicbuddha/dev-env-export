@@ -197,19 +197,21 @@ test_missing_claude_projection_is_rejected() {
 # shellcheck disable=SC1091
 source "$REPO_ROOT/scripts/lib/skill-hub-projection.sh"
 
-test_existing_valid_hub_is_fast_forwarded_and_applied
-TEST_COUNT=$((TEST_COUNT + 1))
-test_user_managed_hub_is_skipped_without_touching_skill_targets
-TEST_COUNT=$((TEST_COUNT + 1))
-test_dangling_hub_symlink_is_not_replaced
-TEST_COUNT=$((TEST_COUNT + 1))
-test_failed_first_clone_does_not_block_a_later_retry
-TEST_COUNT=$((TEST_COUNT + 1))
-test_canonical_projection_is_readable_through_every_harness
-TEST_COUNT=$((TEST_COUNT + 1))
-test_broken_harness_projection_is_rejected
-TEST_COUNT=$((TEST_COUNT + 1))
-test_missing_claude_projection_is_rejected
-TEST_COUNT=$((TEST_COUNT + 1))
+run_test() {
+    local evidence_class="$1"
+    local name="$2"
 
-echo "PASS: $TEST_COUNT Skill Hub contract tests"
+    TEST_COUNT=$((TEST_COUNT + 1))
+    "$name"
+    echo "ok $TEST_COUNT - [evidence=$evidence_class] ${name#test_}"
+}
+
+run_test step test_existing_valid_hub_is_fast_forwarded_and_applied
+run_test step test_user_managed_hub_is_skipped_without_touching_skill_targets
+run_test step test_dangling_hub_symlink_is_not_replaced
+run_test step test_failed_first_clone_does_not_block_a_later_retry
+run_test helper test_canonical_projection_is_readable_through_every_harness
+run_test helper test_broken_harness_projection_is_rejected
+run_test helper test_missing_claude_projection_is_rejected
+
+echo "1..$TEST_COUNT"
