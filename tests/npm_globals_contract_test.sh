@@ -9,6 +9,7 @@ FIXTURE_ROOT="$TEST_TMP_ROOT/fixture"
 NODE_BIN="$FIXTURE_ROOT/home/.nvm/versions/node/v24.18.0/bin"
 OUTPUT_FILE="$FIXTURE_ROOT/output.txt"
 ACTION_LOG="$FIXTURE_ROOT/actions.log"
+NPMRC_BEFORE="$FIXTURE_ROOT/npmrc-before"
 STATUS=0
 
 cleanup() {
@@ -32,6 +33,12 @@ for tool in brew node npm corepack codex claude gemini vercel; do
     cp "$REPO_ROOT/tests/fixtures/npm-globals-tool-stub.sh" "$NODE_BIN/$tool"
     chmod +x "$NODE_BIN/$tool"
 done
+
+printf '%s\n' \
+    'prefix=/tmp/step-03-must-not-own' \
+    '//registry.example.test/:_authToken=preserve-step-03-token' \
+    > "$FIXTURE_ROOT/home/.npmrc"
+cp "$FIXTURE_ROOT/home/.npmrc" "$NPMRC_BEFORE"
 
 if PATH="$NODE_BIN:/usr/bin:/bin" \
         HOME="$FIXTURE_ROOT/home" \
@@ -67,5 +74,11 @@ if ! grep -Fq 'npm install -g @google/gemini-cli' "$ACTION_LOG"; then
     fail "Carlo Baseline must install Gemini CLI through nvm-managed npm"
 fi
 
-echo "ok 1 - corepack_is_enabled_without_global_pnpm_provisioning"
+cmp -s "$NPMRC_BEFORE" "$FIXTURE_ROOT/home/.npmrc" ||
+    fail "step 3 must not claim or mutate npm configuration"
+if [ -e "$FIXTURE_ROOT/home/.dev-env-npmrc-backups" ]; then
+    fail "step 3 must not create npm configuration backups"
+fi
+
+echo "ok 1 - npm_globals_uses_nvm_without_claiming_npm_configuration"
 echo "1..1"

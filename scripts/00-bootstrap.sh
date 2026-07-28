@@ -85,10 +85,17 @@ fi
 
 export DEV_ENV_BOOTSTRAP_PROFILE="$BOOTSTRAP_PROFILE"
 
-RUN_ID="$(date '+%Y%m%d-%H%M%S')"
+RUN_ID_PREFIX="$(date '+%Y%m%d-%H%M%S')"
+if command -v uuidgen >/dev/null 2>&1; then
+    RUN_UUID="$(uuidgen | tr '[:upper:]' '[:lower:]')"
+else
+    RUN_UUID="fallback-$$-${RANDOM:-0}"
+fi
 LOG_PARENT="${DEV_ENV_LOG_DIR:-$HOME/Library/Logs/dev-env-bootstrap}"
 mkdir -p "$LOG_PARENT"
-LOG_DIR="$(mktemp -d "$LOG_PARENT/bootstrap-$RUN_ID-XXXXXX")"
+LOG_DIR="$(mktemp -d "$LOG_PARENT/bootstrap-$RUN_ID_PREFIX-$RUN_UUID-XXXXXX")"
+RUN_ID="${LOG_DIR##*/}"
+export DEV_ENV_BOOTSTRAP_RUN_ID="$RUN_ID"
 BOOTSTRAP_LOG="$LOG_DIR/bootstrap.log"
 STEP_STATUS_FILE="$LOG_DIR/step-status.tsv"
 ENVIRONMENT_FILE="$LOG_DIR/environment.txt"

@@ -272,7 +272,11 @@ EOF
 
     assert_file_contains "$shell_file" "export ORIGINAL=1"
     assert_file_contains "$shell_file" "export MANAGED=1"
-    [ -f "$backup_dir/.zshrc" ] || fail "original shell file was not backed up"
+    local backup_path=""
+    backup_path="$(find "$backup_dir" -type f -print -quit)"
+    [ -n "$backup_path" ] || fail "original shell file was not backed up"
+    cmp -s "$before" "$backup_path" ||
+        fail "managed shell backup differs from the original"
 }
 
 test_path_check_returns_nonzero_for_required_miss() {
@@ -323,7 +327,7 @@ test_dotfiles_entrypoint_refuses_external_symlink() {
     fi
 
     [ "$status" -ne 0 ] || fail "dotfiles entrypoint followed an external symlink"
-    assert_file_contains "$output_file" "Refusing to rewrite symlink shell file"
+    assert_file_contains "$output_file" "Refusing to modify symlink managed-artifact target"
     assert_file_contains "$external_file" "external value"
 }
 

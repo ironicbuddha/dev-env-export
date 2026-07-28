@@ -182,6 +182,7 @@ run_bootstrap_with_args() {
         "TEST_ACTION_LOG=$fixture_root/actions.log"
         "TEST_STEP_ORDER=$fixture_root/steps.log"
         "TEST_STEP_INVOCATION_LOG=$fixture_root/step-invocations.log"
+        "TEST_RUN_ID_LOG=$fixture_root/run-ids.log"
         "TEST_FAKE_CLANG=$fixture_root/fake-bin/clang"
         "TEST_REAL_TEE=$real_tee"
         "TEST_CLT_STATE=${TEST_CLT_STATE:-usable}"
@@ -307,6 +308,38 @@ test_success_checks_clt_before_homebrew() {
     assert_file_contains "$run_dir/summary.txt" "exit_status=0"
     assert_file_contains "$run_dir/step-status.tsv" $'00-check-prerequisites.sh\t0\tok'
     assert_file_contains "$run_dir/step-status.tsv" $'12-smoke-test.sh\t0\tok'
+}
+
+test_bootstrap_exports_one_unique_run_id_to_every_step() {
+    local fixture_root="$TEST_TMP_ROOT/exported-run-id"
+    local log_parent="$fixture_root/logs"
+    local output_file="$fixture_root/output.txt"
+    local run_dir=""
+    local summary_run_id=""
+    local child_run_ids=""
+
+    make_fixture "$fixture_root"
+    mkdir -p "$log_parent"
+
+    TEST_CLT_STATE=usable \
+        run_bootstrap "$fixture_root" "$log_parent" "$output_file" ||
+        fail "run-id fixture should complete"
+
+    run_dir="$(single_run_dir "$log_parent")"
+    summary_run_id="$(sed -n 's/^run_id=//p' "$run_dir/summary.txt")"
+    [ -n "$summary_run_id" ] || fail "summary should record a run id"
+    child_run_ids="$(cut -f2 "$fixture_root/run-ids.log" | sort -u)"
+    assert_equals \
+        "$summary_run_id" \
+        "$child_run_ids" \
+        "every step should receive the summary run id"
+    case "$summary_run_id" in
+        *-*-*) ;;
+        *) fail "run id should include time and unique entropy" ;;
+    esac
+    printf '%s\n' "$summary_run_id" |
+        grep -Eq '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' ||
+        fail "run id should include a globally unique UUID"
 }
 
 test_selected_but_broken_clt_exits_before_homebrew() {
@@ -607,6 +640,7 @@ run_test() {
 
 run_test test_clt_missing_exits_before_homebrew
 run_test test_success_checks_clt_before_homebrew
+run_test test_bootstrap_exports_one_unique_run_id_to_every_step
 run_test test_selected_but_broken_clt_exits_before_homebrew
 run_test test_child_failure_records_failed_step
 run_test test_tee_failure_is_not_reported_as_success

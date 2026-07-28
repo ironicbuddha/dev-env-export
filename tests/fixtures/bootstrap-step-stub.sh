@@ -11,6 +11,11 @@ if [ -n "${TEST_STEP_INVOCATION_LOG:-}" ]; then
         "${DEV_ENV_BOOTSTRAP_PROFILE:-unset}" \
         "$*" >> "$TEST_STEP_INVOCATION_LOG"
 fi
+if [ -n "${TEST_RUN_ID_LOG:-}" ]; then
+    printf '%s\t%s\n' \
+        "$script_name" \
+        "${DEV_ENV_BOOTSTRAP_RUN_ID:-unset}" >> "$TEST_RUN_ID_LOG"
+fi
 echo "fixture step: $script_name"
 if [ -n "${TEST_RUN_MARKER:-}" ]; then
     echo "fixture marker: $TEST_RUN_MARKER"

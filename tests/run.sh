@@ -32,6 +32,16 @@ run_suite \
     "$REPO_ROOT/tests/fresh_process_harness_test.sh"
 
 run_suite \
+    "helper" \
+    "managed-artifact contract tests" \
+    "$REPO_ROOT/tests/managed_artifact_contract_test.sh"
+
+run_suite \
+    "step" \
+    "npm configuration contract tests" \
+    "$REPO_ROOT/tests/npm_configuration_contract_test.sh"
+
+run_suite \
     "orchestrator" \
     "bootstrap contract tests" \
     "$REPO_ROOT/tests/bootstrap_contract_test.sh"

@@ -86,36 +86,6 @@ echo ""
 echo "Bootstrap profile: $(bootstrap_profile_label "$BOOTSTRAP_PROFILE") ($BOOTSTRAP_PROFILE)"
 echo ""
 
-strip_npmrc_conflicts() {
-    local npmrc_path="$HOME/.npmrc"
-    local tmp_path=""
-
-    if [ ! -f "$npmrc_path" ]; then
-        return
-    fi
-
-    tmp_path="$(mktemp)"
-    awk '
-        /^[[:space:]]*prefix[[:space:]]*=/ { next }
-        /^[[:space:]]*globalconfig[[:space:]]*=/ { next }
-        { print }
-    ' "$npmrc_path" > "$tmp_path"
-
-    if ! cmp -s "$tmp_path" "$npmrc_path"; then
-        mv "$tmp_path" "$npmrc_path"
-        echo "  [UPDATE] Removed nvm-incompatible prefix/globalconfig from ~/.npmrc"
-    else
-        rm -f "$tmp_path"
-    fi
-
-    if [ -f "$npmrc_path" ] && [ ! -s "$npmrc_path" ]; then
-        rm -f "$npmrc_path"
-        echo "  [CLEANUP] Removed empty ~/.npmrc"
-    fi
-}
-
-strip_npmrc_conflicts
-
 if ! bootstrap_load_nvm; then
     echo "ERROR: nvm is required for this step and could not be loaded."
     echo "       Run 02-install-cli-tools.sh first and make sure nvm installed cleanly."

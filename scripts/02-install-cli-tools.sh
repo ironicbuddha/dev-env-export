@@ -21,6 +21,7 @@ EXPECTATIONS_LIB="$SCRIPT_DIR/lib/bootstrap-expectations.sh"
 APP_BUNDLE_LIB="$SCRIPT_DIR/lib/app-bundle.sh"
 CASK_STATE_LIB="$SCRIPT_DIR/lib/cask-state.sh"
 ARTIFACT_INTEGRITY_LIB="$SCRIPT_DIR/lib/artifact-integrity.sh"
+NPM_CONFIGURATION_LIB="$SCRIPT_DIR/lib/npm-configuration.sh"
 BOOTSTRAP_PROFILE=""
 
 # shellcheck disable=SC1090
@@ -37,6 +38,8 @@ source "$APP_BUNDLE_LIB"
 source "$CASK_STATE_LIB"
 # shellcheck disable=SC1090
 source "$ARTIFACT_INTEGRITY_LIB"
+# shellcheck disable=SC1090
+source "$NPM_CONFIGURATION_LIB"
 
 usage() {
     cat <<'EOF'
@@ -153,34 +156,6 @@ esac
 
 bootstrap_load_expectations "$BOOTSTRAP_PROFILE"
 CASK_APPS=("${BOOTSTRAP_REQUIRED_CASKS[@]}")
-
-strip_npmrc_conflicts() {
-    local npmrc_path="$HOME/.npmrc"
-    local tmp_path=""
-
-    if [ ! -f "$npmrc_path" ]; then
-        return
-    fi
-
-    tmp_path="$(mktemp)"
-    awk '
-        /^[[:space:]]*prefix[[:space:]]*=/ { next }
-        /^[[:space:]]*globalconfig[[:space:]]*=/ { next }
-        { print }
-    ' "$npmrc_path" > "$tmp_path"
-
-    if ! cmp -s "$tmp_path" "$npmrc_path"; then
-        mv "$tmp_path" "$npmrc_path"
-        echo "  [UPDATE] Removed nvm-incompatible prefix/globalconfig from ~/.npmrc"
-    else
-        rm -f "$tmp_path"
-    fi
-
-    if [ -f "$npmrc_path" ] && [ ! -s "$npmrc_path" ]; then
-        rm -f "$npmrc_path"
-        echo "  [CLEANUP] Removed empty ~/.npmrc"
-    fi
-}
 
 manifest_includes_tool() {
     local wanted="$1"
@@ -342,7 +317,8 @@ done
 # -----------------------------------------------------------------------------
 echo ""
 echo "Setting up NVM..."
-strip_npmrc_conflicts
+bootstrap_ensure_nvm_compatible_npm_configuration \
+    "$HOME/.npmrc" "$HOME/.dev-env-npmrc-backups"
 
 if ! bootstrap_load_nvm; then
     echo "ERROR: nvm could not be loaded after installation."
