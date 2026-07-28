@@ -39,6 +39,15 @@ assert_file_contains() {
     fi
 }
 
+assert_file_does_not_contain() {
+    local file="$1"
+    local unexpected="$2"
+
+    if grep -Fq "$unexpected" "$file"; then
+        fail "$file unexpectedly contains: $unexpected"
+    fi
+}
+
 expected_step_sequence() {
     local canonical_profile="$1"
 
@@ -120,6 +129,7 @@ make_fixture() {
     mkdir -p "$fixture_root/scripts/lib"
     cp "$REPO_ROOT/scripts/00-bootstrap.sh" "$fixture_root/scripts/00-bootstrap.sh"
     cp "$REPO_ROOT/scripts/lib/bootstrap-profile.sh" "$fixture_root/scripts/lib/bootstrap-profile.sh"
+    cp "$REPO_ROOT/scripts/lib/bootstrap-run-recorder.sh" "$fixture_root/scripts/lib/bootstrap-run-recorder.sh"
 
     if [ -f "$REPO_ROOT/scripts/00-check-prerequisites.sh" ]; then
         cp "$REPO_ROOT/scripts/00-check-prerequisites.sh" "$fixture_root/scripts/00-check-prerequisites.sh"
@@ -189,9 +199,12 @@ run_bootstrap_with_args() {
         "TEST_FAIL_STEP=${TEST_FAIL_STEP:-}"
         "TEST_FAIL_STATUS=${TEST_FAIL_STATUS:-1}"
         "TEST_FAIL_TEE_STEP=${TEST_FAIL_TEE_STEP:-}"
+        "TEST_WARN_STEP=${TEST_WARN_STEP:-}"
         "TEST_RUN_MARKER=${TEST_RUN_MARKER:-}"
         "TEST_UNAME_MACHINE=${TEST_UNAME_MACHINE:-arm64}"
         "TEST_HW_OPTIONAL_ARM64=${TEST_HW_OPTIONAL_ARM64:-1}"
+        "DEV_ENV_TEST_POSTFLIGHT_FAIL=${DEV_ENV_TEST_POSTFLIGHT_FAIL:-0}"
+        "DEV_ENV_TRACE_STEPS=${DEV_ENV_TRACE_STEPS:-0}"
     )
     if [ -n "$log_parent" ]; then
         env_args+=("DEV_ENV_LOG_DIR=$log_parent")
@@ -274,6 +287,9 @@ test_clt_missing_exits_before_homebrew() {
     run_dir="$(single_run_dir "$log_parent")"
     assert_file_contains "$run_dir/summary.txt" "outcome=manual_action_required"
     assert_file_contains "$run_dir/summary.txt" "exit_status=20"
+    assert_file_contains "$run_dir/summary.txt" "failure_class=manual_action"
+    assert_file_contains "$run_dir/summary.txt" "failure_code=xcode_clt_manual_action"
+    assert_file_contains "$run_dir/summary.txt" "recovery=manual_then_retry"
     assert_file_contains "$run_dir/step-status.tsv" $'00-check-prerequisites.sh\t20\tmanual_action_required(20)'
     assert_file_contains "$fixture_root/actions.log" "xcode-select --install"
 }
@@ -306,6 +322,11 @@ test_success_checks_clt_before_homebrew() {
     run_dir="$(single_run_dir "$log_parent")"
     assert_file_contains "$run_dir/summary.txt" "outcome=completed"
     assert_file_contains "$run_dir/summary.txt" "exit_status=0"
+    assert_file_contains "$run_dir/summary.txt" "source_kind=zip"
+    assert_file_contains "$run_dir/summary.txt" "source_identity=zip-tree-sha256:"
+    assert_file_contains "$run_dir/summary.txt" "log_dir=."
+    assert_file_does_not_contain "$run_dir/summary.txt" "$log_parent"
+    assert_file_does_not_contain "$run_dir/step-status.tsv" "$log_parent"
     assert_file_contains "$run_dir/step-status.tsv" $'00-check-prerequisites.sh\t0\tok'
     assert_file_contains "$run_dir/step-status.tsv" $'12-smoke-test.sh\t0\tok'
 }
@@ -387,8 +408,15 @@ test_child_failure_records_failed_step() {
 
     assert_equals "1" "$status" "a failed child step must fail the bootstrap"
     run_dir="$(single_run_dir "$log_parent")"
-    assert_file_contains "$run_dir/summary.txt" "outcome=failed"
+    assert_file_contains "$run_dir/summary.txt" "outcome=required_failure"
     assert_file_contains "$run_dir/summary.txt" "failed_step=03-install-npm-globals.sh"
+    assert_file_contains "$run_dir/summary.txt" "failed_operation=execute_step"
+    assert_file_contains "$run_dir/summary.txt" "failure_class=internal_failure"
+    assert_file_contains "$run_dir/summary.txt" "failure_code=step_command_failed"
+    assert_file_contains "$run_dir/summary.txt" "raw_status=1"
+    assert_file_contains "$run_dir/summary.txt" "relevant_log=03-install-npm-globals.log"
+    assert_file_contains "$output_file" "remaining_steps:"
+    assert_file_contains "$output_file" "rerun_command:"
     assert_file_contains "$run_dir/step-status.tsv" $'03-install-npm-globals.sh\t1\tfailed(1)'
     if grep -Fq "04-install-pip-packages.sh" "$fixture_root/steps.log"; then
         fail "bootstrap continued after a failed child step"
@@ -414,9 +442,73 @@ test_tee_failure_is_not_reported_as_success() {
 
     assert_equals "1" "$status" "a step-log tee failure must fail the bootstrap"
     run_dir="$(single_run_dir "$log_parent")"
-    assert_file_contains "$run_dir/summary.txt" "outcome=failed"
+    assert_file_contains "$run_dir/summary.txt" "outcome=logging_failure"
     assert_file_contains "$run_dir/summary.txt" "failed_step=01-install-brew.sh"
+    assert_file_contains "$run_dir/summary.txt" "failure_code=step_log_write_failed"
     assert_file_contains "$run_dir/step-status.tsv" $'01-install-brew.sh\t23\tlogging_failed(script=0 tee=23)'
+}
+
+test_optional_warning_changes_the_final_outcome() {
+    local fixture_root="$TEST_TMP_ROOT/optional-warning"
+    local log_parent="$fixture_root/logs"
+    local output_file="$fixture_root/output.txt"
+    local run_dir=""
+
+    make_fixture "$fixture_root"
+    mkdir -p "$log_parent"
+
+    TEST_CLT_STATE=usable TEST_WARN_STEP=15-setup-shared-shell.sh \
+        run_bootstrap "$fixture_root" "$log_parent" "$output_file" ||
+        fail "a non-gating warning should not fail the bootstrap"
+
+    run_dir="$(single_run_dir "$log_parent")"
+    assert_file_contains "$run_dir/summary.txt" "outcome=completed_with_warnings"
+    assert_file_contains "$run_dir/summary.txt" "warning_count=1"
+    assert_file_contains "$run_dir/step-status.tsv" \
+        $'15-setup-shared-shell.sh\t0\tcompleted_with_warning(1)'
+    assert_file_contains "$run_dir/events.tsv" \
+        $'\toptional_degraded\toptional_degraded\tstep_reported_warning\t'
+}
+
+test_postflight_failure_preserves_final_state() {
+    local fixture_root="$TEST_TMP_ROOT/postflight-failure"
+    local log_parent="$fixture_root/logs"
+    local output_file="$fixture_root/output.txt"
+    local run_dir=""
+
+    make_fixture "$fixture_root"
+    mkdir -p "$log_parent"
+
+    DEV_ENV_TEST_POSTFLIGHT_FAIL=1 TEST_CLT_STATE=usable \
+        run_bootstrap "$fixture_root" "$log_parent" "$output_file" ||
+        fail "postflight evidence degradation should not erase a completed run"
+
+    run_dir="$(single_run_dir "$log_parent")"
+    assert_file_contains "$run_dir/current-state.txt" "outcome=completed_with_warnings"
+    assert_file_contains "$run_dir/current-state.txt" "ended_at="
+    assert_file_contains "$run_dir/events.tsv" "postflight_probe_failed"
+    assert_file_contains "$run_dir/summary.txt" "warning_count=1"
+}
+
+test_trace_mode_warns_without_shell_argument_expansion() {
+    local fixture_root="$TEST_TMP_ROOT/trace-privacy"
+    local log_parent="$fixture_root/logs"
+    local output_file="$fixture_root/output.txt"
+    local run_dir=""
+
+    make_fixture "$fixture_root"
+    mkdir -p "$log_parent"
+
+    DEV_ENV_TRACE_STEPS=1 TEST_CLT_STATE=usable \
+        run_bootstrap "$fixture_root" "$log_parent" "$output_file" ||
+        fail "trace metadata should not fail the bootstrap"
+
+    run_dir="$(single_run_dir "$log_parent")"
+    assert_file_contains "$output_file" "Trace metadata is local-sensitive"
+    assert_file_contains "$run_dir/events.tsv" "trace_is_local_sensitive"
+    if grep -Eq '^\\+ .*bootstrap-step-stub|^\\+ .*--profile' "$run_dir/bootstrap.log"; then
+        fail "trace mode invoked bash xtrace and captured expanded arguments"
+    fi
 }
 
 test_reused_log_parent_keeps_runs_isolated() {
@@ -450,9 +542,9 @@ test_reused_log_parent_keeps_runs_isolated() {
     assert_equals "2" "${#run_dirs[@]}" "the reused parent must contain two run directories"
 
     for run_dir in "${run_dirs[@]}"; do
-        assert_file_contains "$run_dir/summary.txt" "log_dir=$run_dir"
+        assert_file_contains "$run_dir/summary.txt" "log_dir=."
         if grep -Fq "fixture marker: first-run" "$run_dir/bootstrap.log"; then
-            assert_file_contains "$run_dir/summary.txt" "outcome=failed"
+            assert_file_contains "$run_dir/summary.txt" "outcome=required_failure"
             if grep -Fq "fixture marker: second-run" "$run_dir/bootstrap.log"; then
                 fail "$run_dir/bootstrap.log mixes first and second run output"
             fi
@@ -541,7 +633,7 @@ test_intel_mac_is_rejected_before_bootstrap_steps() {
     fi
 
     run_dir="$(single_run_dir "$log_parent")"
-    assert_file_contains "$run_dir/summary.txt" "outcome=failed"
+    assert_file_contains "$run_dir/summary.txt" "outcome=required_failure"
     assert_file_contains "$output_file" "Apple Silicon Macs only"
 }
 
@@ -646,6 +738,9 @@ run_test test_child_failure_records_failed_step
 run_test test_tee_failure_is_not_reported_as_success
 run_test test_reused_log_parent_keeps_runs_isolated
 run_test test_default_log_parent_is_durable_user_log_directory
+run_test test_optional_warning_changes_the_final_outcome
+run_test test_postflight_failure_preserves_final_state
+run_test test_trace_mode_warns_without_shell_argument_expansion
 run_test test_intel_mac_is_rejected_before_bootstrap_steps
 run_test test_direct_entrypoints_reject_intel_before_side_effects
 run_test test_carlo_baseline_runs_exact_profile_contract

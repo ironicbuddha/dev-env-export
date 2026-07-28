@@ -13,6 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
 PREREQUISITES_LIB="$SCRIPT_DIR/lib/bootstrap-prerequisites.sh"
+RUN_RECORDER_LIB="$SCRIPT_DIR/lib/bootstrap-run-recorder.sh"
 MANUAL_ACTION_EXIT=20
 BOOTSTRAP_PROFILE=""
 
@@ -20,6 +21,8 @@ BOOTSTRAP_PROFILE=""
 source "$PROFILE_LIB"
 # shellcheck disable=SC1090
 source "$PREREQUISITES_LIB"
+# shellcheck disable=SC1090
+source "$RUN_RECORDER_LIB"
 
 usage() {
     cat <<'EOF'
@@ -101,11 +104,10 @@ STEP_STATUS_FILE="$LOG_DIR/step-status.tsv"
 ENVIRONMENT_FILE="$LOG_DIR/environment.txt"
 SUMMARY_FILE="$LOG_DIR/summary.txt"
 BOOTSTRAP_OUTCOME="in_progress"
-FAILED_STEP=""
-CURRENT_STEP=""
-BOOTSTRAP_START_TS="$(date '+%Y-%m-%d %H:%M:%S %Z')"
 BOOTSTRAP_START_EPOCH="$(date '+%s')"
 LAST_STEP_STATUS=0
+LAST_STEP_DISPOSITION=""
+RUN_HAS_WARNINGS=0
 TRACE_STEPS="${DEV_ENV_TRACE_STEPS:-0}"
 
 COMMON_STEPS=(
@@ -176,6 +178,11 @@ append_environment_snapshot() {
     local local_host_name=""
     local translated="unknown"
 
+    if [ "$phase" = "postflight" ] &&
+            [ "${DEV_ENV_TEST_POSTFLIGHT_FAIL:-0}" = "1" ]; then
+        return 79
+    fi
+
     phase_title="$(printf '%s' "$phase" | tr '[:lower:]' '[:upper:]')"
     host_name="$(scutil --get ComputerName 2>/dev/null || hostname 2>/dev/null || echo unknown)"
     local_host_name="$(scutil --get LocalHostName 2>/dev/null || echo unknown)"
@@ -241,9 +248,6 @@ append_environment_snapshot() {
             echo ""
             echo "brew_prefix=$(brew --prefix 2>/dev/null || echo unknown)"
             echo "brew_version=$(command_output_line brew --version)"
-            echo ""
-            echo "[brew_config]"
-            brew config 2>/dev/null || true
         fi
         if command -v node >/dev/null 2>&1; then
             echo ""
@@ -277,81 +281,79 @@ record_step_status() {
         "$script_name" \
         "$exit_code" \
         "$status" \
-        "$step_log" >> "$STEP_STATUS_FILE"
+        "${step_log##*/}" >> "$STEP_STATUS_FILE"
 }
 
 write_summary() {
-    local exit_status="$1"
-    local end_ts=""
     local end_epoch=0
     local duration_seconds=0
-    local relevant_step=""
+    local summary_staging=""
 
-    end_ts="$(date '+%Y-%m-%d %H:%M:%S %Z')"
     end_epoch="$(date '+%s')"
     duration_seconds=$((end_epoch - BOOTSTRAP_START_EPOCH))
-    relevant_step="${FAILED_STEP:-$CURRENT_STEP}"
+    summary_staging="$(mktemp "$LOG_DIR/.summary.XXXXXX")"
 
     {
-        echo "run_id=$RUN_ID"
-        echo "started_at=$BOOTSTRAP_START_TS"
-        echo "ended_at=$end_ts"
+        cat "$BOOTSTRAP_RECORDER_STATE_FILE"
         echo "duration_seconds=$duration_seconds"
         echo "duration_human=$(format_duration "$duration_seconds")"
-        echo "outcome=$BOOTSTRAP_OUTCOME"
-        echo "bootstrap_profile=$BOOTSTRAP_PROFILE"
-        echo "exit_status=$exit_status"
-        echo "failed_step=${FAILED_STEP:-none}"
-        echo "relevant_step=${relevant_step:-none}"
         echo "trace_steps=$TRACE_STEPS"
-        echo "log_dir=$LOG_DIR"
-        echo "bootstrap_log=$BOOTSTRAP_LOG"
-        echo "environment_file=$ENVIRONMENT_FILE"
-        echo "step_status_file=$STEP_STATUS_FILE"
+        echo "log_dir=."
+        echo "bootstrap_log=bootstrap.log"
+        echo "environment_file=environment.txt"
+        echo "step_status_file=step-status.tsv"
+        echo "events_file=events.tsv"
+        echo "current_state_file=current-state.txt"
         echo ""
         echo "[step_status]"
         cat "$STEP_STATUS_FILE"
-    } > "$SUMMARY_FILE"
+    } > "$summary_staging"
+    chmod 0600 "$summary_staging"
+    mv -f "$summary_staging" "$SUMMARY_FILE"
 }
 
 on_exit() {
     local status="$1"
-    local relevant_step=""
+    local postflight_status=0
 
-    append_environment_snapshot "postflight"
-    write_summary "$status"
+    trap - EXIT
+    set +e
 
-    relevant_step="${FAILED_STEP:-$CURRENT_STEP}"
+    if [ "$BOOTSTRAP_OUTCOME" = "in_progress" ]; then
+        if [ "$status" -eq 0 ]; then
+            BOOTSTRAP_OUTCOME="completed"
+        else
+            BOOTSTRAP_OUTCOME="required_failure"
+            BOOTSTRAP_RECORDER_FAILURE_CLASS="internal_failure"
+            BOOTSTRAP_RECORDER_FAILURE_CODE="bootstrap_failed_before_step"
+            BOOTSTRAP_RECORDER_RAW_STATUS="$status"
+            BOOTSTRAP_RECORDER_RECOVERY="retry_profile"
+            BOOTSTRAP_RECORDER_RELEVANT_LOG="bootstrap.log"
+        fi
+    fi
+    if [ "$BOOTSTRAP_OUTCOME" = "completed" ] &&
+            [ "$RUN_HAS_WARNINGS" -eq 1 ]; then
+        BOOTSTRAP_OUTCOME="completed_with_warnings"
+    fi
 
-    echo ""
-    echo "Bootstrap logs: $LOG_DIR"
-    echo "Main log: $BOOTSTRAP_LOG"
-    echo "Environment snapshot: $ENVIRONMENT_FILE"
-    echo "Step status: $STEP_STATUS_FILE"
-    echo "Summary: $SUMMARY_FILE"
+    # Persist the terminal outcome before best-effort postflight probing.
+    bootstrap_recorder_prepare_final_state "$BOOTSTRAP_OUTCOME" "$status"
 
-    case "$BOOTSTRAP_OUTCOME" in
-        completed)
-            echo "Bootstrap outcome: completed"
-            ;;
-        manual_action_required)
-            echo "Bootstrap outcome: manual action required"
-            ;;
-        failed)
-            echo "Bootstrap outcome: failed"
-            if [ -n "$relevant_step" ]; then
-                echo "Failed step: $relevant_step"
-            fi
-            ;;
-        *)
-            if [ "$status" -ne 0 ]; then
-                echo "Bootstrap outcome: failed"
-                if [ -n "$relevant_step" ]; then
-                    echo "Failed step: $relevant_step"
-                fi
-            fi
-            ;;
-    esac
+    append_environment_snapshot "postflight" || postflight_status=$?
+    if [ "$postflight_status" -ne 0 ]; then
+        bootstrap_recorder_note_warning \
+            postflight_probe_failed \
+            "Postflight environment probing failed; durable run state was preserved." \
+            environment.txt
+        if [ "$BOOTSTRAP_OUTCOME" = "completed" ]; then
+            BOOTSTRAP_OUTCOME="completed_with_warnings"
+        fi
+    fi
+
+    bootstrap_recorder_finalize "$BOOTSTRAP_OUTCOME" "$status"
+    write_summary
+    bootstrap_recorder_render_final "$LOG_DIR"
+    exit "$status"
 }
 
 run_step() {
@@ -367,6 +369,13 @@ run_step() {
     local end_epoch=0
     local duration_seconds=0
     local status_label=""
+    local disposition=""
+    local failure_class="none"
+    local failure_code="step_completed"
+    local recovery="none"
+    local recorder_message="Step completed."
+    local step_log_ref="${script_name%.sh}.log"
+    local step_warning_count=0
     local pipe_status=()
     local step_args=()
 
@@ -375,9 +384,13 @@ run_step() {
         exit 1
     fi
 
-    CURRENT_STEP="$script_name"
     start_ts="$(date '+%Y-%m-%d %H:%M:%S %Z')"
     start_epoch="$(date '+%s')"
+    bootstrap_recorder_begin_step "$script_name" "$step_log_ref"
+    bootstrap_recorder_begin_operation \
+        execute_step \
+        "$script_name" \
+        "$step_log_ref"
 
     echo ""
     echo "========================================"
@@ -386,7 +399,8 @@ run_step() {
     echo ""
     echo "Step log: $step_log"
     if [ "$TRACE_STEPS" = "1" ]; then
-        echo "Trace mode: enabled (DEV_ENV_TRACE_STEPS=1)"
+        echo "WARNING: Trace mode adds local-sensitive recorder detail."
+        echo "WARNING: It does not capture shell-expanded command arguments and is not automatically safe to share."
     fi
 
     {
@@ -406,18 +420,10 @@ run_step() {
     esac
 
     set +e
-    if [ "$TRACE_STEPS" = "1" ]; then
-        if [ "${#step_args[@]}" -gt 0 ]; then
-            bash -x "$script_path" "${step_args[@]}" 2>&1 | tee -a "$step_log"
-        else
-            bash -x "$script_path" 2>&1 | tee -a "$step_log"
-        fi
+    if [ "${#step_args[@]}" -gt 0 ]; then
+        bash "$script_path" "${step_args[@]}" 2>&1 | tee -a "$step_log"
     else
-        if [ "${#step_args[@]}" -gt 0 ]; then
-            bash "$script_path" "${step_args[@]}" 2>&1 | tee -a "$step_log"
-        else
-            bash "$script_path" 2>&1 | tee -a "$step_log"
-        fi
+        bash "$script_path" 2>&1 | tee -a "$step_log"
     fi
     pipe_status=("${PIPESTATUS[@]}")
     set -e
@@ -438,15 +444,61 @@ run_step() {
 
     if [ "$tee_status" -ne 0 ]; then
         status_label="logging_failed(script=$script_status tee=$tee_status)"
+        disposition="logging_failure"
+        failure_class="internal_failure"
+        failure_code="step_log_write_failed"
+        recovery="retry_profile"
+        recorder_message="The step log pipeline failed."
     elif [ "$status" -eq 0 ]; then
-        status_label="ok"
+        step_warning_count="$(grep -Ec '^[[:space:]]*\[WARN\]' "$step_log" || true)"
+        if [ "$step_warning_count" -gt 0 ]; then
+            status_label="completed_with_warning($step_warning_count)"
+            disposition="optional_degraded"
+            failure_class="optional_degraded"
+            failure_code="step_reported_warning"
+            recovery="retry_profile"
+            recorder_message="The step completed with non-gating warnings."
+            RUN_HAS_WARNINGS=1
+        else
+            status_label="ok"
+            disposition="satisfied"
+        fi
     elif [ "$status" -eq "$MANUAL_ACTION_EXIT" ]; then
         status_label="manual_action_required($status)"
+        disposition="manual_action"
+        failure_class="manual_action"
+        failure_code="xcode_clt_manual_action"
+        recovery="manual_then_retry"
+        recorder_message="The step requires a manual prerequisite."
     else
         status_label="failed($status)"
+        disposition="required_failure"
+        failure_class="internal_failure"
+        failure_code="step_command_failed"
+        recovery="retry_profile"
+        recorder_message="The required step failed."
     fi
+    LAST_STEP_DISPOSITION="$disposition"
 
     record_step_status "$script_name" "$start_ts" "$end_ts" "$duration_seconds" "$status" "$status_label" "$step_log"
+    bootstrap_recorder_end_operation \
+        "$disposition" \
+        "$failure_class" \
+        "$failure_code" \
+        "$status" \
+        "$recovery" \
+        "$recorder_message" \
+        "$step_log_ref" \
+        "$step_warning_count"
+    bootstrap_recorder_end_step \
+        "$script_name" \
+        "$disposition" \
+        "$failure_class" \
+        "$failure_code" \
+        "$status" \
+        "$recovery" \
+        "$recorder_message" \
+        "$step_log_ref"
 
     {
         echo ""
@@ -472,6 +524,13 @@ run_step() {
 mkdir -p "$LOG_DIR"
 printf 'start_time\tend_time\tduration_seconds\tstep\texit_code\tstatus\tlog_file\n' > "$STEP_STATUS_FILE"
 : > "$ENVIRONMENT_FILE"
+bootstrap_recorder_begin_run \
+    "$LOG_DIR" \
+    "$RUN_ID" \
+    "$BOOTSTRAP_PROFILE" \
+    "$REPO_ROOT" \
+    "/bin/bash scripts/00-bootstrap.sh --profile $BOOTSTRAP_PROFILE"
+bootstrap_recorder_set_step_plan "${STEPS[@]}"
 append_environment_snapshot "preflight"
 exec > >(tee -a "$BOOTSTRAP_LOG") 2>&1
 trap 'on_exit "$?"' EXIT
@@ -485,38 +544,50 @@ echo "This will run the selected profile steps in order."
 echo "If macOS prompts for Xcode Command Line Tools, complete that install and"
 echo "then re-run this script with the same --profile value."
 echo "Logs for this run will be written to: $LOG_DIR"
-echo "Artifacts: bootstrap.log, environment.txt, step-status.tsv, summary.txt, and per-step logs."
+echo "Local diagnostic bundle privacy: local-sensitive"
+echo "Artifacts: bootstrap.log, environment.txt, events.tsv, current-state.txt,"
+echo "step-status.tsv, summary.txt, and per-step logs."
 if [ "$TRACE_STEPS" = "1" ]; then
-    echo "Step trace logging is enabled."
+    echo "WARNING: DEV_ENV_TRACE_STEPS=1 is enabled."
+    echo "WARNING: Trace metadata is local-sensitive. Sanitize before sharing."
+    bootstrap_recorder_emit_event \
+        trace_enabled \
+        warning \
+        satisfied \
+        trace_is_local_sensitive \
+        0 \
+        none \
+        "Trace metadata is local-sensitive." \
+        bootstrap.log
+    bootstrap_recorder_write_current_state
 else
-    echo "Set DEV_ENV_TRACE_STEPS=1 for command-by-command step tracing."
+    echo "Set DEV_ENV_TRACE_STEPS=1 for additional orchestration trace metadata."
 fi
 
 if [[ "$(uname)" != "Darwin" ]]; then
     echo ""
     echo "ERROR: This bootstrap flow is intended for macOS only."
-    BOOTSTRAP_OUTCOME="failed"
+    BOOTSTRAP_OUTCOME="required_failure"
     exit 1
 fi
 
 if ! bootstrap_ensure_apple_silicon; then
-    BOOTSTRAP_OUTCOME="failed"
+    BOOTSTRAP_OUTCOME="required_failure"
     exit 1
 fi
 
 for step in "${STEPS[@]}"; do
     if ! run_step "$step"; then
         if [ "$LAST_STEP_STATUS" -eq "$MANUAL_ACTION_EXIT" ]; then
-            echo ""
-            echo "Manual action required:"
-            echo "  - Finish installing Xcode Command Line Tools."
-            echo "  - Re-run /bin/bash scripts/00-bootstrap.sh --profile $BOOTSTRAP_PROFILE after the install completes."
             BOOTSTRAP_OUTCOME="manual_action_required"
             exit "$MANUAL_ACTION_EXIT"
         fi
 
-        BOOTSTRAP_OUTCOME="failed"
-        FAILED_STEP="$step"
+        if [ "$LAST_STEP_DISPOSITION" = "logging_failure" ]; then
+            BOOTSTRAP_OUTCOME="logging_failure"
+        else
+            BOOTSTRAP_OUTCOME="required_failure"
+        fi
         exit 1
     fi
 
@@ -528,46 +599,8 @@ for step in "${STEPS[@]}"; do
 done
 
 BOOTSTRAP_OUTCOME="completed"
-CURRENT_STEP=""
 
 echo ""
 echo "========================================"
 echo "Bootstrap Complete"
 echo "========================================"
-echo ""
-case "$BOOTSTRAP_PROFILE" in
-    carlo-baseline)
-        echo "Recommended manual follow-up:"
-        echo "  - exec zsh"
-        echo "  - gh auth login --web --git-protocol https"
-        echo "  - gh auth setup-git"
-        echo "  - aws configure"
-        echo "  - launch gemini and complete OAuth if prompted"
-        echo "  - gws auth setup"
-        echo "  - codex login"
-        echo "  - claude auth login"
-        echo "  - open 1Password and confirm op account list works"
-        echo ""
-        echo "Zed trust follow-up:"
-        echo "  - Open /Users/carlo/dev in Zed"
-        echo "  - Use the Restricted Mode prompt or workspace::ToggleWorktreeSecurity"
-        echo "  - Trust all projects in the /Users/carlo/dev folder"
-        echo ""
-        echo "Optional next steps:"
-        echo "  - gemini skills list"
-        echo "  - ./scripts/08-op-inject-template.sh --help"
-        echo "  - ./scripts/09-inventory-ai-tooling.sh"
-        ;;
-    shared-baseline)
-        echo "Recommended manual follow-up:"
-        echo "  - exec zsh"
-        echo "  - git config --global user.name \"Your Name\""
-        echo "  - git config --global user.email \"you@example.com\""
-        echo "  - gh auth login --web --git-protocol https"
-        echo "  - gh auth setup-git"
-        echo "  - vercel login"
-        echo "  - codex login"
-        echo "  - complete any Zed, Warp, Raycast, Hidden Bar, Hammerspoon, or GitHub Desktop first-launch prompts"
-        echo "  - store credentials in 1Password or the user's preferred secret manager"
-        ;;
-esac

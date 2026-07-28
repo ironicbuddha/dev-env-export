@@ -33,6 +33,11 @@ run_suite \
 
 run_suite \
     "helper" \
+    "run-recorder contract tests" \
+    "$REPO_ROOT/tests/run_recorder_contract_test.sh"
+
+run_suite \
+    "helper" \
     "managed-artifact contract tests" \
     "$REPO_ROOT/tests/managed_artifact_contract_test.sh"
 

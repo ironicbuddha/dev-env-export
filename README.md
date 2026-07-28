@@ -142,15 +142,33 @@ Each bootstrap run writes artifacts to its own unique
 default, outside the extracted ZIP or checkout.
 If a step blows up on a fresh VM, keep that log directory around so the failure
 can be diagnosed without guessing.
-Each run now leaves behind `bootstrap.log`, `environment.txt`,
-`step-status.tsv`, `summary.txt`, and one log per step so you can see both the
-machine context and the exact step outcome/duration.
+Each run now leaves behind `bootstrap.log`, `environment.txt`, `events.tsv`,
+`current-state.txt`, `step-status.tsv`, `summary.txt`, and one log per step.
+The directory is private and marked `local-sensitive`; raw logs and environment
+evidence should not be pasted into a public issue.
 If you want the logs somewhere else, set `DEV_ENV_LOG_DIR=/path/to/logs`
 before running `/bin/bash scripts/00-bootstrap.sh`. The override is treated as
 a parent directory; every invocation still creates a unique `bootstrap-*`
 child so reruns never mix logs and status files.
-If you want command-by-command tracing inside each step, run
+The parent also contains `latest-run.txt`, whose relative directory name points
+to the newest run without making copied artifacts depend on the original path.
+
+Create a deterministic, whitelist-based shareable bundle explicitly:
+
+```bash
+/bin/bash scripts/create-shareable-bootstrap-bundle.sh \
+  --run-dir ~/Library/Logs/dev-env-bootstrap/bootstrap-<run-id> \
+  --output-dir /path/to/new-shareable-directory
+```
+
+The shareable bundle excludes raw transcripts, environment snapshots, per-step
+logs, event messages and targets, personal paths, host/user identifiers, and
+Git status filenames.
+
+If you want additional local-sensitive orchestration trace metadata, run
 `DEV_ENV_TRACE_STEPS=1 /bin/bash scripts/00-bootstrap.sh --profile carlo-baseline`.
+Trace mode warns before execution and never invokes `bash -x`, so expanded
+shell arguments are not added to the recorder.
 
 The scripts are intended to be rerunnable. Re-running them should skip
 already-installed packages and unchanged config where practical. If you want
