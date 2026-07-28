@@ -1,0 +1,32 @@
+name: Bootstrap contracts
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bootstrap-contracts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hermetic-contracts:
+    name: Hermetic contracts on Apple Silicon
+    runs-on: macos-15
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v6
+
+      - name: Verify the runner architecture
+        run: test "$(uname -m)" = "arm64"
+
+      - name: Run the local contract suite
+        env:
+          CI: "1"
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: /bin/bash tests/run.sh

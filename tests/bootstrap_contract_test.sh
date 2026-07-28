@@ -6,6 +6,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/dev-env-bootstrap-tests.XXXXXX")"
 TEST_COUNT=0
 
+# shellcheck disable=SC1091
+source "$REPO_ROOT/tests/lib/fresh-process-harness.sh"
+
 cleanup() {
     rm -rf "$TEST_TMP_ROOT"
 }
@@ -36,11 +39,85 @@ assert_file_contains() {
     fi
 }
 
+expected_step_sequence() {
+    local canonical_profile="$1"
+
+    case "$canonical_profile" in
+        carlo-baseline)
+            printf '%s\n' \
+                00-check-prerequisites.sh \
+                01-install-brew.sh \
+                02-install-cli-tools.sh \
+                03-install-npm-globals.sh \
+                04-install-pip-packages.sh \
+                05-setup-dotfiles.sh \
+                06-setup-claude.sh \
+                07-setup-1password.sh \
+                08-setup-gemini.sh \
+                14-install-codex-skills.sh \
+                10-check-paths.sh \
+                12-smoke-test.sh
+            ;;
+        shared-baseline)
+            printf '%s\n' \
+                00-check-prerequisites.sh \
+                01-install-brew.sh \
+                02-install-cli-tools.sh \
+                03-install-npm-globals.sh \
+                04-install-pip-packages.sh \
+                15-setup-shared-shell.sh \
+                10-check-paths.sh \
+                12-smoke-test.sh
+            ;;
+        *)
+            fail "unknown canonical profile in expected sequence: $canonical_profile"
+            ;;
+    esac
+}
+
+expected_step_invocations() {
+    local canonical_profile="$1"
+
+    printf '%s\tprofile=%s\targs=%s\n' \
+        01-install-brew.sh "$canonical_profile" ""
+    printf '%s\tprofile=%s\targs=%s\n' \
+        02-install-cli-tools.sh "$canonical_profile" "--profile $canonical_profile"
+    printf '%s\tprofile=%s\targs=%s\n' \
+        03-install-npm-globals.sh "$canonical_profile" "--profile $canonical_profile"
+    printf '%s\tprofile=%s\targs=%s\n' \
+        04-install-pip-packages.sh "$canonical_profile" "--profile $canonical_profile"
+
+    case "$canonical_profile" in
+        carlo-baseline)
+            printf '%s\tprofile=%s\targs=%s\n' \
+                05-setup-dotfiles.sh "$canonical_profile" ""
+            printf '%s\tprofile=%s\targs=%s\n' \
+                06-setup-claude.sh "$canonical_profile" ""
+            printf '%s\tprofile=%s\targs=%s\n' \
+                07-setup-1password.sh "$canonical_profile" ""
+            printf '%s\tprofile=%s\targs=%s\n' \
+                08-setup-gemini.sh "$canonical_profile" ""
+            printf '%s\tprofile=%s\targs=%s\n' \
+                14-install-codex-skills.sh "$canonical_profile" ""
+            ;;
+        shared-baseline)
+            printf '%s\tprofile=%s\targs=%s\n' \
+                15-setup-shared-shell.sh "$canonical_profile" ""
+            ;;
+    esac
+
+    printf '%s\tprofile=%s\targs=%s\n' \
+        10-check-paths.sh "$canonical_profile" "--profile $canonical_profile"
+    printf '%s\tprofile=%s\targs=%s\n' \
+        12-smoke-test.sh "$canonical_profile" "--profile $canonical_profile"
+}
+
 make_fixture() {
     local fixture_root="$1"
     local script_name=""
 
-    mkdir -p "$fixture_root/scripts/lib" "$fixture_root/fake-bin" "$fixture_root/home"
+    bootstrap_test_case_init "$fixture_root"
+    mkdir -p "$fixture_root/scripts/lib"
     cp "$REPO_ROOT/scripts/00-bootstrap.sh" "$fixture_root/scripts/00-bootstrap.sh"
     cp "$REPO_ROOT/scripts/lib/bootstrap-profile.sh" "$fixture_root/scripts/lib/bootstrap-profile.sh"
 
@@ -81,26 +158,50 @@ run_bootstrap() {
     local fixture_root="$1"
     local log_parent="$2"
     local output_file="$3"
+    local profile_input="${4:-shared-baseline}"
+
+    run_bootstrap_with_args \
+        "$fixture_root" \
+        "$log_parent" \
+        "$output_file" \
+        --profile \
+        "$profile_input"
+}
+
+run_bootstrap_with_args() {
+    local fixture_root="$1"
+    local log_parent="$2"
+    local output_file="$3"
     local status=0
     local real_tee=""
     local env_args=()
+    shift 3
 
     real_tee="$(command -v tee)"
     env_args=(
-        "PATH=$fixture_root/fake-bin:$PATH"
-        "HOME=$fixture_root/home"
         "TEST_ACTION_LOG=$fixture_root/actions.log"
         "TEST_STEP_ORDER=$fixture_root/steps.log"
+        "TEST_STEP_INVOCATION_LOG=$fixture_root/step-invocations.log"
         "TEST_FAKE_CLANG=$fixture_root/fake-bin/clang"
         "TEST_REAL_TEE=$real_tee"
+        "TEST_CLT_STATE=${TEST_CLT_STATE:-usable}"
+        "TEST_FAIL_STEP=${TEST_FAIL_STEP:-}"
+        "TEST_FAIL_STATUS=${TEST_FAIL_STATUS:-1}"
+        "TEST_FAIL_TEE_STEP=${TEST_FAIL_TEE_STEP:-}"
+        "TEST_RUN_MARKER=${TEST_RUN_MARKER:-}"
+        "TEST_UNAME_MACHINE=${TEST_UNAME_MACHINE:-arm64}"
+        "TEST_HW_OPTIONAL_ARM64=${TEST_HW_OPTIONAL_ARM64:-1}"
     )
     if [ -n "$log_parent" ]; then
         env_args+=("DEV_ENV_LOG_DIR=$log_parent")
     fi
 
-    if env "${env_args[@]}" \
-            /bin/bash "$fixture_root/scripts/00-bootstrap.sh" --profile shared-baseline \
-            > "$output_file" 2>&1; then
+    if bootstrap_test_run_with_env \
+            "$fixture_root" \
+            "$output_file" \
+            "${env_args[@]}" \
+            -- \
+            /bin/bash "$fixture_root/scripts/00-bootstrap.sh" "$@"; then
         status=0
     else
         status=$?
@@ -115,11 +216,14 @@ run_direct_entrypoint() {
     local output_file="$3"
     local status=0
 
-    if PATH="$fixture_root/fake-bin:$PATH" \
-            HOME="$fixture_root/home" \
-            TEST_ACTION_LOG="$fixture_root/actions.log" \
-            /bin/bash "$fixture_root/scripts/$script_name" \
-            > "$output_file" 2>&1; then
+    if bootstrap_test_run_with_env \
+            "$fixture_root" \
+            "$output_file" \
+            "TEST_ACTION_LOG=$fixture_root/actions.log" \
+            "TEST_UNAME_MACHINE=${TEST_UNAME_MACHINE:-arm64}" \
+            "TEST_HW_OPTIONAL_ARM64=${TEST_HW_OPTIONAL_ARM64:-1}" \
+            -- \
+            /bin/bash "$fixture_root/scripts/$script_name"; then
         status=0
     else
         status=$?
@@ -408,6 +512,91 @@ test_intel_mac_is_rejected_before_bootstrap_steps() {
     assert_file_contains "$output_file" "Apple Silicon Macs only"
 }
 
+assert_profile_contract() {
+    local fixture_name="$1"
+    local profile_input="$2"
+    local canonical_profile="$3"
+    local fixture_root="$TEST_TMP_ROOT/$fixture_name"
+    local log_parent="$fixture_root/logs"
+    local output_file="$fixture_root/output.txt"
+    local run_dir=""
+    local status=0
+
+    make_fixture "$fixture_root"
+    mkdir -p "$log_parent"
+
+    if TEST_CLT_STATE=usable \
+            run_bootstrap "$fixture_root" "$log_parent" "$output_file" "$profile_input"; then
+        status=0
+    else
+        status=$?
+    fi
+
+    assert_equals "0" "$status" "$profile_input should complete"
+    run_dir="$(single_run_dir "$log_parent")"
+    assert_file_contains "$run_dir/summary.txt" "bootstrap_profile=$canonical_profile"
+    assert_equals \
+        "$(expected_step_sequence "$canonical_profile")" \
+        "$(tail -n +2 "$run_dir/step-status.tsv" | cut -f4)" \
+        "$profile_input should run the exact $canonical_profile step sequence"
+    assert_equals \
+        "$(expected_step_invocations "$canonical_profile")" \
+        "$(cat "$fixture_root/step-invocations.log")" \
+        "$profile_input should forward only canonical profile arguments"
+}
+
+test_carlo_baseline_runs_exact_profile_contract() {
+    assert_profile_contract carlo-canonical carlo-baseline carlo-baseline
+}
+
+test_carlo_alias_runs_exact_profile_contract() {
+    assert_profile_contract carlo-alias carlo carlo-baseline
+}
+
+test_shared_baseline_runs_exact_profile_contract() {
+    assert_profile_contract shared-canonical shared-baseline shared-baseline
+}
+
+test_shared_alias_runs_exact_profile_contract() {
+    assert_profile_contract shared-alias shared shared-baseline
+}
+
+assert_invalid_profile_starts_no_child() {
+    local fixture_name="$1"
+    shift
+    local fixture_root="$TEST_TMP_ROOT/$fixture_name"
+    local log_parent="$fixture_root/logs"
+    local output_file="$fixture_root/output.txt"
+    local status=0
+
+    make_fixture "$fixture_root"
+    mkdir -p "$log_parent"
+
+    if run_bootstrap_with_args "$fixture_root" "$log_parent" "$output_file" "$@"; then
+        status=0
+    else
+        status=$?
+    fi
+
+    assert_equals "2" "$status" "invalid profile input should fail before setup"
+    if [ -s "$fixture_root/steps.log" ] ||
+            [ -s "$fixture_root/step-invocations.log" ] ||
+            [ -s "$fixture_root/actions.log" ]; then
+        fail "invalid profile input started a bootstrap child or prerequisite probe"
+    fi
+    if find "$log_parent" -mindepth 1 -print -quit | grep -q .; then
+        fail "invalid profile input created a run directory"
+    fi
+}
+
+test_missing_profile_starts_no_child() {
+    assert_invalid_profile_starts_no_child missing-profile
+}
+
+test_unknown_profile_starts_no_child() {
+    assert_invalid_profile_starts_no_child unknown-profile --profile not-a-profile
+}
+
 run_test() {
     local name="$1"
 
@@ -425,5 +614,11 @@ run_test test_reused_log_parent_keeps_runs_isolated
 run_test test_default_log_parent_is_durable_user_log_directory
 run_test test_intel_mac_is_rejected_before_bootstrap_steps
 run_test test_direct_entrypoints_reject_intel_before_side_effects
+run_test test_carlo_baseline_runs_exact_profile_contract
+run_test test_carlo_alias_runs_exact_profile_contract
+run_test test_shared_baseline_runs_exact_profile_contract
+run_test test_shared_alias_runs_exact_profile_contract
+run_test test_missing_profile_starts_no_child
+run_test test_unknown_profile_starts_no_child
 
 echo "1..$TEST_COUNT"
