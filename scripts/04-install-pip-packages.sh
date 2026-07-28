@@ -14,6 +14,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
 RUNTIME_LIB="$SCRIPT_DIR/lib/runtime-environment.sh"
+MANAGED_PYTHON_LIB="$SCRIPT_DIR/lib/managed-python-environment.sh"
 BOOTSTRAP_PROFILE=""
 
 # shellcheck disable=SC1090
@@ -99,20 +100,7 @@ fi
 UV_ENV_DIR="$(bootstrap_uv_environment_dir)"
 
 echo "Using Homebrew Python: $("$PYTHON_BIN" --version) [$PYTHON_BIN]"
-echo "Creating or updating bootstrap uv environment: $UV_ENV_DIR"
-if ! uv venv --python "$PYTHON_BIN" "$UV_ENV_DIR"; then
-    echo "ERROR: uv could not create the bootstrap Python environment."
-    exit 1
-fi
-
 UV_PYTHON_BIN="$UV_ENV_DIR/bin/python"
-if [ ! -x "$UV_PYTHON_BIN" ]; then
-    echo "ERROR: bootstrap uv environment does not contain Python: $UV_PYTHON_BIN"
-    exit 1
-fi
-
-echo "Using bootstrap Python: $UV_PYTHON_BIN"
-echo ""
 
 # -----------------------------------------------------------------------------
 # Install Python packages into the bootstrap-owned uv environment.
@@ -166,14 +154,25 @@ case "$BOOTSTRAP_PROFILE" in
         ;;
 esac
 
+MANAGED_PYTHON_ARGS=(
+    ensure
+    --python "$PYTHON_BIN"
+    --environment "$UV_ENV_DIR"
+    --profile "$BOOTSTRAP_PROFILE"
+    --source-id "$(cd "$SCRIPT_DIR/.." && pwd)"
+    --run-id "${DEV_ENV_BOOTSTRAP_RUN_ID:-standalone-$(date '+%Y%m%d-%H%M%S')-$$}"
+)
 for package in "${PIP_PACKAGES[@]}"; do
-    if uv pip show --python "$UV_PYTHON_BIN" "$package" &> /dev/null; then
-        echo "  [SKIP] $package is already installed"
-    else
-        echo "  [INSTALL] Installing $package..."
-        uv pip install --python "$UV_PYTHON_BIN" "$package"
-    fi
+    MANAGED_PYTHON_ARGS+=(--package "$package")
 done
+
+if ! /bin/bash "$MANAGED_PYTHON_LIB" "${MANAGED_PYTHON_ARGS[@]}"; then
+    echo "ERROR: bootstrap-managed Python environment did not converge."
+    exit 1
+fi
+
+echo "Using bootstrap Python: $UV_PYTHON_BIN"
+echo ""
 
 echo ""
 echo "========================================"

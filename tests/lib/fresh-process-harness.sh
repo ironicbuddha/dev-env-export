@@ -3,6 +3,7 @@
 
 BOOTSTRAP_TEST_HARNESS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BOOTSTRAP_TEST_STATEFUL_FAKE="$BOOTSTRAP_TEST_HARNESS_DIR/../fakes/stateful-command-adapter.sh"
+BOOTSTRAP_TEST_STATEFUL_UV="$BOOTSTRAP_TEST_HARNESS_DIR/../fakes/stateful-uv.sh"
 
 bootstrap_test_case_init() {
     local case_root="$1"
@@ -22,6 +23,14 @@ bootstrap_test_install_stateful_fake() {
     local destination="$case_root/fake-bin/$command_name"
 
     cp "$BOOTSTRAP_TEST_STATEFUL_FAKE" "$destination"
+    chmod +x "$destination"
+}
+
+bootstrap_test_install_stateful_uv() {
+    local case_root="$1"
+    local destination="$case_root/fake-bin/uv"
+
+    cp "$BOOTSTRAP_TEST_STATEFUL_UV" "$destination"
     chmod +x "$destination"
 }
 

@@ -52,6 +52,11 @@ run_suite \
     "$REPO_ROOT/tests/uv_environment_contract_test.sh"
 
 run_suite \
+    "step-real-adapter" \
+    "real uv environment regression" \
+    "$REPO_ROOT/tests/uv_environment_real_regression_test.sh"
+
+run_suite \
     "classified-per-test" \
     "Skill Hub contract tests" \
     "$REPO_ROOT/tests/skill_hub_contract_test.sh"
