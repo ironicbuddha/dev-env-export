@@ -1,6 +1,10 @@
 #!/bin/bash
 # Shared Homebrew, nvm, Node, PATH, and Python runtime discovery.
 
+RUNTIME_ENVIRONMENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$RUNTIME_ENVIRONMENT_DIR/operation-policy.sh"
+
 bootstrap_load_homebrew() {
     if command -v brew >/dev/null 2>&1; then
         eval "$(brew shellenv)"
@@ -69,7 +73,7 @@ bootstrap_path_prepend_distinct() {
 
 bootstrap_activate_nvm_node() {
     local expected_version="$1"
-    local actual_version=""
+    local actual_version="" node_path="" npm_path=""
 
     nvm use "$expected_version" >/dev/null 2>&1 || return 1
 
@@ -78,7 +82,11 @@ bootstrap_activate_nvm_node() {
         hash -r 2>/dev/null || true
     fi
 
-    command -v node >/dev/null 2>&1 || return 1
+    node_path="$(command -v node 2>/dev/null)" || return 1
+    npm_path="$(command -v npm 2>/dev/null)" || return 1
+    [ -n "${NVM_BIN:-}" ] || return 1
+    [ "$node_path" = "$NVM_BIN/node" ] || return 1
+    [ "$npm_path" = "$NVM_BIN/npm" ] || return 1
     actual_version="$(node --version 2>/dev/null)" || return 1
     [ "${actual_version#v}" = "$expected_version" ]
 }
@@ -114,23 +122,73 @@ bootstrap_nvm_default_is_exact() {
 }
 
 bootstrap_ensure_nvm_node_runtime() {
-    local expected_version="$1"
+    local expected_version="$1" status=0
 
     if ! bootstrap_nvm_exact_runtime_is_installed "$expected_version"; then
         echo "Installing Node.js v${expected_version} via nvm..."
-        nvm install "$expected_version" || return 1
+        bootstrap_operation_record operation_start changed none operation_started 0 none \
+            nvm_runtime_ensure "$expected_version" "nvm runtime installation started."
+        if nvm install "$expected_version"; then
+            :
+        else
+            status=$?
+            bootstrap_operation_record operation_end required_failure transient_external \
+                nvm_runtime_install_failed "$status" retry_profile nvm_runtime_ensure "$expected_version" \
+                "nvm runtime installation failed; retry the Bootstrap Profile after inspecting its log."
+            return "$status"
+        fi
+        bootstrap_operation_record operation_end changed none operation_completed 0 none \
+            nvm_runtime_ensure "$expected_version" "nvm runtime installation completed."
     else
         echo "  [SKIP] Node.js v${expected_version} already installed via nvm"
+        bootstrap_operation_record operation_end satisfied none nvm_runtime_present 0 none \
+            nvm_runtime_ensure "$expected_version" "Exact nvm runtime is already installed."
     fi
 
-    bootstrap_nvm_exact_runtime_is_installed "$expected_version" || return 1
+    if ! bootstrap_nvm_exact_runtime_is_installed "$expected_version"; then
+        bootstrap_operation_record operation_end required_failure managed_state_invalid \
+            nvm_runtime_post_install_verify_failed 1 resolve_conflict nvm_runtime_ensure "$expected_version" \
+            "nvm runtime is not available after installation."
+        return 1
+    fi
 
     if ! bootstrap_nvm_default_is_exact "$expected_version"; then
-        nvm alias default "$expected_version" >/dev/null 2>&1 || return 1
+        bootstrap_operation_record operation_start changed none operation_started 0 none \
+            nvm_default_alias_ensure default "nvm default alias update started."
+        if nvm alias default "$expected_version" >/dev/null 2>&1; then
+            bootstrap_operation_record operation_end changed none operation_completed 0 none \
+                nvm_default_alias_ensure default "nvm default alias now targets the exact runtime."
+        else
+            status=$?
+            bootstrap_operation_record operation_end required_failure managed_state_invalid \
+                nvm_default_alias_update_failed "$status" retry_profile nvm_default_alias_ensure default \
+                "nvm default alias could not be updated."
+            return "$status"
+        fi
+    else
+        bootstrap_operation_record operation_end satisfied none nvm_default_alias_present 0 none \
+            nvm_default_alias_ensure default "nvm default alias already targets the exact runtime."
     fi
 
-    bootstrap_nvm_default_is_exact "$expected_version" || return 1
-    bootstrap_activate_nvm_node "$expected_version"
+    if ! bootstrap_nvm_default_is_exact "$expected_version"; then
+        bootstrap_operation_record operation_end required_failure managed_state_invalid \
+            nvm_default_alias_post_update_verify_failed 1 resolve_conflict nvm_default_alias_ensure default \
+            "nvm default alias does not target the exact runtime after update."
+        return 1
+    fi
+    bootstrap_operation_record operation_start changed none operation_started 0 none \
+        nvm_activation_ensure "$expected_version" "nvm runtime activation started."
+    if bootstrap_activate_nvm_node "$expected_version"; then
+        bootstrap_operation_record operation_end changed none operation_completed 0 none \
+            nvm_activation_ensure "$expected_version" "Exact nvm runtime and npm are active."
+        return 0
+    else
+        status=$?
+    fi
+    bootstrap_operation_record operation_end required_failure managed_state_invalid \
+        nvm_activation_verify_failed "$status" resolve_conflict nvm_activation_ensure "$expected_version" \
+        "Exact nvm runtime activation did not yield matching node and npm binaries."
+    return "$status"
 }
 
 bootstrap_uv_environment_dir() {

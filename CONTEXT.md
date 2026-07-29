@@ -7,8 +7,8 @@ Before starting work in this repository, load the most recent handoff named
 below. Older external handoffs under `/Users/carlo/dev/handoff-docs` are
 historical continuity sources only.
 
-Most recent handoff: `.handoff/carlo-baseline-bootstrap-handoff-2026-07-27-161233.md`
-Last updated: 2026-07-27 16:12 SAST
+Most recent handoff: `.handoff/bootstrap-resilience-implementation-handoff-2026-07-28-130105.md`
+Last updated: 2026-07-28 13:01 SAST
 <!-- END HANDOFF DISCOVERY -->
 
 ## Project Snapshot

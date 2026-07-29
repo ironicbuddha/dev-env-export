@@ -12,6 +12,7 @@ ACTION_LOG="$FIXTURE_ROOT/actions.log"
 NPM_PREFIX="$FIXTURE_ROOT/home/.nvm/versions/node/v24.18.0"
 NPM_GLOBAL_ROOT="$NPM_PREFIX/lib/node_modules"
 NPMRC_BEFORE="$FIXTURE_ROOT/npmrc-before"
+EVENTS_FILE="$FIXTURE_ROOT/events.tsv"
 STATUS=0
 
 cleanup() {
@@ -30,6 +31,7 @@ cp "$REPO_ROOT/scripts/03-install-npm-globals.sh" "$FIXTURE_ROOT/scripts/03-inst
 cp "$REPO_ROOT/scripts/lib/bootstrap-profile.sh" "$FIXTURE_ROOT/scripts/lib/bootstrap-profile.sh"
 cp "$REPO_ROOT/scripts/lib/runtime-environment.sh" "$FIXTURE_ROOT/scripts/lib/runtime-environment.sh"
 cp "$REPO_ROOT/scripts/lib/npm-global-operations.sh" "$FIXTURE_ROOT/scripts/lib/npm-global-operations.sh"
+cp "$REPO_ROOT/scripts/lib/operation-policy.sh" "$FIXTURE_ROOT/scripts/lib/operation-policy.sh"
 cp "$REPO_ROOT/tests/fixtures/nvm-stub.sh" "$FIXTURE_ROOT/nvm/nvm.sh"
 
 for tool in brew node npm corepack codex claude gemini vercel; do
@@ -42,6 +44,7 @@ printf '%s\n' \
     '//registry.example.test/:_authToken=preserve-step-03-token' \
     > "$FIXTURE_ROOT/home/.npmrc"
 cp "$FIXTURE_ROOT/home/.npmrc" "$NPMRC_BEFORE"
+printf 'sequence\tevent\n' > "$EVENTS_FILE"
 
 if PATH="$NODE_BIN:/usr/bin:/bin" \
         HOME="$FIXTURE_ROOT/home" \
@@ -50,6 +53,8 @@ if PATH="$NODE_BIN:/usr/bin:/bin" \
         TEST_NPM_GLOBAL_ROOT="$NPM_GLOBAL_ROOT" \
         TEST_FAKE_NODE_BIN="$NODE_BIN" \
         TEST_NVM_PREFIX="$FIXTURE_ROOT/nvm" \
+        BOOTSTRAP_OPERATION_EVENT_FILE="$EVENTS_FILE" \
+        BOOTSTRAP_OPERATION_STEP="03-install-npm-globals.sh" \
         /bin/bash "$FIXTURE_ROOT/scripts/03-install-npm-globals.sh" \
         --profile carlo-baseline > "$OUTPUT_FILE" 2>&1; then
     STATUS=0
@@ -81,6 +86,11 @@ fi
 if [ "$(grep -Fc 'npm list -g @google/gemini-cli' "$ACTION_LOG")" -ne 1 ]; then
     fail "each installed npm global must be re-verified after installation"
 fi
+
+grep -Fq 'npm_global_ensure' "$EVENTS_FILE" ||
+    fail "each npm global must emit an independent operation event"
+grep -Fq 'corepack_enable' "$EVENTS_FILE" ||
+    fail "Corepack enablement must emit an independent operation event"
 
 cmp -s "$NPMRC_BEFORE" "$FIXTURE_ROOT/home/.npmrc" ||
     fail "step 3 must not claim or mutate npm configuration"

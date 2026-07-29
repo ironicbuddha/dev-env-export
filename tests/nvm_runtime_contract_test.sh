@@ -36,11 +36,22 @@ EOF
     chmod +x "$node_bin/node"
 }
 
+make_fake_npm() {
+    local node_bin="$1"
+
+    cat > "$node_bin/npm" <<'EOF'
+#!/bin/bash
+exit 0
+EOF
+    chmod +x "$node_bin/npm"
+}
+
 load_runtime_fixture() {
     local fixture_root="$1"
 
     mkdir -p "$fixture_root/home/.nvm" "$fixture_root/bin"
     make_fake_node "$fixture_root/home/.nvm/versions/node/v24.18.0/bin"
+    make_fake_npm "$fixture_root/home/.nvm/versions/node/v24.18.0/bin"
     export HOME="$fixture_root/home"
     export NVM_DIR="$HOME/.nvm"
     export TEST_NVM_STATE="$fixture_root/nvm-state"
@@ -112,9 +123,51 @@ test_wrong_activated_node_fails_verification() {
     fi
 }
 
+test_active_nvm_runtime_requires_npm_from_the_same_runtime() {
+    local fixture_root="$TEST_TMP_ROOT/foreign-npm"
+
+    load_runtime_fixture "$fixture_root"
+    mkdir -p "$TEST_NVM_STATE"
+    printf '24.18.0\n' > "$TEST_NVM_STATE/runtime"
+    printf '24.18.0\n' > "$TEST_NVM_STATE/default"
+    mv "$fixture_root/home/.nvm/versions/node/v24.18.0/bin/npm" \
+        "$fixture_root/home/.nvm/versions/node/v24.18.0/bin/npm.missing"
+    cat > "$fixture_root/bin/npm" <<'EOF'
+#!/bin/bash
+exit 0
+EOF
+    chmod +x "$fixture_root/bin/npm"
+
+    if bootstrap_ensure_nvm_node_runtime "24.18.0"; then
+        fail "an activated runtime must reject npm resolved outside that nvm runtime"
+    fi
+}
+
+test_runtime_operations_emit_independent_recorder_events() {
+    local fixture_root="$TEST_TMP_ROOT/events"
+    local events_file="$fixture_root/events.tsv"
+
+    load_runtime_fixture "$fixture_root"
+    printf 'sequence\tevent\ntarget\n' > "$events_file"
+    export BOOTSTRAP_OPERATION_EVENT_FILE="$events_file"
+    export BOOTSTRAP_OPERATION_STEP="02-install-cli-tools.sh"
+
+    bootstrap_ensure_nvm_node_runtime "24.18.0" ||
+        fail "runtime operations should converge with event recording enabled"
+
+    grep -Fq 'nvm_runtime_ensure' "$events_file" ||
+        fail "runtime installation must emit its own operation event"
+    grep -Fq 'nvm_default_alias_ensure' "$events_file" ||
+        fail "default alias repair must emit its own operation event"
+    grep -Fq 'nvm_activation_ensure' "$events_file" ||
+        fail "runtime activation must emit its own operation event"
+}
+
 run_test test_absent_runtime_installs_then_sets_and_activates_exact_default
 run_test test_existing_exact_runtime_is_reused_without_install_or_alias_mutation
 run_test test_wrong_default_is_repaired_without_reinstalling_exact_runtime
 run_test test_wrong_activated_node_fails_verification
+run_test test_active_nvm_runtime_requires_npm_from_the_same_runtime
+run_test test_runtime_operations_emit_independent_recorder_events
 
 echo "1..$TEST_COUNT"
