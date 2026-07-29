@@ -37,6 +37,11 @@ run_suite \
     "$REPO_ROOT/tests/run_recorder_contract_test.sh"
 
 run_suite \
+    "orchestrator" \
+    "run-coordinator contract tests" \
+    "$REPO_ROOT/tests/run_coordinator_contract_test.sh"
+
+run_suite \
     "helper" \
     "managed-artifact contract tests" \
     "$REPO_ROOT/tests/managed_artifact_contract_test.sh"

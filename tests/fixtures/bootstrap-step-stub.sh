@@ -20,6 +20,9 @@ echo "fixture step: $script_name"
 if [ -n "${TEST_RUN_MARKER:-}" ]; then
     echo "fixture marker: $TEST_RUN_MARKER"
 fi
+if [ "${TEST_STEP_SLEEP:-}" = "$script_name" ]; then
+    sleep "${TEST_SLEEP_SECONDS:-30}"
+fi
 if [ "${TEST_WARN_STEP:-}" = "$script_name" ]; then
     echo "[WARN] fixture optional capability is degraded"
 fi

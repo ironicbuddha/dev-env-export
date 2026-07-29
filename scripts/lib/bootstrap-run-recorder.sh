@@ -435,7 +435,8 @@ bootstrap_recorder_prepare_final_state() {
             [ "$outcome" = "completed_with_warnings" ] ||
             [ "$outcome" = "manual_action_required" ] ||
             [ "$outcome" = "required_failure" ] ||
-            [ "$outcome" = "logging_failure" ]; then
+            [ "$outcome" = "logging_failure" ] ||
+            [ "$outcome" = "interrupted" ]; then
         BOOTSTRAP_RECORDER_ENDED_AT="$(bootstrap_recorder_timestamp)"
     fi
     case "$outcome" in
@@ -455,7 +456,7 @@ bootstrap_recorder_prepare_final_state() {
         manual_action_required)
             BOOTSTRAP_RECORDER_SAFE_ACTION="complete_manual_action_then_rerun_same_profile"
             ;;
-        required_failure|logging_failure|interrupted_incomplete)
+        required_failure|logging_failure|interrupted|interrupted_incomplete)
             BOOTSTRAP_RECORDER_SAFE_ACTION="review_relevant_log_then_rerun_same_profile"
             ;;
     esac
@@ -491,6 +492,11 @@ bootstrap_recorder_finalize() {
             severity="error"
             code="run_logging_failure"
             ;;
+        interrupted)
+            disposition="interrupted"
+            severity="error"
+            code="run_interrupted"
+            ;;
         interrupted_incomplete)
             disposition="interrupted"
             severity="error"
@@ -520,7 +526,7 @@ bootstrap_recorder_render_profile_guidance() {
                 "  - Re-run /bin/bash scripts/00-bootstrap.sh --profile $profile after the install completes."
             return
             ;;
-        required_failure|logging_failure|interrupted_incomplete)
+        required_failure|logging_failure|interrupted|interrupted_incomplete)
             printf '%s\n' \
                 "Recovery:" \
                 "  - Review the relevant relative log named above." \

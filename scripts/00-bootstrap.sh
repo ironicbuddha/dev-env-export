@@ -14,6 +14,7 @@ REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
 PREREQUISITES_LIB="$SCRIPT_DIR/lib/bootstrap-prerequisites.sh"
 RUN_RECORDER_LIB="$SCRIPT_DIR/lib/bootstrap-run-recorder.sh"
+RUN_COORDINATOR_LIB="$SCRIPT_DIR/lib/bootstrap-run-coordinator.sh"
 MANUAL_ACTION_EXIT=20
 BOOTSTRAP_PROFILE=""
 
@@ -23,6 +24,8 @@ source "$PROFILE_LIB"
 source "$PREREQUISITES_LIB"
 # shellcheck disable=SC1090
 source "$RUN_RECORDER_LIB"
+# shellcheck disable=SC1090
+source "$RUN_COORDINATOR_LIB"
 
 usage() {
     cat <<'EOF'
@@ -351,9 +354,45 @@ on_exit() {
     fi
 
     bootstrap_recorder_finalize "$BOOTSTRAP_OUTCOME" "$status"
+    bootstrap_coordinator_release_lock_after_finalization \
+        "$BOOTSTRAP_RECORDER_STATE_FILE" || \
+        echo "WARNING: Bootstrap mutation lock was retained because final state could not be confirmed."
     write_summary
     bootstrap_recorder_render_final "$LOG_DIR"
     exit "$status"
+}
+
+on_signal() {
+    local signal_name="$1"
+    local signal_status="$2"
+    local log_ref="${CURRENT_STEP_LOG_REF:-bootstrap.log}"
+    local signal_code=""
+
+    trap - HUP INT TERM
+    set +e
+    signal_code="$(printf '%s' "$signal_name" | tr '[:upper:]' '[:lower:]')"
+    BOOTSTRAP_OUTCOME="interrupted"
+    bootstrap_coordinator_forward_signal "$signal_name" || true
+    if [ -n "${CURRENT_STEP_NAME:-}" ]; then
+        bootstrap_recorder_end_operation \
+            interrupted \
+            interrupted \
+            "signal_$signal_code" \
+            "$signal_status" \
+            retry_profile \
+            "Bootstrap interrupted by $signal_name." \
+            "$log_ref"
+        bootstrap_recorder_end_step \
+            "$CURRENT_STEP_NAME" \
+            interrupted \
+            interrupted \
+            "signal_$signal_code" \
+            "$signal_status" \
+            retry_profile \
+            "Bootstrap interrupted by $signal_name." \
+            "$log_ref"
+    fi
+    exit "$signal_status"
 }
 
 run_step() {
@@ -376,8 +415,8 @@ run_step() {
     local recorder_message="Step completed."
     local step_log_ref="${script_name%.sh}.log"
     local step_warning_count=0
-    local pipe_status=()
     local step_args=()
+    local child_status_file=""
 
     if [ ! -f "$script_path" ]; then
         echo "ERROR: Missing bootstrap step: $script_path"
@@ -391,6 +430,8 @@ run_step() {
         execute_step \
         "$script_name" \
         "$step_log_ref"
+    CURRENT_STEP_NAME="$script_name"
+    CURRENT_STEP_LOG_REF="$step_log_ref"
 
     echo ""
     echo "========================================"
@@ -420,16 +461,26 @@ run_step() {
     esac
 
     set +e
+    child_status_file="$(mktemp "$LOG_DIR/.${script_name%.sh}.status.XXXXXX")"
     if [ "${#step_args[@]}" -gt 0 ]; then
-        bash "$script_path" "${step_args[@]}" 2>&1 | tee -a "$step_log"
+        bootstrap_coordinator_run_logged_child \
+            "$step_log" "$child_status_file" \
+            bash "$script_path" "${step_args[@]}"
     else
-        bash "$script_path" 2>&1 | tee -a "$step_log"
+        bootstrap_coordinator_run_logged_child \
+            "$step_log" "$child_status_file" \
+            bash "$script_path"
     fi
-    pipe_status=("${PIPESTATUS[@]}")
+    status=$?
+    if [ -f "$child_status_file" ]; then
+        IFS=$'\t' read -r script_status tee_status < "$child_status_file"
+        rm -f "$child_status_file"
+    else
+        script_status="$status"
+        tee_status=0
+    fi
     set -e
 
-    script_status="${pipe_status[0]:-1}"
-    tee_status="${pipe_status[1]:-0}"
     status="$script_status"
 
     if [ "$tee_status" -ne 0 ]; then
@@ -518,6 +569,9 @@ run_step() {
     echo "Step result: $script_name -> $status_label in $(format_duration "$duration_seconds")"
     echo "Step log: $step_log"
 
+    CURRENT_STEP_NAME=""
+    CURRENT_STEP_LOG_REF=""
+
     return "$status"
 }
 
@@ -534,6 +588,46 @@ bootstrap_recorder_set_step_plan "${STEPS[@]}"
 append_environment_snapshot "preflight"
 exec > >(tee -a "$BOOTSTRAP_LOG") 2>&1
 trap 'on_exit "$?"' EXIT
+trap 'on_signal HUP 129' HUP
+trap 'on_signal INT 130' INT
+trap 'on_signal TERM 143' TERM
+bootstrap_coordinator_configure "$LOG_PARENT" "$LOG_DIR" "$RUN_ID"
+if bootstrap_coordinator_acquire_lock; then
+    :
+else
+    lock_status=$?
+    BOOTSTRAP_OUTCOME="required_failure"
+    BOOTSTRAP_RECORDER_FAILURE_CLASS="concurrent_run"
+    BOOTSTRAP_RECORDER_FAILURE_CODE="bootstrap_run_already_active"
+    BOOTSTRAP_RECORDER_RAW_STATUS="$lock_status"
+    BOOTSTRAP_RECORDER_RECOVERY="retry_profile"
+    BOOTSTRAP_RECORDER_RELEVANT_LOG="bootstrap.log"
+    exit "$lock_status"
+fi
+if [ -n "$BOOTSTRAP_COORDINATOR_STALE_LOCK_ARCHIVE" ]; then
+    bootstrap_recorder_emit_event \
+        stale_lock_archived \
+        warning \
+        changed \
+        stale_lock_process_absent \
+        0 \
+        retry_profile \
+        "Archived stale bootstrap lock with its prior-run link." \
+        "${BOOTSTRAP_COORDINATOR_STALE_LOCK_ARCHIVE##*/}"
+    bootstrap_recorder_write_current_state
+fi
+if bootstrap_coordinator_prior_run_is_incomplete; then
+    bootstrap_recorder_emit_event \
+        incomplete_prior_run_detected \
+        warning \
+        changed \
+        prior_run_interrupted_incomplete \
+        0 \
+        retry_profile \
+        "Recognized the incomplete prior run before starting a new mutation sequence." \
+        "${BOOTSTRAP_COORDINATOR_STALE_LOCK_ARCHIVE##*/}"
+    bootstrap_recorder_write_current_state
+fi
 
 echo "========================================"
 echo "Dev Environment Bootstrap"

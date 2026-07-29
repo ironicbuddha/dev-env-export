@@ -130,6 +130,7 @@ make_fixture() {
     cp "$REPO_ROOT/scripts/00-bootstrap.sh" "$fixture_root/scripts/00-bootstrap.sh"
     cp "$REPO_ROOT/scripts/lib/bootstrap-profile.sh" "$fixture_root/scripts/lib/bootstrap-profile.sh"
     cp "$REPO_ROOT/scripts/lib/bootstrap-run-recorder.sh" "$fixture_root/scripts/lib/bootstrap-run-recorder.sh"
+    cp "$REPO_ROOT/scripts/lib/bootstrap-run-coordinator.sh" "$fixture_root/scripts/lib/bootstrap-run-coordinator.sh"
 
     if [ -f "$REPO_ROOT/scripts/00-check-prerequisites.sh" ]; then
         cp "$REPO_ROOT/scripts/00-check-prerequisites.sh" "$fixture_root/scripts/00-check-prerequisites.sh"
@@ -216,6 +217,41 @@ run_bootstrap_with_args() {
             "${env_args[@]}" \
             -- \
             /bin/bash "$fixture_root/scripts/00-bootstrap.sh" "$@"; then
+        status=0
+    else
+        status=$?
+    fi
+
+    return "$status"
+}
+
+run_bootstrap_with_signal() {
+    local fixture_root="$1"
+    local log_parent="$2"
+    local output_file="$3"
+    local signal_name="$4"
+    local status=0
+    local real_tee=""
+
+    real_tee="$(command -v tee)"
+    if bootstrap_test_run_with_env \
+            "$fixture_root" \
+            "$output_file" \
+            "TEST_ACTION_LOG=$fixture_root/actions.log" \
+            "TEST_STEP_ORDER=$fixture_root/steps.log" \
+            "TEST_STEP_INVOCATION_LOG=$fixture_root/step-invocations.log" \
+            "TEST_RUN_ID_LOG=$fixture_root/run-ids.log" \
+            "TEST_FAKE_CLANG=$fixture_root/fake-bin/clang" \
+            "TEST_REAL_TEE=$real_tee" \
+            "TEST_CLT_STATE=usable" \
+            "TEST_STEP_SLEEP=01-install-brew.sh" \
+            "TEST_SLEEP_SECONDS=30" \
+            "DEV_ENV_LOG_DIR=$log_parent" \
+            -- \
+            /bin/bash "$REPO_ROOT/tests/fixtures/bootstrap-interrupt-launcher.sh" \
+            "$fixture_root/steps.log" \
+            "$signal_name" \
+            /bin/bash "$fixture_root/scripts/00-bootstrap.sh" --profile shared-baseline; then
         status=0
     else
         status=$?
@@ -559,6 +595,134 @@ test_reused_log_parent_keeps_runs_isolated() {
     done
 }
 
+test_live_lock_rejects_second_bootstrap_and_interruption_stops_later_steps() {
+    local fixture_root="$TEST_TMP_ROOT/live-lock-and-interruption"
+    local log_parent="$fixture_root/logs"
+    local first_output="$fixture_root/first-output.txt"
+    local second_output="$fixture_root/second-output.txt"
+    local first_pid=0
+    local bootstrap_pid=0
+    local first_status=0
+    local second_status=0
+    local run_dir=""
+    local candidate_run_dir=""
+    local attempts=0
+
+    make_fixture "$fixture_root"
+    mkdir -p "$log_parent"
+
+    env -i \
+        HOME="$fixture_root/home" \
+        PATH="$fixture_root/fake-bin:/usr/bin:/bin:/usr/sbin:/sbin" \
+        SHELL="/bin/bash" \
+        TMPDIR="$fixture_root/tmp" \
+        LANG="C" \
+        BOOTSTRAP_TEST_HARNESS=1 \
+        BOOTSTRAP_TEST_STATE_DIR="$fixture_root/state" \
+        BOOTSTRAP_TEST_CALL_LOG="$fixture_root/calls.log" \
+        TEST_ACTION_LOG="$fixture_root/actions.log" \
+        TEST_STEP_ORDER="$fixture_root/steps.log" \
+        TEST_STEP_INVOCATION_LOG="$fixture_root/step-invocations.log" \
+        TEST_RUN_ID_LOG="$fixture_root/run-ids.log" \
+        TEST_FAKE_CLANG="$fixture_root/fake-bin/clang" \
+        TEST_REAL_TEE="$(command -v tee)" \
+        TEST_CLT_STATE=usable \
+        TEST_STEP_SLEEP=01-install-brew.sh \
+        TEST_SLEEP_SECONDS=30 \
+        DEV_ENV_LOG_DIR="$log_parent" \
+        BOOTSTRAP_TEST_CHILD_PID_FILE="$fixture_root/bootstrap-child.pid" \
+        /bin/bash -c '
+            set -m
+            "$@" &
+            child_pid=$!
+            printf "%s\n" "$child_pid" > "$BOOTSTRAP_TEST_CHILD_PID_FILE"
+            wait "$child_pid"
+        ' _ /bin/bash "$fixture_root/scripts/00-bootstrap.sh" --profile shared-baseline \
+        > "$first_output" 2>&1 &
+    first_pid=$!
+
+    while ! grep -Fq "01-install-brew.sh" "$fixture_root/steps.log" 2>/dev/null; do
+        attempts=$((attempts + 1))
+        [ "$attempts" -lt 100 ] || fail "first bootstrap did not reach its active child"
+        sleep 0.05
+    done
+    bootstrap_pid="$(cat "$fixture_root/bootstrap-child.pid")"
+
+    if TEST_CLT_STATE=usable run_bootstrap "$fixture_root" "$log_parent" "$second_output"; then
+        second_status=0
+    else
+        second_status=$?
+    fi
+    assert_equals "75" "$second_status" "a live run must reject a second bootstrap before mutation"
+    assert_file_contains "$second_output" "Bootstrap run already active"
+
+    kill -TERM "$bootstrap_pid"
+    if wait "$first_pid"; then
+        first_status=0
+    else
+        first_status=$?
+    fi
+    if [ "$first_status" -ne 143 ]; then
+        cat "$first_output" >&2
+        fail "SIGTERM must preserve the conventional interruption status (expected 143, got $first_status)"
+    fi
+
+    for candidate_run_dir in "$log_parent"/bootstrap-*; do
+        if grep -Fq "signal_term" "$candidate_run_dir/events.tsv" 2>/dev/null; then
+            run_dir="$candidate_run_dir"
+            break
+        fi
+    done
+    [ -n "$run_dir" ] || fail "interrupted run was not recorded"
+    assert_file_contains "$run_dir/current-state.txt" "outcome=interrupted"
+    assert_file_contains "$run_dir/current-state.txt" "ended_at="
+    assert_file_contains "$run_dir/events.tsv" "signal_term"
+    assert_file_contains "$run_dir/events.tsv" "run_interrupted"
+    if grep -Fq "02-install-cli-tools.sh" "$fixture_root/steps.log"; then
+        fail "a later step ran after interruption"
+    fi
+    [ ! -e "$log_parent/bootstrap-mutation.lock" ] ||
+        fail "finalized interrupted run did not release its lock"
+}
+
+test_hup_and_int_forward_to_the_active_child_with_conventional_statuses() {
+    local signal_name=""
+    local expected_status=0
+    local fixture_root=""
+    local log_parent=""
+    local output_file=""
+    local run_dir=""
+    local status=0
+    local signal_code=""
+
+    for signal_name in HUP INT; do
+        case "$signal_name" in
+            HUP) expected_status=129 ;;
+            INT) expected_status=130 ;;
+        esac
+        signal_code="$(printf '%s' "$signal_name" | tr '[:upper:]' '[:lower:]')"
+        fixture_root="$TEST_TMP_ROOT/signal-$signal_code"
+        log_parent="$fixture_root/logs"
+        output_file="$fixture_root/output.txt"
+        make_fixture "$fixture_root"
+        mkdir -p "$log_parent"
+
+        if run_bootstrap_with_signal \
+                "$fixture_root" "$log_parent" "$output_file" "$signal_name"; then
+            status=0
+        else
+            status=$?
+        fi
+        assert_equals "$expected_status" "$status" "$signal_name must preserve its conventional status"
+        run_dir="$(single_run_dir "$log_parent")"
+        assert_file_contains "$run_dir/current-state.txt" "outcome=interrupted"
+        assert_file_contains "$run_dir/events.tsv" "signal_$signal_code"
+        if grep -Fq "02-install-cli-tools.sh" "$fixture_root/steps.log"; then
+            fail "$signal_name allowed a later step to start"
+        fi
+    done
+}
+
 test_default_log_parent_is_durable_user_log_directory() {
     local fixture_root="$TEST_TMP_ROOT/default-log-parent"
     local output_file="$fixture_root/output.txt"
@@ -737,6 +901,8 @@ run_test test_selected_but_broken_clt_exits_before_homebrew
 run_test test_child_failure_records_failed_step
 run_test test_tee_failure_is_not_reported_as_success
 run_test test_reused_log_parent_keeps_runs_isolated
+run_test test_live_lock_rejects_second_bootstrap_and_interruption_stops_later_steps
+run_test test_hup_and_int_forward_to_the_active_child_with_conventional_statuses
 run_test test_default_log_parent_is_durable_user_log_directory
 run_test test_optional_warning_changes_the_final_outcome
 run_test test_postflight_failure_preserves_final_state
