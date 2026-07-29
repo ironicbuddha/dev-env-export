@@ -68,6 +68,11 @@ run_suite \
 
 run_suite \
     "step" \
+    "nvm runtime contract tests" \
+    "$REPO_ROOT/tests/nvm_runtime_contract_test.sh"
+
+run_suite \
+    "step" \
     "uv environment contract tests" \
     "$REPO_ROOT/tests/uv_environment_contract_test.sh"
 

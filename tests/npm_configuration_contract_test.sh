@@ -171,7 +171,12 @@ test_step_02_converges_npm_configuration_before_loading_nvm() {
         '        return 86' \
         '    fi' \
         '    case "${1:-}" in' \
-        '        ls|alias) return 0 ;;' \
+        '        version)' \
+        '            case "${2:-}" in' \
+        '                24.18.0|default) printf "%s\\n" "v24.18.0"; return 0 ;;' \
+        '            esac' \
+        '            ;;' \
+        '        ls|alias|install) return 0 ;;' \
         '        use)' \
         '            NVM_BIN="$TEST_FAKE_NODE_BIN"' \
         '            export NVM_BIN' \

@@ -326,17 +326,9 @@ if ! bootstrap_load_nvm; then
     exit 1
 fi
 
-# Install the pinned Node.js LTS via nvm and make it the default CLI runtime.
-if ! nvm ls "$BOOTSTRAP_NODE_VERSION" &> /dev/null; then
-    echo "Installing Node.js v${BOOTSTRAP_NODE_VERSION} via nvm..."
-    nvm install "$BOOTSTRAP_NODE_VERSION"
-else
-    echo "  [SKIP] Node.js v${BOOTSTRAP_NODE_VERSION} already installed via nvm"
-fi
-
-nvm alias default "$BOOTSTRAP_NODE_VERSION" >/dev/null 2>&1 || true
-
-if ! bootstrap_activate_nvm_node "$BOOTSTRAP_NODE_VERSION"; then
+# Install the pinned Node.js LTS, default alias, and active runtime through
+# independently verified nvm operations.
+if ! bootstrap_ensure_nvm_node_runtime "$BOOTSTRAP_NODE_VERSION"; then
     echo "ERROR: Could not activate exact nvm-managed Node $BOOTSTRAP_NODE_VERSION."
     exit 1
 fi
