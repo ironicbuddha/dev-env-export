@@ -20,10 +20,10 @@ RUNTIME_LIB="$SCRIPT_DIR/lib/runtime-environment.sh"
 EXPECTATIONS_LIB="$SCRIPT_DIR/lib/bootstrap-expectations.sh"
 APP_BUNDLE_LIB="$SCRIPT_DIR/lib/app-bundle.sh"
 CASK_STATE_LIB="$SCRIPT_DIR/lib/cask-state.sh"
-ARTIFACT_INTEGRITY_LIB="$SCRIPT_DIR/lib/artifact-integrity.sh"
 NPM_CONFIGURATION_LIB="$SCRIPT_DIR/lib/npm-configuration.sh"
 HOMEBREW_OPERATIONS_LIB="$SCRIPT_DIR/lib/homebrew-operations.sh"
 REMOTE_INSTALLER_LIB="$SCRIPT_DIR/lib/remote-installer.sh"
+BUN_FALLBACK_LIB="$SCRIPT_DIR/lib/bun-fallback.sh"
 BOOTSTRAP_PROFILE=""
 
 # shellcheck disable=SC1090
@@ -39,13 +39,13 @@ source "$APP_BUNDLE_LIB"
 # shellcheck disable=SC1090
 source "$CASK_STATE_LIB"
 # shellcheck disable=SC1090
-source "$ARTIFACT_INTEGRITY_LIB"
-# shellcheck disable=SC1090
 source "$NPM_CONFIGURATION_LIB"
 # shellcheck disable=SC1090
 source "$HOMEBREW_OPERATIONS_LIB"
 # shellcheck disable=SC1090
 source "$REMOTE_INSTALLER_LIB"
+# shellcheck disable=SC1090
+source "$BUN_FALLBACK_LIB"
 
 usage() {
     cat <<'EOF'
@@ -176,103 +176,6 @@ manifest_includes_tool() {
     return 1
 }
 
-install_bun_fallback() {
-    local bun_version=""
-    local asset_arch=""
-    local asset_name=""
-    local archive_url=""
-    local release_api_url=""
-    local release_metadata_path=""
-    local published_digest=""
-    local archive_path=""
-    local tmp_dir=""
-    local install_dir=""
-
-    if command -v bun >/dev/null 2>&1; then
-        echo "  [SKIP] bun is already available -> $(command -v bun)"
-        return 0
-    fi
-
-    bun_version="$(brew info --json=v2 bun 2>/dev/null | jq -r '.formulae[0].versions.stable // empty')"
-    if [ -z "$bun_version" ]; then
-        echo "ERROR: Could not determine the current Bun release for fallback install."
-        return 1
-    fi
-
-    case "$(uname -m)" in
-        arm64|aarch64)
-            asset_arch="aarch64"
-            ;;
-        x86_64)
-            asset_arch="x64"
-            ;;
-        *)
-            echo "ERROR: Unsupported architecture for Bun fallback: $(uname -m)"
-            return 1
-            ;;
-    esac
-
-    asset_name="bun-darwin-$asset_arch.zip"
-    release_api_url="https://api.github.com/repos/oven-sh/bun/releases/tags/bun-v${bun_version}"
-    install_dir="$(brew --prefix)/bin"
-
-    if [ ! -w "$install_dir" ]; then
-        install_dir="$HOME/.local/bin"
-        mkdir -p "$install_dir"
-    fi
-
-    tmp_dir="$(mktemp -d)"
-    archive_path="$tmp_dir/$asset_name"
-    release_metadata_path="$tmp_dir/release.json"
-
-    if ! curl -fsSL -o "$release_metadata_path" "$release_api_url"; then
-        rm -rf "$tmp_dir"
-        echo "ERROR: Failed to fetch Bun release metadata for integrity verification."
-        return 1
-    fi
-
-    archive_url="$(jq -r --arg name "$asset_name" \
-        '.assets[]? | select(.name == $name) | .browser_download_url // empty' \
-        "$release_metadata_path" | head -n 1)"
-    published_digest="$(jq -r --arg name "$asset_name" \
-        '.assets[]? | select(.name == $name) | .digest // empty' \
-        "$release_metadata_path" | head -n 1)"
-    published_digest="${published_digest#sha256:}"
-
-    if [ -z "$archive_url" ] || [ -z "$published_digest" ]; then
-        rm -rf "$tmp_dir"
-        echo "ERROR: Bun release metadata did not publish the expected asset and SHA-256 digest."
-        return 1
-    fi
-
-    echo "  [FALLBACK] Homebrew could not install bun; downloading the official Bun binary..."
-    echo "             $archive_url"
-
-    if ! curl -fsSL -o "$archive_path" "$archive_url"; then
-        rm -rf "$tmp_dir"
-        echo "ERROR: Failed to download Bun fallback archive."
-        return 1
-    fi
-
-    if ! bootstrap_verify_sha256 "$archive_path" "$published_digest"; then
-        rm -rf "$tmp_dir"
-        echo "ERROR: Bun fallback archive failed SHA-256 verification."
-        return 1
-    fi
-
-    if ! unzip -tq "$archive_path" >/dev/null 2>&1; then
-        rm -rf "$tmp_dir"
-        echo "ERROR: Bun fallback archive is not a valid ZIP file."
-        return 1
-    fi
-    unzip -q "$archive_path" -d "$tmp_dir"
-    install -m 755 "$tmp_dir/bun-darwin-$asset_arch/bun" "$install_dir/bun"
-    rm -rf "$tmp_dir"
-
-    echo "  [FALLBACK] Installed bun $bun_version -> $install_dir/bun"
-    echo "             Update Command Line Tools later if you want Homebrew to own bun directly."
-}
-
 # -----------------------------------------------------------------------------
 # Install Xcode Command Line Tools (provides build-essential equivalent)
 # -----------------------------------------------------------------------------
@@ -296,7 +199,7 @@ for tool in "${CLI_TOOLS[@]}"; do
     else
         if ! bootstrap_homebrew_ensure_formula "$tool"; then
             if [ "$tool" = "bun" ]; then
-                install_bun_fallback || exit 1
+                bootstrap_ensure_bun_fallback || exit 1
             else
                 exit 1
             fi
