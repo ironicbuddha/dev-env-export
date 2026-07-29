@@ -22,6 +22,7 @@ APP_BUNDLE_LIB="$SCRIPT_DIR/lib/app-bundle.sh"
 CASK_STATE_LIB="$SCRIPT_DIR/lib/cask-state.sh"
 ARTIFACT_INTEGRITY_LIB="$SCRIPT_DIR/lib/artifact-integrity.sh"
 NPM_CONFIGURATION_LIB="$SCRIPT_DIR/lib/npm-configuration.sh"
+HOMEBREW_OPERATIONS_LIB="$SCRIPT_DIR/lib/homebrew-operations.sh"
 BOOTSTRAP_PROFILE=""
 
 # shellcheck disable=SC1090
@@ -40,6 +41,8 @@ source "$CASK_STATE_LIB"
 source "$ARTIFACT_INTEGRITY_LIB"
 # shellcheck disable=SC1090
 source "$NPM_CONFIGURATION_LIB"
+# shellcheck disable=SC1090
+source "$HOMEBREW_OPERATIONS_LIB"
 
 usage() {
     cat <<'EOF'
@@ -287,11 +290,8 @@ echo ""
 for tool in "${CLI_TOOLS[@]}"; do
     if [ "$tool" = "bun" ] && command -v bun >/dev/null 2>&1; then
         echo "  [SKIP] $tool is already available -> $(command -v bun)"
-    elif brew list "$tool" &> /dev/null; then
-        echo "  [SKIP] $tool is already installed"
     else
-        echo "  [INSTALL] Installing $tool..."
-        if ! brew install "$tool"; then
+        if ! bootstrap_homebrew_ensure_formula "$tool"; then
             if [ "$tool" = "bun" ]; then
                 install_bun_fallback || exit 1
             else
@@ -309,7 +309,7 @@ echo "Installing applications via Homebrew Cask..."
 echo ""
 
 for app in "${CASK_APPS[@]}"; do
-    bootstrap_install_required_cask "$app" || exit 1
+    bootstrap_homebrew_ensure_cask "$app" || exit 1
 done
 
 # -----------------------------------------------------------------------------

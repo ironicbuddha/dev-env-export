@@ -386,7 +386,7 @@ test_bun_uses_homebrew_core_without_a_third_party_tap() {
     assert_file_does_not_contain "$cli_install" "oven-sh/bun/bun"
     assert_file_does_not_contain "$cli_install" 'brew tap "$tap"'
     assert_file_does_not_contain "$cli_install" "ensure_homebrew_taps"
-    assert_file_contains "$cli_install" 'brew install "$tool"'
+    assert_file_contains "$cli_install" 'bootstrap_homebrew_ensure_formula "$tool"'
     assert_file_contains "$cli_install" "install_bun_fallback || exit 1"
 }
 

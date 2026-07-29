@@ -30,6 +30,18 @@ bootstrap_cask_app_present() {
     [ "$bundle_count" -gt 0 ]
 }
 
+bootstrap_cask_any_app_bundle_present() {
+    local app="$1"
+    local app_bundle=""
+    local applications_dir="${BOOTSTRAP_APPLICATIONS_DIR:-/Applications}"
+
+    while IFS= read -r app_bundle; do
+        [ -n "$app_bundle" ] || continue
+        [ -e "$applications_dir/$app_bundle" ] || [ -L "$applications_dir/$app_bundle" ] && return 0
+    done < <(bootstrap_cask_app_bundles "$app")
+    return 1
+}
+
 bootstrap_cask_has_app_bundle() {
     local app="$1"
     local app_bundle=""

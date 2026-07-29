@@ -42,6 +42,11 @@ run_suite \
     "$REPO_ROOT/tests/run_coordinator_contract_test.sh"
 
 run_suite \
+    "step" \
+    "Homebrew operation contract tests" \
+    "$REPO_ROOT/tests/homebrew_operations_contract_test.sh"
+
+run_suite \
     "helper" \
     "managed-artifact contract tests" \
     "$REPO_ROOT/tests/managed_artifact_contract_test.sh"

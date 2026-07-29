@@ -25,6 +25,7 @@ BOOTSTRAP_RECORDER_RAW_STATUS=0
 BOOTSTRAP_RECORDER_RECOVERY="none"
 BOOTSTRAP_RECORDER_SAFE_ACTION="none"
 BOOTSTRAP_RECORDER_RELEVANT_LOG="none"
+BOOTSTRAP_RECORDER_CHILD_DISPOSITION=""
 BOOTSTRAP_RECORDER_EXIT_STATUS=0
 BOOTSTRAP_RECORDER_STARTED_AT=""
 BOOTSTRAP_RECORDER_ENDED_AT="none"
@@ -175,6 +176,45 @@ bootstrap_recorder_emit_event() {
         "$(bootstrap_recorder_clean_field "$log_ref")" >> "$BOOTSTRAP_RECORDER_EVENTS_FILE"
 }
 
+bootstrap_recorder_sync_event_sequence() {
+    local last_sequence=0
+
+    [ -f "$BOOTSTRAP_RECORDER_EVENTS_FILE" ] || return 0
+    last_sequence="$(awk -F '\t' 'NR > 1 && $1 ~ /^[0-9]+$/ && $1 > max { max = $1 } END { print max + 0 }' \
+        "$BOOTSTRAP_RECORDER_EVENTS_FILE")"
+    BOOTSTRAP_RECORDER_EVENT_SEQUENCE="$last_sequence"
+}
+
+bootstrap_recorder_adopt_last_child_failure() {
+    local child_failure=""
+    local disposition="" operation="" target="" failure_class="" failure_code=""
+    local raw_status="" recovery="" log_ref=""
+
+    [ -f "$BOOTSTRAP_RECORDER_EVENTS_FILE" ] || return 1
+    child_failure="$(awk -F '\t' -v step="$BOOTSTRAP_RECORDER_CURRENT_STEP" '
+        $2 == "operation_end" && $8 == step &&
+            ($5 == "manual_action" || $5 == "required_failure" ||
+             $5 == "logging_failure" || $5 == "interrupted") {
+                result = $5 FS $9 FS $10 FS $6 FS $7 FS $11 FS $12 FS $14
+            }
+        END { if (result != "") print result; else exit 1 }
+    ' "$BOOTSTRAP_RECORDER_EVENTS_FILE")" || return 1
+    IFS=$'\t' read -r disposition operation target failure_class failure_code raw_status recovery log_ref \
+        <<< "$child_failure"
+    [ -n "$disposition" ] && [ -n "$operation" ] && [ -n "$failure_class" ] && [ -n "$failure_code" ] || return 1
+
+    BOOTSTRAP_RECORDER_CHILD_DISPOSITION="$disposition"
+    BOOTSTRAP_RECORDER_CURRENT_OPERATION="$operation"
+    BOOTSTRAP_RECORDER_CURRENT_TARGET="$target"
+    BOOTSTRAP_RECORDER_FAILED_STEP="$BOOTSTRAP_RECORDER_CURRENT_STEP"
+    BOOTSTRAP_RECORDER_FAILED_OPERATION="$operation"
+    BOOTSTRAP_RECORDER_FAILURE_CLASS="$failure_class"
+    BOOTSTRAP_RECORDER_FAILURE_CODE="$failure_code"
+    BOOTSTRAP_RECORDER_RAW_STATUS="$raw_status"
+    BOOTSTRAP_RECORDER_RECOVERY="$recovery"
+    BOOTSTRAP_RECORDER_RELEVANT_LOG="$log_ref"
+}
+
 bootstrap_recorder_write_current_state() {
     local state_staging=""
     local remaining_steps=()
@@ -266,6 +306,7 @@ bootstrap_recorder_begin_run() {
     BOOTSTRAP_RECORDER_RECOVERY="retry_profile"
     BOOTSTRAP_RECORDER_SAFE_ACTION="inspect_incomplete_then_rerun_same_profile"
     BOOTSTRAP_RECORDER_RELEVANT_LOG="none"
+    BOOTSTRAP_RECORDER_CHILD_DISPOSITION=""
     BOOTSTRAP_RECORDER_EXIT_STATUS=0
     BOOTSTRAP_RECORDER_STARTED_AT="$(bootstrap_recorder_timestamp)"
     BOOTSTRAP_RECORDER_ENDED_AT="none"

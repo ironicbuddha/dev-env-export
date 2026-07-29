@@ -132,6 +132,86 @@ test_step_operation_and_final_transitions_are_durable() {
     assert_file_contains "$run_dir/events.tsv" $'\trun_end\t'
 }
 
+test_child_operation_failure_becomes_the_step_failure_context() {
+    local case_root="$TEST_TMP_ROOT/child-operation-failure"
+    local run_dir="$case_root/logs/bootstrap-child-operation-failure"
+
+    mkdir -p "$run_dir" "$case_root/source"
+    printf 'fixture source\n' > "$case_root/source/bootstrap-source.txt"
+
+    # shellcheck disable=SC1091
+    source "$REPO_ROOT/scripts/lib/bootstrap-run-recorder.sh"
+    bootstrap_recorder_begin_run \
+        "$run_dir" \
+        "bootstrap-child-operation-failure" \
+        "shared-baseline" \
+        "$case_root/source" \
+        "/bin/bash scripts/00-bootstrap.sh --profile shared-baseline"
+    bootstrap_recorder_set_step_plan 02-install-cli-tools.sh
+    bootstrap_recorder_begin_step 02-install-cli-tools.sh 02-install-cli-tools.log
+    bootstrap_recorder_begin_operation execute_step 02-install-cli-tools.sh 02-install-cli-tools.log
+    printf '%s\n' \
+        $'2\toperation_end\t2026-07-29T00:00:00Z\terror\trequired_failure\tintegrity_failure\tintegrity_failure\t02-install-cli-tools.sh\tformula_install\tgit\t1\tdo_not_retry\tFormula install failed.\t02-install-cli-tools.log' \
+        >> "$BOOTSTRAP_RECORDER_EVENTS_FILE"
+
+    bootstrap_recorder_adopt_last_child_failure ||
+        fail "child failure context should be available"
+    assert_equals "formula_install" "$BOOTSTRAP_RECORDER_CURRENT_OPERATION" \
+        "child operation should replace the wrapper operation"
+    assert_equals "integrity_failure" "$BOOTSTRAP_RECORDER_FAILURE_CLASS" \
+        "child failure class should be retained"
+    bootstrap_recorder_end_operation \
+        required_failure "$BOOTSTRAP_RECORDER_FAILURE_CLASS" \
+        "$BOOTSTRAP_RECORDER_FAILURE_CODE" "$BOOTSTRAP_RECORDER_RAW_STATUS" \
+        "$BOOTSTRAP_RECORDER_RECOVERY" "Child operation failed." 02-install-cli-tools.log
+    bootstrap_recorder_end_step \
+        02-install-cli-tools.sh required_failure "$BOOTSTRAP_RECORDER_FAILURE_CLASS" \
+        "$BOOTSTRAP_RECORDER_FAILURE_CODE" "$BOOTSTRAP_RECORDER_RAW_STATUS" \
+        "$BOOTSTRAP_RECORDER_RECOVERY" "Child operation failed." 02-install-cli-tools.log
+    bootstrap_recorder_finalize required_failure 1
+
+    assert_file_contains "$run_dir/current-state.txt" "failed_operation=formula_install"
+    assert_file_contains "$run_dir/current-state.txt" "failure_class=integrity_failure"
+    assert_file_contains "$run_dir/current-state.txt" "failure_code=integrity_failure"
+}
+
+test_child_manual_action_retains_its_disposition() {
+    local case_root="$TEST_TMP_ROOT/child-manual-action"
+    local run_dir="$case_root/logs/bootstrap-child-manual-action"
+
+    mkdir -p "$run_dir" "$case_root/source"
+    printf 'fixture source\n' > "$case_root/source/bootstrap-source.txt"
+
+    # shellcheck disable=SC1091
+    source "$REPO_ROOT/scripts/lib/bootstrap-run-recorder.sh"
+    bootstrap_recorder_begin_run \
+        "$run_dir" "bootstrap-child-manual-action" "shared-baseline" "$case_root/source" \
+        "/bin/bash scripts/00-bootstrap.sh --profile shared-baseline"
+    bootstrap_recorder_begin_step 02-install-cli-tools.sh 02-install-cli-tools.log
+    bootstrap_recorder_begin_operation execute_step 02-install-cli-tools.sh 02-install-cli-tools.log
+    printf '%s\n' \
+        $'2\toperation_end\t2026-07-29T00:00:00Z\terror\tmanual_action\tmanual_action\tinteractive_vendor_action\t02-install-cli-tools.sh\tformula_install\tgit\t1\tmanual_then_retry\tHomebrew requested interaction.\t02-install-cli-tools.log' \
+        >> "$BOOTSTRAP_RECORDER_EVENTS_FILE"
+
+    bootstrap_recorder_adopt_last_child_failure || fail "child manual action should be available"
+    assert_equals "manual_action" "$BOOTSTRAP_RECORDER_CHILD_DISPOSITION" \
+        "child manual action disposition should be retained"
+    bootstrap_recorder_end_operation \
+        "$BOOTSTRAP_RECORDER_CHILD_DISPOSITION" "$BOOTSTRAP_RECORDER_FAILURE_CLASS" \
+        "$BOOTSTRAP_RECORDER_FAILURE_CODE" "$BOOTSTRAP_RECORDER_RAW_STATUS" \
+        "$BOOTSTRAP_RECORDER_RECOVERY" "Child operation requested manual action." 02-install-cli-tools.log
+    bootstrap_recorder_end_step \
+        02-install-cli-tools.sh "$BOOTSTRAP_RECORDER_CHILD_DISPOSITION" \
+        "$BOOTSTRAP_RECORDER_FAILURE_CLASS" "$BOOTSTRAP_RECORDER_FAILURE_CODE" \
+        "$BOOTSTRAP_RECORDER_RAW_STATUS" "$BOOTSTRAP_RECORDER_RECOVERY" \
+        "Child operation requested manual action." 02-install-cli-tools.log
+    bootstrap_recorder_finalize manual_action_required 1
+
+    assert_file_contains "$run_dir/current-state.txt" "outcome=manual_action_required"
+    assert_file_contains "$run_dir/current-state.txt" "failed_operation=formula_install"
+    assert_file_contains "$run_dir/current-state.txt" "failure_code=interactive_vendor_action"
+}
+
 test_shareable_bundle_is_deterministic_and_excludes_local_sensitive_evidence() {
     local case_root="$TEST_TMP_ROOT/shareable"
     local run_dir="$case_root/logs/bootstrap-shareable-run"
@@ -235,6 +315,8 @@ run_test() {
 
 run_test test_run_start_is_durable_and_incomplete_until_finalized
 run_test test_step_operation_and_final_transitions_are_durable
+run_test test_child_operation_failure_becomes_the_step_failure_context
+run_test test_child_manual_action_retains_its_disposition
 run_test test_shareable_bundle_is_deterministic_and_excludes_local_sensitive_evidence
 run_test test_git_source_identity_includes_commit_and_tree_digest
 

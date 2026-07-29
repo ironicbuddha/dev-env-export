@@ -461,6 +461,9 @@ run_step() {
     esac
 
     set +e
+    export BOOTSTRAP_OPERATION_EVENT_FILE="$BOOTSTRAP_RECORDER_EVENTS_FILE"
+    export BOOTSTRAP_OPERATION_STEP="$script_name"
+    export BOOTSTRAP_OPERATION_LOG_REF="$step_log_ref"
     child_status_file="$(mktemp "$LOG_DIR/.${script_name%.sh}.status.XXXXXX")"
     if [ "${#step_args[@]}" -gt 0 ]; then
         bootstrap_coordinator_run_logged_child \
@@ -480,8 +483,13 @@ run_step() {
         tee_status=0
     fi
     set -e
+    bootstrap_recorder_sync_event_sequence
 
     status="$script_status"
+    child_failure_adopted=0
+    if [ "$status" -ne 0 ] && bootstrap_recorder_adopt_last_child_failure; then
+        child_failure_adopted=1
+    fi
 
     if [ "$tee_status" -ne 0 ]; then
         echo "ERROR: tee failed while writing $step_log (exit $tee_status)"
@@ -514,6 +522,17 @@ run_step() {
             status_label="ok"
             disposition="satisfied"
         fi
+    elif [ "$child_failure_adopted" -eq 1 ]; then
+        disposition="$BOOTSTRAP_RECORDER_CHILD_DISPOSITION"
+        if [ "$disposition" = "manual_action" ]; then
+            status_label="manual_action_required($status)"
+        else
+            status_label="failed($status)"
+        fi
+        failure_class="$BOOTSTRAP_RECORDER_FAILURE_CLASS"
+        failure_code="$BOOTSTRAP_RECORDER_FAILURE_CODE"
+        recovery="$BOOTSTRAP_RECORDER_RECOVERY"
+        recorder_message="The child operation failed: $BOOTSTRAP_RECORDER_CURRENT_OPERATION/$BOOTSTRAP_RECORDER_CURRENT_TARGET."
     elif [ "$status" -eq "$MANUAL_ACTION_EXIT" ]; then
         status_label="manual_action_required($status)"
         disposition="manual_action"

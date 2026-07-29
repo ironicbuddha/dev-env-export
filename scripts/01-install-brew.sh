@@ -13,9 +13,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PREREQUISITES_LIB="$SCRIPT_DIR/lib/bootstrap-prerequisites.sh"
+HOMEBREW_OPERATIONS_LIB="$SCRIPT_DIR/lib/homebrew-operations.sh"
 
 # shellcheck disable=SC1090
 source "$PREREQUISITES_LIB"
+# shellcheck disable=SC1090
+source "$HOMEBREW_OPERATIONS_LIB"
 
 echo "========================================"
 echo "Step 1: Installing Homebrew and Core CLI Tools"
@@ -62,12 +65,7 @@ if ! command -v brew &> /dev/null; then
     eval "$("$BREW_BIN" shellenv)"
 else
     echo "Homebrew is already installed."
-    if [ "${DEV_ENV_REFRESH_BREW:-0}" = "1" ]; then
-        echo "Refreshing Homebrew metadata because DEV_ENV_REFRESH_BREW=1..."
-        brew update
-    else
-        echo "  [SKIP] brew update (set DEV_ENV_REFRESH_BREW=1 to refresh formulas)"
-    fi
+    bootstrap_homebrew_refresh_metadata
 fi
 
 echo ""
@@ -84,12 +82,7 @@ CORE_TOOLS=(
 )
 
 for tool in "${CORE_TOOLS[@]}"; do
-    if brew list "$tool" &> /dev/null; then
-        echo "  [SKIP] $tool is already installed"
-    else
-        echo "  [INSTALL] Installing $tool..."
-        brew install "$tool"
-    fi
+    bootstrap_homebrew_ensure_formula "$tool"
 done
 
 # Login-shell policy
