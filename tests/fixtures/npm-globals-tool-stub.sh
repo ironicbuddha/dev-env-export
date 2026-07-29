@@ -21,16 +21,37 @@ case "$tool_name" in
     npm)
         if [ "${1:-}" = "--version" ]; then
             printf '%s\n' "11.16.0"
-        elif [ "${1:-}" = "list" ]; then
+        elif [ "${1:-}" = "root" ] && [ "${2:-}" = "-g" ]; then
+            printf '%s\n' "$TEST_NPM_GLOBAL_ROOT"
+        elif [ "${1:-}" = "list" ] && [ "${2:-}" = "-g" ]; then
+            if [ "${3:-}" = "${TEST_NPM_LIST_FAIL_PACKAGE:-}" ]; then
+                exit 1
+            fi
+            if [ -d "$TEST_NPM_GLOBAL_ROOT/${3:-}" ]; then
+                exit 0
+            fi
             exit 1
         elif [ "${1:-}" = "install" ] && [ "${2:-}" = "-g" ]; then
+            if [ "${3:-}" = "${TEST_NPM_INSTALL_FAIL_PACKAGE:-}" ]; then
+                [ "${TEST_NPM_INSTALL_LEAVES_RESIDUE:-0}" != 1 ] ||
+                    mkdir -p "$TEST_NPM_GLOBAL_ROOT/${3:-}"
+                exit 1
+            fi
+            mkdir -p "$TEST_NPM_GLOBAL_ROOT/${3:-}"
             exit 0
         else
             exit 1
         fi
         ;;
     corepack)
-        if [ "${1:-}" = "enable" ]; then
+        if [ "${1:-}" = "--version" ]; then
+            [ "${TEST_COREPACK_VERSION_FAIL:-0}" != 1 ] || exit 1
+            printf '%s\n' "0.34.0"
+        elif [ "${1:-}" = "enable" ]; then
+            corepack_bin_dir="$(dirname "$0")"
+            printf '#!/bin/bash\nexit 0\n' > "$corepack_bin_dir/pnpm"
+            printf '#!/bin/bash\nexit 0\n' > "$corepack_bin_dir/yarn"
+            chmod +x "$corepack_bin_dir/pnpm" "$corepack_bin_dir/yarn"
             exit 0
         else
             exit 1

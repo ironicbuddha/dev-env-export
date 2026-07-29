@@ -14,12 +14,15 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
 RUNTIME_LIB="$SCRIPT_DIR/lib/runtime-environment.sh"
+NPM_GLOBAL_OPERATIONS_LIB="$SCRIPT_DIR/lib/npm-global-operations.sh"
 BOOTSTRAP_PROFILE=""
 
 # shellcheck disable=SC1090
 source "$PROFILE_LIB"
 # shellcheck disable=SC1090
 source "$RUNTIME_LIB"
+# shellcheck disable=SC1090
+source "$NPM_GLOBAL_OPERATIONS_LIB"
 
 usage() {
     cat <<'EOF'
@@ -150,18 +153,13 @@ case "$BOOTSTRAP_PROFILE" in
 esac
 
 for package in "${NPM_PACKAGES[@]}"; do
-    if npm list -g "$package" &> /dev/null; then
-        echo "  [SKIP] $package is already installed"
-    else
-        echo "  [INSTALL] Installing $package..."
-        npm install -g "$package"
-    fi
+    bootstrap_ensure_npm_global_package "$package" || exit 1
 done
 
 # Enable corepack for pnpm/yarn support
 echo ""
 echo "Enabling corepack..."
-if ! corepack enable; then
+if ! bootstrap_ensure_corepack_enabled; then
     echo "ERROR: corepack enable failed."
     exit 1
 fi
