@@ -78,6 +78,11 @@ run_suite \
 
 run_suite \
     "step" \
+    "remote installer contract tests" \
+    "$REPO_ROOT/tests/remote_installer_contract_test.sh"
+
+run_suite \
+    "step" \
     "uv environment contract tests" \
     "$REPO_ROOT/tests/uv_environment_contract_test.sh"
 

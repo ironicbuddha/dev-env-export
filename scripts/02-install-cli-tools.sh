@@ -23,6 +23,7 @@ CASK_STATE_LIB="$SCRIPT_DIR/lib/cask-state.sh"
 ARTIFACT_INTEGRITY_LIB="$SCRIPT_DIR/lib/artifact-integrity.sh"
 NPM_CONFIGURATION_LIB="$SCRIPT_DIR/lib/npm-configuration.sh"
 HOMEBREW_OPERATIONS_LIB="$SCRIPT_DIR/lib/homebrew-operations.sh"
+REMOTE_INSTALLER_LIB="$SCRIPT_DIR/lib/remote-installer.sh"
 BOOTSTRAP_PROFILE=""
 
 # shellcheck disable=SC1090
@@ -43,6 +44,8 @@ source "$ARTIFACT_INTEGRITY_LIB"
 source "$NPM_CONFIGURATION_LIB"
 # shellcheck disable=SC1090
 source "$HOMEBREW_OPERATIONS_LIB"
+# shellcheck disable=SC1090
+source "$REMOTE_INSTALLER_LIB"
 
 usage() {
     cat <<'EOF'
@@ -359,11 +362,8 @@ echo ""
 echo "Checking for Oh My Zsh..."
 if [ "$BOOTSTRAP_PROFILE" = "shared-baseline" ]; then
     echo "  [SKIP] Oh My Zsh is Carlo Baseline shell customization."
-elif [ ! -d "$HOME/.oh-my-zsh" ]; then
-    echo "Installing Oh My Zsh..."
-    RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 else
-    echo "  [SKIP] Oh My Zsh already installed"
+    bootstrap_ensure_oh_my_zsh || exit 1
 fi
 
 echo ""
