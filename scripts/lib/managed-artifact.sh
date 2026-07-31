@@ -240,6 +240,56 @@ bootstrap_managed_artifact_apply_versioned_migration() {
     return "$status"
 }
 
+bootstrap_managed_artifact_apply_versioned_transform() {
+    local migration_id="$1"
+    local target_path="$2"
+    local backup_dir="$3"
+    local transform_function="$4"
+    local validate_function="${5:-bootstrap_managed_artifact_candidate_is_regular}"
+    local target_dir=""
+    local candidate_path=""
+    local status=0
+
+    if [ -z "$migration_id" ] || [ -z "$transform_function" ]; then
+        echo "ERROR: Managed-artifact transform migration id and function are required." >&2
+        return 2
+    fi
+    bootstrap_managed_artifact_refuse_unsafe_target "$target_path" || return 1
+    [ -f "$target_path" ] || return 0
+
+    target_dir="$(dirname "$target_path")"
+    candidate_path="$(mktemp "$target_dir/.${target_path##*/}.candidate.XXXXXX")" ||
+        return 1
+    if ! cp "$target_path" "$candidate_path" ||
+            ! "$transform_function" "$candidate_path"; then
+        rm -f "$candidate_path"
+        return 1
+    fi
+
+    BOOTSTRAP_MANAGED_ARTIFACT_EXPECTED_DIGEST="$(
+        bootstrap_managed_artifact_digest "$candidate_path"
+    )" || {
+        rm -f "$candidate_path"
+        return 1
+    }
+    BOOTSTRAP_MANAGED_ARTIFACT_MUTATION_LABEL="$(
+        printf '%s' "$migration_id" | LC_ALL=C tr -c '[:alnum:]._-' '_'
+    )"
+    if bootstrap_managed_artifact_promote_candidate \
+            "$candidate_path" \
+            "$target_path" \
+            "$backup_dir" \
+            "$validate_function" \
+            bootstrap_managed_artifact_matches_expected_digest; then
+        status=0
+    else
+        status=$?
+    fi
+    BOOTSTRAP_MANAGED_ARTIFACT_MUTATION_LABEL=""
+    rm -f "$candidate_path"
+    return "$status"
+}
+
 bootstrap_managed_artifact_markers_are_valid() {
     local path="$1"
     local begin_marker="$2"

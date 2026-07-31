@@ -22,6 +22,7 @@ EXPORT_DIR="$(dirname "$SCRIPT_DIR")"
 RUNTIME_LIB="$SCRIPT_DIR/lib/runtime-environment.sh"
 JSON_MERGE_LIB="$SCRIPT_DIR/lib/json-merge.sh"
 FILE_SAFETY_LIB="$SCRIPT_DIR/lib/file-safety.sh"
+MANAGED_ARTIFACT_LIB="$SCRIPT_DIR/lib/managed-artifact.sh"
 CLAUDE_EXPORT="$EXPORT_DIR/claude"
 CLAUDE_HOME="$HOME/.claude"
 CODEX_EXPORT="$EXPORT_DIR/codex"
@@ -34,6 +35,8 @@ source "$RUNTIME_LIB"
 source "$JSON_MERGE_LIB"
 # shellcheck disable=SC1090
 source "$FILE_SAFETY_LIB"
+# shellcheck disable=SC1090
+source "$MANAGED_ARTIFACT_LIB"
 
 echo "Source: $CLAUDE_EXPORT"
 echo "Target: $CLAUDE_HOME"
@@ -41,8 +44,6 @@ echo ""
 
 merge_codex_yolo_defaults() {
     local destination="$CODEX_HOME/config.toml"
-    local temporary=""
-    local backup_target=""
 
     mkdir -p "$CODEX_HOME"
 
@@ -57,35 +58,45 @@ merge_codex_yolo_defaults() {
         return 1
     fi
 
-    temporary="$(mktemp "$CODEX_HOME/.config.toml.tmp.XXXXXX")"
+    if bootstrap_managed_artifact_apply_versioned_transform \
+            "codex-yolo-defaults-v1" "$destination" "$BACKUP_DIR" \
+            codex_yolo_defaults_candidate; then
+        :
+    else
+        return $?
+    fi
+    echo "  [OK] Codex portable defaults are present"
+}
+
+codex_yolo_defaults_candidate() {
+    local candidate_path="$1"
+    local rewritten_path="${candidate_path}.rewritten"
+
     awk '
-        /^[[:space:]]*approval_policy[[:space:]]*=/ { next }
-        /^[[:space:]]*sandbox_mode[[:space:]]*=/ { next }
-        !inserted && /^[[]/ {
+        /^[[:space:]]*approval_policy[[:space:]]*=/ {
             print "approval_policy = \"never\""
+            approval_seen = 1
+            next
+        }
+        /^[[:space:]]*sandbox_mode[[:space:]]*=/ {
             print "sandbox_mode = \"danger-full-access\""
+            sandbox_seen = 1
+            next
+        }
+        !inserted && /^[[]/ {
+            if (!approval_seen) print "approval_policy = \"never\""
+            if (!sandbox_seen) print "sandbox_mode = \"danger-full-access\""
             inserted = 1
         }
         { print }
         END {
             if (!inserted) {
-                print "approval_policy = \"never\""
-                print "sandbox_mode = \"danger-full-access\""
+                if (!approval_seen) print "approval_policy = \"never\""
+                if (!sandbox_seen) print "sandbox_mode = \"danger-full-access\""
             }
         }
-    ' "$destination" > "$temporary"
-
-    if cmp -s "$temporary" "$destination"; then
-        rm -f "$temporary"
-        echo "  [SKIP] Codex portable defaults are unchanged"
-        return
-    fi
-
-    backup_target="$(backup_target_for "$destination")"
-    mkdir -p "$(dirname "$backup_target")"
-    cp -p "$destination" "$backup_target"
-    mv "$temporary" "$destination"
-    echo "  [MERGE] Codex portable defaults"
+    ' "$candidate_path" > "$rewritten_path" || return 1
+    mv "$rewritten_path" "$candidate_path"
 }
 
 backup_target_for() {
@@ -128,53 +139,36 @@ merge_json_with_backup() {
     local src="$1"
     local dest="$2"
     local label="$3"
-    local backup_target
-    local tmp_file
-
-    if [ -L "$dest" ]; then
-        echo "ERROR: Refusing to replace symlink destination: $dest" >&2
-        return 1
-    fi
-
-    if [ -e "$dest" ] && [ ! -f "$dest" ]; then
-        echo "ERROR: Refusing to replace non-file destination: $dest" >&2
-        return 1
-    fi
-
-    mkdir -p "$(dirname "$dest")"
-
-    if [ ! -f "$dest" ]; then
-        cp "$src" "$dest"
-        echo "  [COPY] $label"
-        return
-    fi
-
-    if cmp -s "$src" "$dest"; then
-        echo "  [SKIP] $label is unchanged"
-        return
-    fi
-
     if ! PYTHON_BIN="$(bootstrap_resolve_python_bin)"; then
         echo "  [WARN] python3 not available; preserving existing $label"
         return
     fi
-
-    tmp_file="$(mktemp)"
-    bootstrap_merge_json "$dest" "$src" "$tmp_file" "$PYTHON_BIN"
-
-    if cmp -s "$tmp_file" "$dest"; then
-        rm -f "$tmp_file"
-        echo "  [SKIP] $label already includes repo defaults"
-        return
-    fi
-
-    backup_target="$(backup_target_for "$dest")"
-    mkdir -p "$(dirname "$backup_target")"
-    cp "$dest" "$backup_target"
-    echo "  [BACKUP] $dest"
-
-    mv "$tmp_file" "$dest"
+    bootstrap_managed_artifact_merge_overlay json "$src" "$dest" "$BACKUP_DIR" "$PYTHON_BIN" || return 1
     echo "  [MERGE] $label"
+}
+
+normalize_legacy_claude_home_paths() {
+    local candidate_path="$1"
+
+    "$PYTHON_BIN" - "$candidate_path" <<'PY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+value = json.loads(path.read_text())
+
+def normalize(item):
+    if isinstance(item, dict):
+        return {key: normalize(value) for key, value in item.items()}
+    if isinstance(item, list):
+        return [normalize(value) for value in item]
+    if isinstance(item, str):
+        return item.replace("/home/carlo/", "$HOME/")
+    return item
+
+path.write_text(json.dumps(normalize(value), indent=2) + "\n")
+PY
 }
 
 # -----------------------------------------------------------------------------
@@ -250,8 +244,13 @@ echo "Updating paths in settings.json for macOS..."
 # Normalize legacy absolute home paths if they still appear in an existing file.
 if [ -f "$CLAUDE_HOME/settings.json" ]; then
     if grep -q "/home/carlo" "$CLAUDE_HOME/settings.json"; then
-        sed -i.bak 's|/home/carlo/|$HOME/|g' "$CLAUDE_HOME/settings.json"
-        rm -f "$CLAUDE_HOME/settings.json.bak"
+        if ! PYTHON_BIN="$(bootstrap_resolve_python_bin)"; then
+            echo "ERROR: python3 is required to migrate legacy Claude paths." >&2
+            exit 1
+        fi
+        bootstrap_managed_artifact_apply_versioned_transform \
+            "claude-home-path-v1" "$CLAUDE_HOME/settings.json" "$BACKUP_DIR" \
+            normalize_legacy_claude_home_paths bootstrap_managed_artifact_json_is_valid || exit 1
         echo "  [UPDATE] Fixed hardcoded paths in settings.json"
     else
         echo "  [OK] Paths in settings.json are portable"
