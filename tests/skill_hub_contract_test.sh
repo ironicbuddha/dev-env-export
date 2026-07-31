@@ -54,15 +54,24 @@ case "$*" in
         cat > "$hub_dir/scripts/bootstrap" <<'BOOTSTRAP'
 #!/bin/bash
 printf '%s\n' "$*" >> "$TEST_HUB_BOOTSTRAP_LOG"
+if [[ "${TEST_HUB_BOOTSTRAP_INVALID:-0}" = 1 ]]; then
+    exit 0
+fi
+mkdir -p "$HOME/.agents/skills/implement" "$HOME/.claude" "$HOME/.codex"
+printf '%s\n' '---' 'name: implement' '---' > "$HOME/.agents/skills/implement/SKILL.md"
+ln -sfn "$HOME/.agents/skills" "$HOME/.claude/skills"
+ln -sfn "$HOME/.agents/skills" "$HOME/.codex/skills"
 BOOTSTRAP
         chmod +x "$hub_dir/scripts/bootstrap"
         ;;
     *"rev-parse --is-inside-work-tree") printf 'true\n' ;;
+    *"rev-parse HEAD") printf 'after-refresh\n' ;;
     *"remote get-url origin") printf '%s\n' 'https://github.com/ironicbuddha/skills-hub.git' ;;
     *"status --porcelain") ;;
     *"symbolic-ref --quiet --short refs/remotes/origin/HEAD") printf 'origin/main\n' ;;
     *"rev-parse --abbrev-ref HEAD") printf 'main\n' ;;
     *"fetch origin main") ;;
+    *"merge-base --is-ancestor HEAD origin/main") ;;
     *"merge --ff-only origin/main") ;;
     *) exit 1 ;;
 esac
@@ -79,11 +88,18 @@ make_hub_fixture() {
     cat > "$hub_dir/scripts/bootstrap" <<'EOF'
 #!/bin/bash
 printf '%s\n' "$*" >> "$TEST_HUB_BOOTSTRAP_LOG"
+if [[ "${TEST_HUB_BOOTSTRAP_INVALID:-0}" = 1 ]]; then
+    exit 0
+fi
+mkdir -p "$HOME/.agents/skills/implement" "$HOME/.claude" "$HOME/.codex"
+printf '%s\n' '---' 'name: implement' '---' > "$HOME/.agents/skills/implement/SKILL.md"
+ln -sfn "$HOME/.agents/skills" "$HOME/.claude/skills"
+ln -sfn "$HOME/.agents/skills" "$HOME/.codex/skills"
 EOF
     chmod +x "$hub_dir/scripts/bootstrap"
 }
 
-test_existing_valid_hub_is_fast_forwarded_and_applied() {
+test_existing_owned_hub_is_reused_and_applied_without_refresh() {
     local home_dir="$TEST_TMP_ROOT/valid/home"
     local hub_dir="$home_dir/dev/skills-hub"
     local bin_dir="$TEST_TMP_ROOT/valid/bin"
@@ -92,15 +108,100 @@ test_existing_valid_hub_is_fast_forwarded_and_applied() {
     mkdir -p "$home_dir"
     make_hub_fixture "$hub_dir"
     make_git_stub "$bin_dir"
+    printf '%s\n' \
+        'schema_version=1' \
+        'repository=https://github.com/ironicbuddha/skills-hub.git' \
+        'branch=main' \
+        'checkout_commit=before-refresh' > "$hub_dir.bootstrap-owner"
 
     HOME="$home_dir" PATH="$bin_dir:$PATH" TEST_GIT_LOG="$TEST_TMP_ROOT/valid/git.log" \
         TEST_HUB_BOOTSTRAP_LOG="$TEST_TMP_ROOT/valid/hub-bootstrap.log" \
         /bin/bash "$REPO_ROOT/scripts/14-install-codex-skills.sh" > "$output" 2>&1 || \
         fail "valid Hub projection should succeed"
 
-    assert_file_contains "$TEST_TMP_ROOT/valid/git.log" "fetch origin main"
-    assert_file_contains "$TEST_TMP_ROOT/valid/git.log" "merge --ff-only origin/main"
+    if grep -Fq "fetch origin main" "$TEST_TMP_ROOT/valid/git.log"; then
+        fail "ordinary reruns must not refresh the Hub source"
+    fi
+    if grep -Fq "merge --ff-only origin/main" "$TEST_TMP_ROOT/valid/git.log"; then
+        fail "ordinary reruns must not merge moving upstream state"
+    fi
     assert_file_contains "$TEST_TMP_ROOT/valid/hub-bootstrap.log" "--profile carlo-baseline --no-input"
+}
+
+test_explicit_refresh_fast_forwards_an_owned_clean_checkout() {
+    local home_dir="$TEST_TMP_ROOT/refresh/home"
+    local hub_dir="$home_dir/dev/skills-hub"
+    local bin_dir="$TEST_TMP_ROOT/refresh/bin"
+    local output="$TEST_TMP_ROOT/refresh/output"
+
+    mkdir -p "$home_dir"
+    make_hub_fixture "$hub_dir"
+    make_git_stub "$bin_dir"
+    printf '%s\n' \
+        'schema_version=1' \
+        'repository=https://github.com/ironicbuddha/skills-hub.git' \
+        'branch=main' \
+        'checkout_commit=before-refresh' > "$hub_dir.bootstrap-owner"
+
+    HOME="$home_dir" PATH="$bin_dir:$PATH" TEST_GIT_LOG="$TEST_TMP_ROOT/refresh/git.log" \
+        TEST_HUB_BOOTSTRAP_LOG="$TEST_TMP_ROOT/refresh/hub-bootstrap.log" \
+        /bin/bash "$REPO_ROOT/scripts/14-install-codex-skills.sh" --refresh > "$output" 2>&1 || \
+        fail "an owned clean checkout should refresh"
+
+    assert_file_contains "$TEST_TMP_ROOT/refresh/git.log" "fetch origin main"
+    assert_file_contains "$TEST_TMP_ROOT/refresh/git.log" "merge-base --is-ancestor HEAD origin/main"
+    assert_file_contains "$TEST_TMP_ROOT/refresh/git.log" "merge --ff-only origin/main"
+    assert_file_contains "$hub_dir.bootstrap-owner" 'checkout_commit=after-refresh'
+}
+
+test_unmarked_checkout_is_preserved_without_refreshing_or_applying() {
+    local home_dir="$TEST_TMP_ROOT/unmarked/home"
+    local hub_dir="$home_dir/dev/skills-hub"
+    local bin_dir="$TEST_TMP_ROOT/unmarked/bin"
+    local output="$TEST_TMP_ROOT/unmarked/output"
+
+    mkdir -p "$home_dir"
+    make_hub_fixture "$hub_dir"
+    make_git_stub "$bin_dir"
+    printf '%s\n' 'do not adopt' > "$hub_dir/sentinel"
+
+    HOME="$home_dir" PATH="$bin_dir:$PATH" TEST_GIT_LOG="$TEST_TMP_ROOT/unmarked/git.log" \
+        TEST_HUB_BOOTSTRAP_LOG="$TEST_TMP_ROOT/unmarked/hub-bootstrap.log" \
+        /bin/bash "$REPO_ROOT/scripts/14-install-codex-skills.sh" > "$output" 2>&1 || \
+        fail "an unmarked checkout must remain a non-gating warning"
+
+    assert_file_contains "$output" "Refusing unowned Skill Hub checkout"
+    assert_file_contains "$hub_dir/sentinel" "do not adopt"
+    [[ ! -s "$TEST_TMP_ROOT/unmarked/hub-bootstrap.log" ]] || \
+        fail "an unowned checkout must not apply a profile"
+    if grep -Fq "fetch origin main" "$TEST_TMP_ROOT/unmarked/git.log"; then
+        fail "an unowned checkout must not refresh"
+    fi
+}
+
+test_invalid_profile_projection_is_reported_as_non_gating_degradation() {
+    local home_dir="$TEST_TMP_ROOT/invalid-projection/home"
+    local hub_dir="$home_dir/dev/skills-hub"
+    local bin_dir="$TEST_TMP_ROOT/invalid-projection/bin"
+    local output="$TEST_TMP_ROOT/invalid-projection/output"
+
+    mkdir -p "$home_dir"
+    make_hub_fixture "$hub_dir"
+    make_git_stub "$bin_dir"
+    printf '%s\n' \
+        'schema_version=1' \
+        'repository=https://github.com/ironicbuddha/skills-hub.git' \
+        'branch=main' \
+        'checkout_commit=before-refresh' > "$hub_dir.bootstrap-owner"
+
+    HOME="$home_dir" PATH="$bin_dir:$PATH" TEST_GIT_LOG="$TEST_TMP_ROOT/invalid-projection/git.log" \
+        TEST_HUB_BOOTSTRAP_LOG="$TEST_TMP_ROOT/invalid-projection/hub-bootstrap.log" \
+        TEST_HUB_BOOTSTRAP_INVALID=1 \
+        /bin/bash "$REPO_ROOT/scripts/14-install-codex-skills.sh" > "$output" 2>&1 || \
+        fail "an invalid optional projection must not fail the wider bootstrap"
+
+    assert_file_contains "$output" "Skill Hub profile did not produce a valid projection"
+    assert_file_contains "$output" "rerun: ./scripts/14-install-codex-skills.sh --skill-selection carlo-baseline"
 }
 
 test_user_managed_hub_is_skipped_without_touching_skill_targets() {
@@ -159,6 +260,7 @@ test_failed_first_clone_does_not_block_a_later_retry() {
 
     assert_file_contains "$TEST_TMP_ROOT/retry/second-git.log" "clone https://github.com/ironicbuddha/skills-hub.git"
     assert_file_contains "$TEST_TMP_ROOT/retry/hub-bootstrap.log" "--profile carlo-baseline --no-input"
+    [[ -f "$hub_dir.bootstrap-owner" ]] || fail "a bootstrap clone must record its ownership"
 }
 
 test_canonical_projection_is_readable_through_every_harness() {
@@ -206,7 +308,10 @@ run_test() {
     echo "ok $TEST_COUNT - [evidence=$evidence_class] ${name#test_}"
 }
 
-run_test step test_existing_valid_hub_is_fast_forwarded_and_applied
+run_test step test_existing_owned_hub_is_reused_and_applied_without_refresh
+run_test step test_explicit_refresh_fast_forwards_an_owned_clean_checkout
+run_test step test_unmarked_checkout_is_preserved_without_refreshing_or_applying
+run_test step test_invalid_profile_projection_is_reported_as_non_gating_degradation
 run_test step test_user_managed_hub_is_skipped_without_touching_skill_targets
 run_test step test_dangling_hub_symlink_is_not_replaced
 run_test step test_failed_first_clone_does_not_block_a_later_retry

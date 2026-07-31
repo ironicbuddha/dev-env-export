@@ -378,10 +378,12 @@ When you spin up a new repo from this environment, do not start from scratch.
 - Use [PROJECT-STANDARDS.md](PROJECT-STANDARDS.md)
   as the default standard for testing, deployment, security, and operations.
 - Carlo Baseline applies the public Skill Hub's `carlo-baseline` selection.
-- Install or refresh that selection manually with
+- Install that selection manually with
   [scripts/14-install-codex-skills.sh](scripts/14-install-codex-skills.sh)
   if you want to update an existing machine without rerunning the broader
-  bootstrap.
+  bootstrap. Ordinary runs deliberately reuse the recorded checkout; add
+  `--refresh` only when you explicitly want to fast-forward its clean,
+  bootstrap-owned source.
 - Run
   [scripts/13-apply-project-standards.sh](scripts/13-apply-project-standards.sh)
   to copy the starter into a target repo with a profile-aware baseline.
@@ -399,6 +401,9 @@ Example:
 
 ```bash
 ./scripts/14-install-codex-skills.sh --skill-selection carlo-baseline
+
+# Explicitly refresh the recorded clean checkout before applying the selection.
+./scripts/14-install-codex-skills.sh --refresh --skill-selection carlo-baseline
 
 ./scripts/13-apply-project-standards.sh \
   --repo ~/dev/my-api \
