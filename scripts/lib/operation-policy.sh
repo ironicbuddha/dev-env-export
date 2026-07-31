@@ -58,7 +58,7 @@ bootstrap_operation_homebrew_curlrc() {
 bootstrap_operation_run_with_observation() {
     local policy="$1" output_file="$2" operation="$3" target="$4"
     shift 4
-    local pid=0 started_at=0 now=0 last_heartbeat=0 heartbeat_seconds=300 curlrc="" status=0
+    local pid=0 started_at=0 now=0 last_heartbeat=0 heartbeat_seconds=300 poll_seconds=1 curlrc="" status=0
     local existing_curlrc="${HOMEBREW_CURLRC:-}"
     local deadline_seconds=120 deadline_recorded=0
 
@@ -66,6 +66,11 @@ bootstrap_operation_run_with_observation() {
         '' ) ;;
         *[!0-9]* ) ;;
         * ) heartbeat_seconds="$DEV_ENV_OPERATION_HEARTBEAT_SECONDS" ;;
+    esac
+    case "${DEV_ENV_OPERATION_POLL_SECONDS:-}" in
+        '' ) ;;
+        *[!0-9]* ) ;;
+        * ) poll_seconds="$DEV_ENV_OPERATION_POLL_SECONDS" ;;
     esac
     case "$policy" in
         homebrew_metadata) deadline_seconds=120 ;;
@@ -97,8 +102,18 @@ bootstrap_operation_run_with_observation() {
     started_at="$(date +%s)"
     last_heartbeat="$started_at"
 
+    # Contract fakes finish synchronously. Let their tests opt out of polling so
+    # each fake invocation does not add a one-second delay. Production retains
+    # the observed polling path below unless explicitly configured otherwise.
+    if [ "$poll_seconds" -eq 0 ]; then
+        wait "$pid"
+        status=$?
+        [ -n "$curlrc" ] && rm -f "$curlrc"
+        return "$status"
+    fi
+
     while kill -0 "$pid" 2>/dev/null; do
-        sleep 1
+        sleep "$poll_seconds"
         now="$(date +%s)"
         if [ "$heartbeat_seconds" -gt 0 ] && [ $((now - last_heartbeat)) -ge "$heartbeat_seconds" ]; then
             bootstrap_operation_record operation_heartbeat satisfied none "${policy}_heartbeat" 0 none \

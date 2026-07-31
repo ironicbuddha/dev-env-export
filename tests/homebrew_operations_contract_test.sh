@@ -40,7 +40,8 @@ configure_case() {
     TEST_BREW_STATE_DIR="$case_root/state"
     TEST_BREW_CALL_LOG="$case_root/calls.log"
     TEST_BREW_CURLRC_LOG="$case_root/curlrc.log"
-    export BOOTSTRAP_OPERATION_EVENT_FILE BOOTSTRAP_OPERATION_STEP
+    DEV_ENV_OPERATION_POLL_SECONDS=0
+    export BOOTSTRAP_OPERATION_EVENT_FILE BOOTSTRAP_OPERATION_STEP DEV_ENV_OPERATION_POLL_SECONDS
     export TEST_BREW_STATE_DIR TEST_BREW_CALL_LOG TEST_BREW_CURLRC_LOG
     PATH="$case_root/bin:$PATH"
     export PATH
@@ -328,6 +329,7 @@ EOF
 
     printf '%s\n' 2 > "$case_root/state/install-git.delay"
     DEV_ENV_OPERATION_HEARTBEAT_SECONDS=1 DEV_ENV_OPERATION_DEADLINE_SECONDS=1 \
+        DEV_ENV_OPERATION_POLL_SECONDS=1 \
         bootstrap_homebrew_ensure_formula git ||
         fail "observed successful install should pass"
     assert_file_contains "$case_root/events.tsv" "homebrew_mutation_curl_timeouts"
