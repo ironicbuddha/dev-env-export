@@ -7,15 +7,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
-FILE_SAFETY_LIB="$SCRIPT_DIR/lib/file-safety.sh"
-MANAGED_SHELL_LIB="$SCRIPT_DIR/lib/managed-shell-block.sh"
+MANAGED_ARTIFACT_LIB="$SCRIPT_DIR/lib/managed-artifact.sh"
 PROFILE_LIB="$SCRIPT_DIR/lib/bootstrap-profile.sh"
 BACKUP_DIR="$HOME/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)"
 
 # shellcheck disable=SC1090
-source "$FILE_SAFETY_LIB"
-# shellcheck disable=SC1090
-source "$MANAGED_SHELL_LIB"
+source "$MANAGED_ARTIFACT_LIB"
 # shellcheck disable=SC1090
 source "$PROFILE_LIB"
 
@@ -39,7 +36,7 @@ copy_with_backup() {
         return 0
     fi
 
-    bootstrap_copy_file_with_backup "$source_path" "$destination_path" "$BACKUP_DIR"
+    bootstrap_managed_artifact_install_exact "$source_path" "$destination_path" "$BACKUP_DIR"
     echo "  [COPY] $source_path -> $destination_path"
 }
 
@@ -70,7 +67,7 @@ echo "========================================"
 echo ""
 
 echo "Installing managed shell blocks..."
-bootstrap_write_managed_shell_block "$HOME/.zprofile" \
+bootstrap_managed_artifact_replace_managed_block "$HOME/.zprofile" \
     "# BEGIN DEV ENV CARLO HOMEBREW" \
     "# END DEV ENV CARLO HOMEBREW" \
     "$BACKUP_DIR" <<'EOF'
@@ -81,7 +78,7 @@ fi
 # END DEV ENV CARLO HOMEBREW
 EOF
 
-bootstrap_write_managed_shell_block "$HOME/.zshrc" \
+bootstrap_managed_artifact_replace_managed_block "$HOME/.zshrc" \
     "# BEGIN DEV ENV CARLO RUNTIME PATHS" \
     "# END DEV ENV CARLO RUNTIME PATHS" \
     "$BACKUP_DIR" <<'EOF'
@@ -118,7 +115,7 @@ unset DEV_ENV_UV_ENV_DIR
 # END DEV ENV CARLO RUNTIME PATHS
 EOF
 
-bootstrap_write_managed_shell_block "$HOME/.zshrc" \
+bootstrap_managed_artifact_replace_managed_block "$HOME/.zshrc" \
     "# BEGIN DEV ENV CARLO SHELL" \
     "# END DEV ENV CARLO SHELL" \
     "$BACKUP_DIR" <<'EOF'
@@ -153,7 +150,9 @@ for launch_config in "$REPO_ROOT"/warp/launch_configurations/*.yaml "$REPO_ROOT"
     copy_with_backup "$launch_config" "$HOME/.warp/launch_configurations/$(basename "$launch_config")"
 done
 
-mkdir -p "$HOME/.local/bin" "$HOME/.tmp" "$HOME/bin"
+bootstrap_managed_artifact_ensure_safe_directory "$HOME/.local/bin"
+bootstrap_managed_artifact_ensure_safe_directory "$HOME/.tmp"
+bootstrap_managed_artifact_ensure_safe_directory "$HOME/bin"
 
 echo ""
 echo "========================================"

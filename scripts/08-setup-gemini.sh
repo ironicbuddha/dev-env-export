@@ -22,7 +22,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXPORT_DIR="$(dirname "$SCRIPT_DIR")"
 RUNTIME_LIB="$SCRIPT_DIR/lib/runtime-environment.sh"
 JSON_MERGE_LIB="$SCRIPT_DIR/lib/json-merge.sh"
-FILE_SAFETY_LIB="$SCRIPT_DIR/lib/file-safety.sh"
 MANAGED_ARTIFACT_LIB="$SCRIPT_DIR/lib/managed-artifact.sh"
 GEMINI_EXPORT="$EXPORT_DIR/gemini"
 GEMINI_HOME="$HOME/.gemini"
@@ -35,8 +34,6 @@ BACKUP_DIR="$HOME/.gemini-backup-$(date +%Y%m%d-%H%M%S)"
 source "$RUNTIME_LIB"
 # shellcheck disable=SC1090
 source "$JSON_MERGE_LIB"
-# shellcheck disable=SC1090
-source "$FILE_SAFETY_LIB"
 # shellcheck disable=SC1090
 source "$MANAGED_ARTIFACT_LIB"
 
@@ -51,36 +48,19 @@ echo "Source: $GEMINI_EXPORT"
 echo "Target: $GEMINI_HOME"
 echo ""
 
-backup_target_for() {
-    local dest="$1"
-    local relative_path="${dest#"$HOME"/}"
-
-    if [ "$relative_path" = "$dest" ]; then
-        relative_path="$(basename "$dest")"
-    fi
-
-    printf '%s/%s' "$BACKUP_DIR" "$relative_path"
-}
-
 copy_with_backup() {
     local src="$1"
     local dest="$2"
-    local backup_target
-    local dest_dir
 
     if [ -f "$dest" ] && cmp -s "$src" "$dest"; then
         echo "  [SKIP] $(basename "$dest") is unchanged"
         return
     fi
 
-    backup_target="$(backup_target_for "$dest")"
-    if ! bootstrap_copy_file_with_backup "$src" "$dest" "$BACKUP_DIR" "$backup_target"; then
+    if ! bootstrap_managed_artifact_install_exact "$src" "$dest" "$BACKUP_DIR"; then
         return 1
     fi
 
-    if [ -f "$backup_target" ]; then
-        echo "  [BACKUP] $dest"
-    fi
     echo "  [COPY] $(basename "$dest")"
 }
 
@@ -159,7 +139,7 @@ repair_legacy_agent_frontmatter() {
 }
 
 echo "Creating Gemini directories..."
-mkdir -p "$GEMINI_HOME"
+bootstrap_managed_artifact_ensure_safe_directory "$GEMINI_HOME"
 echo "  [CREATE] ~/.gemini"
 
 echo ""

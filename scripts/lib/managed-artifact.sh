@@ -7,8 +7,31 @@ BOOTSTRAP_MANAGED_ARTIFACT_EXPECTED_DIGEST=""
 BOOTSTRAP_MANAGED_ARTIFACT_VALIDATOR_BIN=""
 BOOTSTRAP_MANAGED_ARTIFACT_MUTATION_LABEL=""
 
+bootstrap_managed_artifact_refuse_symlink_path_components() {
+    local path="$1"
+    local parent_path=""
+    local home_boundary=""
+
+    case "$path" in
+        "$HOME"|"$HOME"/*) home_boundary="$HOME" ;;
+    esac
+    while :; do
+        if [ -L "$path" ]; then
+            echo "ERROR: Refusing symlink path component for managed artifact: $path" >&2
+            return 1
+        fi
+        [ -n "$home_boundary" ] && [ "$path" = "$home_boundary" ] && return 0
+        [ -z "$home_boundary" ] && return 0
+        parent_path="$(dirname "$path")"
+        [ "$parent_path" != "$path" ] || return 0
+        path="$parent_path"
+    done
+}
+
 bootstrap_managed_artifact_refuse_unsafe_target() {
     local target_path="$1"
+
+    bootstrap_managed_artifact_refuse_symlink_path_components "$target_path" || return 1
 
     if [ -L "$target_path" ]; then
         echo "ERROR: Refusing to modify symlink managed-artifact target: $target_path" >&2
@@ -17,6 +40,17 @@ bootstrap_managed_artifact_refuse_unsafe_target() {
 
     if [ -e "$target_path" ] && [ ! -f "$target_path" ]; then
         echo "ERROR: Refusing to modify non-file managed-artifact target: $target_path" >&2
+        return 1
+    fi
+}
+
+bootstrap_managed_artifact_ensure_safe_directory() {
+    local directory_path="$1"
+
+    bootstrap_managed_artifact_refuse_symlink_path_components "$directory_path" || return 1
+    mkdir -p "$directory_path" || return 1
+    if [ ! -d "$directory_path" ] || [ -L "$directory_path" ]; then
+        echo "ERROR: Refusing non-directory managed-artifact parent: $directory_path" >&2
         return 1
     fi
 }
@@ -61,6 +95,22 @@ bootstrap_managed_artifact_json_is_valid() {
 
     "$BOOTSTRAP_MANAGED_ARTIFACT_VALIDATOR_BIN" -m json.tool \
         "$candidate_path" >/dev/null 2>&1
+}
+
+bootstrap_managed_artifact_toml_is_valid() {
+    local candidate_path="$1"
+
+    "$BOOTSTRAP_MANAGED_ARTIFACT_VALIDATOR_BIN" - "$candidate_path" <<'PY' >/dev/null 2>&1
+import sys
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
+
+with open(sys.argv[1], "rb") as candidate:
+    tomllib.load(candidate)
+PY
 }
 
 bootstrap_managed_artifact_backup() {

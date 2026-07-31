@@ -43,7 +43,7 @@ if [ "$BOOTSTRAP_PROFILE" = "shared-baseline" ]; then
     exit 0
 fi
 
-APP_PATH="/Applications/1Password.app"
+APP_PATH="${DEV_ENV_1PASSWORD_APP_PATH:-/Applications/1Password.app}"
 
 if [ -d "$APP_PATH" ]; then
     echo "  [OK] 1Password app detected at $APP_PATH"
