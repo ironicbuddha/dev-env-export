@@ -78,6 +78,11 @@ run_suite \
 
 run_suite \
     "step" \
+    "Shared Shell contract tests" \
+    "$REPO_ROOT/tests/shared_shell_contract_test.sh"
+
+run_suite \
+    "step" \
     "Bun fallback contract tests" \
     "$REPO_ROOT/tests/bun_fallback_contract_test.sh"
 

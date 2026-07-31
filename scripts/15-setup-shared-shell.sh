@@ -13,7 +13,7 @@ ZPROFILE="$HOME/.zprofile"
 ZSHRC="$HOME/.zshrc"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MANAGED_SHELL_LIB="$SCRIPT_DIR/lib/managed-shell-block.sh"
-BACKUP_DIR="$(mktemp -d "$HOME/.shared-shell-backup-$(date +%Y%m%d-%H%M%S)-XXXXXX")"
+BACKUP_DIR="$HOME/.dev-env-shared-shell-backups"
 
 # shellcheck disable=SC1090
 source "$MANAGED_SHELL_LIB"
@@ -75,5 +75,5 @@ EOF
 echo "Installed minimal shared shell wiring:"
 echo "  - $ZPROFILE"
 echo "  - $ZSHRC"
-echo "Backups (when files changed): $BACKUP_DIR"
+echo "Backups (only when files change): $BACKUP_DIR"
 echo ""
