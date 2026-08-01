@@ -68,6 +68,11 @@ run_suite \
 
 run_suite \
     "step" \
+    "verifier contract tests" \
+    "$REPO_ROOT/tests/verifier_contract_test.sh"
+
+run_suite \
+    "step" \
     "npm globals contract tests" \
     "$REPO_ROOT/tests/npm_globals_contract_test.sh"
 

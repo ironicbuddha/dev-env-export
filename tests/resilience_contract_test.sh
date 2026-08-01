@@ -94,7 +94,8 @@ test_runtime_activation_requires_exact_node() {
 
     mkdir -p "$fake_bin"
     printf '#!/bin/bash\nprintf "v%%s\\n" "${TEST_NODE_VERSION}"\n' > "$fake_bin/node"
-    chmod +x "$fake_bin/node"
+    printf '#!/bin/bash\nexit 0\n' > "$fake_bin/npm"
+    chmod +x "$fake_bin/node" "$fake_bin/npm"
 
     # shellcheck disable=SC1091
     source "$REPO_ROOT/scripts/lib/runtime-environment.sh"
@@ -288,6 +289,7 @@ test_path_check_returns_nonzero_for_required_miss() {
     cp "$REPO_ROOT/scripts/10-check-paths.sh" "$fixture_root/scripts/10-check-paths.sh"
     cp "$REPO_ROOT/scripts/lib/bootstrap-profile.sh" "$fixture_root/scripts/lib/bootstrap-profile.sh"
     cp "$REPO_ROOT/scripts/lib/runtime-environment.sh" "$fixture_root/scripts/lib/runtime-environment.sh"
+    cp "$REPO_ROOT/scripts/lib/operation-policy.sh" "$fixture_root/scripts/lib/operation-policy.sh"
     cp "$REPO_ROOT/scripts/lib/app-bundle.sh" "$fixture_root/scripts/lib/app-bundle.sh"
     cp "$REPO_ROOT/scripts/lib/skill-hub-projection.sh" "$fixture_root/scripts/lib/skill-hub-projection.sh"
     printf '%s\n' \
@@ -327,7 +329,7 @@ test_dotfiles_entrypoint_refuses_external_symlink() {
     fi
 
     [ "$status" -ne 0 ] || fail "dotfiles entrypoint followed an external symlink"
-    assert_file_contains "$output_file" "Refusing to modify symlink managed-artifact target"
+    assert_file_contains "$output_file" "Refusing symlink path component for managed artifact"
     assert_file_contains "$external_file" "external value"
 }
 

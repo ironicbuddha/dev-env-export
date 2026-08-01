@@ -174,7 +174,7 @@ else
     pass "brew -> $(command -v brew)"
 fi
 
-if ! bootstrap_load_nvm; then
+if ! bootstrap_load_nvm --no-create; then
     fail "nvm could not be loaded"
 else
     pass "nvm loaded"
@@ -301,7 +301,7 @@ echo "App checks"
 echo "----------"
 
 for required_bundle in "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"; do
-    check_app "/Applications/$required_bundle"
+    check_app "${BOOTSTRAP_APPLICATIONS_DIR:-/Applications}/$required_bundle"
 done
 
 echo ""

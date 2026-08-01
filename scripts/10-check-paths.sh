@@ -110,7 +110,7 @@ echo "Bootstrap profile: $(bootstrap_profile_label "$BOOTSTRAP_PROFILE") ($BOOTS
 echo ""
 
 bootstrap_load_homebrew || true
-if bootstrap_load_nvm; then
+if bootstrap_load_nvm --no-create; then
     if ! bootstrap_activate_nvm_node "$BOOTSTRAP_NODE_VERSION"; then
         echo "[MISS] exact Node $BOOTSTRAP_NODE_VERSION could not be activated with nvm"
         FAILURES=$((FAILURES + 1))
@@ -182,8 +182,9 @@ fi
 
 echo ""
 for required_bundle in "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"; do
-    if bootstrap_app_bundle_usable "/Applications/$required_bundle"; then
-        echo "[OK]   $required_bundle -> /Applications/$required_bundle"
+    app_path="${BOOTSTRAP_APPLICATIONS_DIR:-/Applications}/$required_bundle"
+    if bootstrap_app_bundle_usable "$app_path"; then
+        echo "[OK]   $required_bundle -> $app_path"
     else
         echo "[MISS] $required_bundle is missing or unusable"
         echo "       Re-run scripts/02-install-cli-tools.sh."

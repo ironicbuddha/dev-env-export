@@ -25,10 +25,21 @@ bootstrap_load_homebrew() {
 }
 
 bootstrap_load_nvm() {
-    local nvm_prefix=""
+    local nvm_prefix="" create_dir=1
+
+    case "${1:-}" in
+        "" ) ;;
+        --no-create) create_dir=0 ;;
+        *)
+            echo "ERROR: bootstrap_load_nvm accepts only --no-create." >&2
+            return 2
+            ;;
+    esac
 
     export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-    mkdir -p "$NVM_DIR"
+    if [ "$create_dir" -eq 1 ]; then
+        mkdir -p "$NVM_DIR"
+    fi
 
     if command -v brew >/dev/null 2>&1; then
         nvm_prefix="$(brew --prefix nvm 2>/dev/null || true)"
