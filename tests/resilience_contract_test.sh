@@ -57,11 +57,52 @@ assert_array_excludes() {
     return 0
 }
 
+assert_arrays_equal() {
+    local label="$1"
+    shift
+    local -a actual=("${BOOTSTRAP_REQUIRED_CASKS[@]}")
+    local -a expected=("$@")
+
+    [ "${#actual[@]}" -eq "${#expected[@]}" ] || \
+        fail "$label has ${#actual[@]} entries; expected ${#expected[@]}"
+
+    local index=""
+    for index in "${!expected[@]}"; do
+        [ "${actual[$index]}" = "${expected[$index]}" ] || \
+            fail "$label entry $index is ${actual[$index]}; expected ${expected[$index]}"
+    done
+}
+
+assert_required_app_bundles_equal() {
+    local -a actual=("${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}")
+    local -a expected=("$@")
+
+    [ "${#actual[@]}" -eq "${#expected[@]}" ] || \
+        fail "Carlo Baseline app bundles has ${#actual[@]} entries; expected ${#expected[@]}"
+
+    local index=""
+    for index in "${!expected[@]}"; do
+        [ "${actual[$index]}" = "${expected[$index]}" ] || \
+            fail "Carlo Baseline app bundle $index is ${actual[$index]}; expected ${expected[$index]}"
+    done
+}
+
 test_profile_expectations_are_complete() {
     # shellcheck disable=SC1091
     source "$REPO_ROOT/scripts/lib/bootstrap-expectations.sh"
 
     bootstrap_load_expectations carlo-baseline
+
+    assert_arrays_equal "Carlo Baseline casks" \
+        warp zed raycast hiddenbar hammerspoon github \
+        1password 1password-cli \
+        chatgpt claude google-chrome google-drive libreoffice macdown obsidian \
+        slack utm vlc zoom
+    assert_required_app_bundles_equal \
+        "Warp.app" "Zed.app" "Raycast.app" "Hidden Bar.app" "Hammerspoon.app" \
+        "GitHub Desktop.app" "1Password.app" "ChatGPT.app" "Claude.app" \
+        "Google Chrome.app" "Google Drive.app" "LibreOffice.app" "MacDown.app" \
+        "Obsidian.app" "Slack.app" "UTM.app" "VLC.app" "zoom.us.app"
 
     assert_array_contains "bun" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"
     assert_array_contains "vercel" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"
@@ -83,6 +124,22 @@ test_profile_expectations_are_complete() {
     assert_array_excludes "BetterDisplay.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
     assert_array_excludes "Docker.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
     assert_array_excludes "Firefox.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
+    assert_array_excludes "audio-hijack" "${BOOTSTRAP_REQUIRED_CASKS[@]}"
+    assert_array_excludes "command-x" "${BOOTSTRAP_REQUIRED_CASKS[@]}"
+    assert_array_excludes "loopback" "${BOOTSTRAP_REQUIRED_CASKS[@]}"
+    assert_array_excludes "macwhisper" "${BOOTSTRAP_REQUIRED_CASKS[@]}"
+    assert_array_excludes "microsoft-teams" "${BOOTSTRAP_REQUIRED_CASKS[@]}"
+    assert_array_excludes "miro" "${BOOTSTRAP_REQUIRED_CASKS[@]}"
+    assert_array_excludes "nordvpn" "${BOOTSTRAP_REQUIRED_CASKS[@]}"
+    assert_array_excludes "whatsapp" "${BOOTSTRAP_REQUIRED_CASKS[@]}"
+    assert_array_excludes "Audio Hijack.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
+    assert_array_excludes "Command X.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
+    assert_array_excludes "Loopback.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
+    assert_array_excludes "MacWhisper.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
+    assert_array_excludes "Microsoft Teams.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
+    assert_array_excludes "Miro.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
+    assert_array_excludes "NordVPN.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
+    assert_array_excludes "WhatsApp.app" "${BOOTSTRAP_REQUIRED_APP_BUNDLES[@]}"
 
     bootstrap_load_expectations shared-baseline
     assert_array_excludes "bun" "${BOOTSTRAP_REQUIRED_COMMANDS[@]}"

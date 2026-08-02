@@ -64,24 +64,16 @@ CARLO_BASELINE_CASK_APPS=(
     1password-cli
 
     # Carlo's selected productivity and communication apps.
-    audio-hijack
     chatgpt
     claude
-    command-x
     google-chrome
     google-drive
     libreoffice
-    loopback
     macdown
-    macwhisper
-    microsoft-teams
-    miro
-    nordvpn
     obsidian
     slack
     utm
     vlc
-    whatsapp
     zoom
 )
 
