@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ironicbuddha.dev/project-standards/v1/source-guidance.schema.json",
+  "title": "Source Guidance Provenance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schemaVersion", "id", "sourceType", "title", "locator", "revision", "contentDigest", "retrievedAt", "disposition", "rationale"],
+  "properties": {
+    "$schema": { "const": "https://schemas.ironicbuddha.dev/project-standards/v1/source-guidance.schema.json" },
+    "schemaVersion": { "const": "1.0.0" },
+    "id": { "type": "string", "pattern": "^guidance/[a-z][a-z0-9-]*$" },
+    "sourceType": { "enum": ["specification", "standard", "documentation", "research", "repository"] },
+    "title": { "type": "string", "minLength": 1 },
+    "locator": { "type": "string", "format": "uri" },
+    "revision": { "type": "string", "minLength": 1 },
+    "contentDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "retrievedAt": { "type": "string", "format": "date-time" },
+    "disposition": { "enum": ["adopt", "adapt", "merge", "defer", "reject"] },
+    "rationale": { "type": "string", "minLength": 1 }
+  }
+}

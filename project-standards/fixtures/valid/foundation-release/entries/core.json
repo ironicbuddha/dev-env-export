@@ -1,0 +1,77 @@
+{
+  "$schema": "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-entry.schema.json",
+  "schemaVersion": "1.0.0",
+  "id": "entry/core/core",
+  "family": "core",
+  "kind": "core",
+  "version": "1.0.0",
+  "scopeKinds": ["repository"],
+  "cardinality": "singleton",
+  "authorityClasses": [],
+  "choices": [
+    {
+      "id": "choice/core/package-manager",
+      "valueType": "string",
+      "required": true,
+      "allowedValues": ["pnpm", "npm"],
+      "default": "pnpm"
+    }
+  ],
+  "rules": [
+    {
+      "id": "rule/core/exact-catalogue-pin",
+      "statement": "Configuration pins the exact Catalogue Release version and digest.",
+      "applicability": { "kind": "always" },
+      "requirementIds": ["requirement/core/exact-catalogue-pin"],
+      "waiverPolicy": { "kind": "prohibited" }
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "artifact/core/configuration",
+      "locatorTemplate": ".project-standards/config.json",
+      "ownership": "whole-file"
+    }
+  ],
+  "checks": [
+    {
+      "id": "check/core/configuration-valid",
+      "executable": "project-standards-catalogue",
+      "arguments": [
+        "resolve-configuration",
+        ".project-standards/catalogue",
+        ".project-standards/config.json"
+      ],
+      "scope": { "kind": "repository" },
+      "prerequisiteCheckIds": [],
+      "toolchain": {
+        "name": "project-standards-catalogue",
+        "version": "0.1.0"
+      },
+      "timeoutMs": 10000,
+      "network": "forbidden",
+      "secrets": "forbidden",
+      "retryPolicy": { "maximumAttempts": 1, "retryableResults": [] },
+      "passCriteria": "exit-zero"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "requirement/core/exact-catalogue-pin",
+      "ruleId": "rule/core/exact-catalogue-pin",
+      "phase": "baseline",
+      "kind": "deterministic-check",
+      "checkId": "check/core/configuration-valid",
+      "independence": "none"
+    }
+  ],
+  "requires": [],
+  "refines": [],
+  "incompatibleWith": [],
+  "nestedRootContracts": [],
+  "sourceGuidanceIds": ["guidance/foundation"],
+  "supportEvidenceIds": ["support/foundation"],
+  "fixtureIds": ["fixture/configuration/valid-foundation"],
+  "migrationIds": ["migration/configuration/0.0.0-to-1.0.0"],
+  "extensions": {}
+}

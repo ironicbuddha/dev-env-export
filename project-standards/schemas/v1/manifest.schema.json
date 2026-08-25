@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ironicbuddha.dev/project-standards/v1/manifest.schema.json",
+  "title": "Provenance Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schemaVersion", "configurationDigest", "catalogueVersion", "catalogueDigest", "bootstrapperVersion", "bootstrapperDigest", "schemaDigests", "artifacts", "evidence", "activeWaivers"],
+  "properties": {
+    "$schema": { "const": "https://schemas.ironicbuddha.dev/project-standards/v1/manifest.schema.json" },
+    "schemaVersion": { "const": "1.0.0" },
+    "configurationDigest": { "$ref": "#/$defs/digest" },
+    "catalogueVersion": { "$ref": "#/$defs/version" },
+    "catalogueDigest": { "$ref": "#/$defs/digest" },
+    "bootstrapperVersion": { "$ref": "#/$defs/version" },
+    "bootstrapperDigest": { "$ref": "#/$defs/digest" },
+    "schemaDigests": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "format": "uri" },
+      "additionalProperties": { "$ref": "#/$defs/digest" }
+    },
+    "verifyingRunId": { "type": "string", "pattern": "^[0-9a-f-]{36}$" },
+    "artifacts": { "type": "array", "items": { "$ref": "#/$defs/artifact" } },
+    "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidenceReference" } },
+    "activeWaivers": { "type": "array", "items": { "$ref": "#/$defs/waiverReference" } }
+  },
+  "$defs": {
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "ownerLayerId", "locator", "ownership", "fingerprint", "verificationState"],
+      "properties": {
+        "artifactId": { "type": "string", "pattern": "^artifact/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
+        "ownerLayerId": { "type": "string", "minLength": 1 },
+        "locator": { "type": "string", "minLength": 1 },
+        "ownership": { "enum": ["whole-file", "structured-fragment", "link"] },
+        "fingerprint": { "$ref": "#/$defs/digest" },
+        "verificationState": { "enum": ["matching", "drifted", "missing", "ambiguous"] }
+      }
+    },
+    "evidenceReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidenceId", "digest", "result", "observedAt"],
+      "properties": {
+        "evidenceId": { "type": "string", "pattern": "^evidence/[0-9a-f-]{36}$" },
+        "digest": { "$ref": "#/$defs/digest" },
+        "result": { "type": "string", "minLength": 1 },
+        "observedAt": { "type": "string", "format": "date-time" },
+        "validUntil": { "type": "string", "format": "date-time" },
+        "immutableReference": { "type": "string", "minLength": 1 }
+      }
+    },
+    "waiverReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["waiverId", "version", "digest"],
+      "properties": {
+        "waiverId": { "type": "string", "pattern": "^waiver/[a-z][a-z0-9-]*$" },
+        "version": { "type": "integer", "minimum": 1 },
+        "digest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

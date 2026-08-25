@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ironicbuddha.dev/project-standards/v1/migration.schema.json",
+  "title": "Schema Migration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schemaVersion", "id", "documentKind", "fromSchemaVersion", "toSchemaVersion", "operations"],
+  "properties": {
+    "$schema": { "const": "https://schemas.ironicbuddha.dev/project-standards/v1/migration.schema.json" },
+    "schemaVersion": { "const": "1.0.0" },
+    "id": { "type": "string", "pattern": "^migration/[a-z][a-z0-9-]*/[a-z0-9][a-z0-9.-]*$" },
+    "documentKind": { "enum": ["configuration", "manifest", "waiver", "evidence", "catalogue-entry"] },
+    "fromSchemaVersion": { "$ref": "#/$defs/version" },
+    "toSchemaVersion": { "$ref": "#/$defs/version" },
+    "operations": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/operation" } }
+  },
+  "$defs": {
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "path"],
+      "properties": {
+        "operation": { "enum": ["add", "remove", "replace", "rename"] },
+        "path": { "type": "string", "pattern": "^/" },
+        "from": { "type": "string", "pattern": "^/" },
+        "value": {}
+      }
+    }
+  }
+}

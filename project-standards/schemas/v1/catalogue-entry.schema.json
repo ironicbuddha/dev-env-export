@@ -1,0 +1,377 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-entry.schema.json",
+  "title": "Catalogue Entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "id",
+    "family",
+    "kind",
+    "version",
+    "scopeKinds",
+    "cardinality",
+    "authorityClasses",
+    "choices",
+    "rules",
+    "artifacts",
+    "checks",
+    "requirements",
+    "requires",
+    "refines",
+    "incompatibleWith",
+    "nestedRootContracts",
+    "sourceGuidanceIds",
+    "supportEvidenceIds",
+    "fixtureIds",
+    "migrationIds",
+    "extensions"
+  ],
+  "properties": {
+    "$schema": { "const": "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-entry.schema.json" },
+    "schemaVersion": { "const": "1.0.0" },
+    "id": { "$ref": "#/$defs/entryId" },
+    "family": { "enum": ["core", "workload", "capability"] },
+    "kind": { "$ref": "#/$defs/kind" },
+    "version": { "$ref": "#/$defs/version" },
+    "scopeKinds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["repository", "workload", "cross-workload"] }
+    },
+    "cardinality": { "enum": ["singleton", "multiple"] },
+    "authorityClasses": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/authorityClass" }
+    },
+    "choices": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/choice" }
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/rule" }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/artifact" }
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/check" }
+    },
+    "requirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/requirement" }
+    },
+    "requires": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entryRelationship" }
+    },
+    "refines": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ruleRelationship" }
+    },
+    "incompatibleWith": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entryRelationship" }
+    },
+    "nestedRootContracts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/nestedRootContract" }
+    },
+    "sourceGuidanceIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/sourceGuidanceId" }
+    },
+    "supportEvidenceIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/supportEvidenceId" }
+    },
+    "fixtureIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/fixtureId" }
+    },
+    "migrationIds": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/migrationId" },
+      "uniqueItems": true
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9-]*)+$": {}
+      }
+    }
+  },
+  "$defs": {
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "kind": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$" },
+    "entryId": { "type": "string", "pattern": "^entry/(core|workload|capability)/[a-z][a-z0-9-]*$" },
+    "choiceId": { "type": "string", "pattern": "^choice/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
+    "ruleId": { "type": "string", "pattern": "^rule/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
+    "artifactId": { "type": "string", "pattern": "^artifact/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
+    "checkId": { "type": "string", "pattern": "^check/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
+    "requirementId": { "type": "string", "pattern": "^requirement/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
+    "fixtureId": { "type": "string", "pattern": "^fixture/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
+    "migrationId": { "type": "string", "pattern": "^migration/[a-z][a-z0-9-]*/[a-z0-9][a-z0-9.-]*$" },
+    "sourceGuidanceId": { "type": "string", "pattern": "^guidance/[a-z][a-z0-9-]*$" },
+    "supportEvidenceId": { "type": "string", "pattern": "^support/[a-z][a-z0-9-]*$" },
+    "authorityClassId": { "type": "string", "pattern": "^authority/[a-z][a-z0-9-]*$" },
+    "authorityClass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "resolution"],
+      "properties": {
+        "id": { "$ref": "#/$defs/authorityClassId" },
+        "description": { "type": "string", "minLength": 1 },
+        "resolution": { "enum": ["named-identity", "verifiable-external-decision"] }
+      }
+    },
+    "jsonValue": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "boolean" },
+        { "type": "integer" }
+      ]
+    },
+    "choice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "valueType", "required", "allowedValues"],
+      "properties": {
+        "id": { "$ref": "#/$defs/choiceId" },
+        "valueType": { "enum": ["string", "boolean", "integer"] },
+        "required": { "type": "boolean" },
+        "allowedValues": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/jsonValue" }
+        },
+        "default": { "$ref": "#/$defs/jsonValue" }
+      }
+    },
+    "condition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "always" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "choiceId", "value"],
+          "properties": {
+            "kind": { "const": "choice-equals" },
+            "choiceId": { "$ref": "#/$defs/choiceId" },
+            "value": { "$ref": "#/$defs/jsonValue" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "entryId"],
+          "properties": {
+            "kind": { "const": "entry-selected" },
+            "entryId": { "$ref": "#/$defs/entryId" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "scopeKind"],
+          "properties": {
+            "kind": { "const": "scope-kind-is" },
+            "scopeKind": { "enum": ["repository", "workload", "cross-workload"] }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "conditions"],
+          "properties": {
+            "kind": { "enum": ["all", "any"] },
+            "conditions": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/condition" }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "condition"],
+          "properties": {
+            "kind": { "const": "not" },
+            "condition": { "$ref": "#/$defs/condition" }
+          }
+        }
+      ]
+    },
+    "waiverPolicy": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "prohibited" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "reasonClasses", "authorityClass", "independence", "maximumDurationDays", "compensatingControlRequirementIds", "renewalConditions"],
+          "properties": {
+            "kind": { "const": "governed" },
+            "reasonClasses": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" } },
+            "authorityClass": { "type": "string", "pattern": "^authority/[a-z][a-z0-9-]*$" },
+            "independence": { "enum": ["none", "not-author", "separate-authority"] },
+            "maximumDurationDays": { "type": "integer", "minimum": 1 },
+            "compensatingControlRequirementIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/requirementId" } },
+            "renewalConditions": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["freshEvidence", "freshApproval"],
+              "properties": {
+                "freshEvidence": { "const": true },
+                "freshApproval": { "const": true }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "statement", "applicability", "requirementIds", "waiverPolicy"],
+      "properties": {
+        "id": { "$ref": "#/$defs/ruleId" },
+        "statement": { "type": "string", "minLength": 1 },
+        "applicability": { "$ref": "#/$defs/condition" },
+        "requirementIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/requirementId" } },
+        "waiverPolicy": { "$ref": "#/$defs/waiverPolicy" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "locatorTemplate", "ownership"],
+      "properties": {
+        "id": { "$ref": "#/$defs/artifactId" },
+        "locatorTemplate": { "type": "string", "minLength": 1 },
+        "ownership": { "enum": ["whole-file", "structured-fragment", "link"] },
+        "compositionContract": { "type": "string", "pattern": "^composition/[a-z][a-z0-9-]*$" }
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "executable", "arguments", "scope", "prerequisiteCheckIds", "toolchain", "timeoutMs", "network", "secrets", "retryPolicy", "passCriteria"],
+      "properties": {
+        "id": { "$ref": "#/$defs/checkId" },
+        "executable": { "type": "string", "pattern": "^[a-zA-Z0-9._/-]+$" },
+        "arguments": { "type": "array", "items": { "type": "string" } },
+        "scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": { "enum": ["repository", "owning-layer"] }
+          }
+        },
+        "prerequisiteCheckIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/checkId" }
+        },
+        "toolchain": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "version": { "type": "string", "minLength": 1 },
+            "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+          }
+        },
+        "timeoutMs": { "type": "integer", "minimum": 1 },
+        "network": { "enum": ["forbidden", "allowed"] },
+        "secrets": { "enum": ["forbidden", "references-only"] },
+        "retryPolicy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["maximumAttempts", "retryableResults"],
+          "properties": {
+            "maximumAttempts": { "type": "integer", "minimum": 1 },
+            "retryableResults": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "enum": ["error"] }
+            }
+          }
+        },
+        "passCriteria": { "const": "exit-zero" }
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "ruleId", "phase", "kind", "independence"],
+      "properties": {
+        "id": { "$ref": "#/$defs/requirementId" },
+        "ruleId": { "$ref": "#/$defs/ruleId" },
+        "phase": { "enum": ["baseline", "delivery"] },
+        "kind": { "enum": ["deterministic-check", "attributable-review", "manual-state"] },
+        "checkId": { "$ref": "#/$defs/checkId" },
+        "authorityClass": { "type": "string", "pattern": "^authority/[a-z][a-z0-9-]*$" },
+        "independence": { "enum": ["none", "not-author", "separate-authority"] }
+      }
+    },
+    "entryRelationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entryId", "scopeRelation"],
+      "properties": {
+        "entryId": { "$ref": "#/$defs/entryId" },
+        "scopeRelation": { "enum": ["repository", "same-workload"] }
+      }
+    },
+    "ruleRelationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ruleId", "refinesRuleId", "scopeRelation"],
+      "properties": {
+        "ruleId": { "$ref": "#/$defs/ruleId" },
+        "refinesRuleId": { "$ref": "#/$defs/ruleId" },
+        "scopeRelation": { "enum": ["repository", "same-workload"] }
+      }
+    },
+    "nestedRootContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nestedEntryId", "compositionContract"],
+      "properties": {
+        "nestedEntryId": { "$ref": "#/$defs/entryId" },
+        "compositionContract": { "type": "string", "pattern": "^composition/[a-z][a-z0-9-]*$" }
+      }
+    }
+  }
+}

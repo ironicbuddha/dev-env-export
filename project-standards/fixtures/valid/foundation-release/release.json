@@ -1,0 +1,34 @@
+{
+  "$schema": "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-release.schema.json",
+  "schemaVersion": "1.0.0",
+  "catalogueVersion": "1.0.0",
+  "catalogueDigest": "sha256:ae80f3c7cb4923abab10fa66fe64b3e30329eb525b4fb6223014a230ab167274",
+  "schemas": [
+    "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-entry.schema.json",
+    "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-release.schema.json",
+    "https://schemas.ironicbuddha.dev/project-standards/v1/configuration.schema.json",
+    "https://schemas.ironicbuddha.dev/project-standards/v1/extension-registration.schema.json",
+    "https://schemas.ironicbuddha.dev/project-standards/v1/fixture.schema.json",
+    "https://schemas.ironicbuddha.dev/project-standards/v1/manifest.schema.json",
+    "https://schemas.ironicbuddha.dev/project-standards/v1/migration.schema.json",
+    "https://schemas.ironicbuddha.dev/project-standards/v1/rule-waiver.schema.json",
+    "https://schemas.ironicbuddha.dev/project-standards/v1/source-guidance.schema.json",
+    "https://schemas.ironicbuddha.dev/project-standards/v1/support-evidence.schema.json",
+    "https://schemas.ironicbuddha.dev/project-standards/v1/verification-evidence.schema.json"
+  ],
+  "entries": [
+    "entries/core.json",
+    "entries/example-conflict.json",
+    "entries/example-service.json",
+    "entries/example-tests.json"
+  ],
+  "migrations": ["migrations/configuration-v1.json"],
+  "fixtures": [
+    "fixtures/invalid-capability-composition.json",
+    "fixtures/invalid-exact-pin.json",
+    "fixtures/valid-configuration.json"
+  ],
+  "sourceGuidance": ["source-guidance/foundation.json"],
+  "supportEvidence": ["support-evidence/foundation.json"],
+  "extensions": ["extensions/foundation.json"]
+}

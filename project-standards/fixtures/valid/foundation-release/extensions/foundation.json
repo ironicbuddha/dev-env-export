@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schemas.ironicbuddha.dev/project-standards/v1/extension-registration.schema.json",
+  "schemaVersion": "1.0.0",
+  "id": "extension/foundation",
+  "namespace": "dev.ironicbuddha.foundation",
+  "targets": ["configuration"],
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://schemas.ironicbuddha.dev/project-standards/extensions/foundation/v1.json",
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["assurance"],
+    "properties": {
+      "assurance": { "enum": ["reviewed", "experimental"] }
+    }
+  }
+}

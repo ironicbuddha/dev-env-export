@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ironicbuddha.dev/project-standards/v1/verification-evidence.schema.json",
+  "title": "Verification Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "id",
+    "ruleId",
+    "requirementId",
+    "scope",
+    "repository",
+    "configurationDigest",
+    "catalogueVersion",
+    "catalogueDigest",
+    "declaredInputsDigest",
+    "invocation",
+    "toolchain",
+    "kind",
+    "result",
+    "attempts",
+    "observedAt",
+    "output"
+  ],
+  "properties": {
+    "$schema": { "const": "https://schemas.ironicbuddha.dev/project-standards/v1/verification-evidence.schema.json" },
+    "schemaVersion": { "const": "1.0.0" },
+    "id": { "type": "string", "pattern": "^evidence/[0-9a-f-]{36}$" },
+    "ruleId": { "$ref": "#/$defs/ruleId" },
+    "requirementId": { "$ref": "#/$defs/requirementId" },
+    "scope": { "$ref": "#/$defs/scope" },
+    "repository": { "$ref": "#/$defs/repository" },
+    "configurationDigest": { "$ref": "#/$defs/digest" },
+    "catalogueVersion": { "$ref": "#/$defs/version" },
+    "catalogueDigest": { "$ref": "#/$defs/digest" },
+    "declaredInputsDigest": { "$ref": "#/$defs/digest" },
+    "invocation": { "$ref": "#/$defs/invocation" },
+    "toolchain": { "$ref": "#/$defs/toolchain" },
+    "kind": { "enum": ["deterministic-check", "attributable-review", "manual-state"] },
+    "result": { "enum": ["passed", "failed", "error", "accepted", "changes-required", "unable-to-conclude", "verified", "not-verified", "attested"] },
+    "attempts": { "type": "integer", "minimum": 1 },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "validUntil": { "type": "string", "format": "date-time" },
+    "actor": { "$ref": "#/$defs/actor" },
+    "output": { "$ref": "#/$defs/output" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "deterministic-check" } } },
+      "then": {
+        "properties": { "result": { "enum": ["passed", "failed", "error"] } }
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "attributable-review" } } },
+      "then": {
+        "required": ["actor"],
+        "properties": {
+          "actor": { "$ref": "#/$defs/actor" },
+          "result": { "enum": ["accepted", "changes-required", "unable-to-conclude"] }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "manual-state" } } },
+      "then": {
+        "required": ["actor"],
+        "properties": {
+          "actor": { "$ref": "#/$defs/actor" },
+          "result": { "enum": ["verified", "not-verified", "attested"] }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "ruleId": { "type": "string", "pattern": "^rule/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
+    "requirementId": { "type": "string", "pattern": "^requirement/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "enum": ["repository", "workload", "cross-workload", "artifact", "interface-boundary"] },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "revision", "stateDigest"],
+      "properties": {
+        "identity": { "type": "string", "minLength": 1 },
+        "revision": { "type": "string", "pattern": "^[a-f0-9]{40,64}$" },
+        "stateDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "authorityClass"],
+      "properties": {
+        "identity": { "type": "string", "minLength": 1 },
+        "authorityClass": { "type": "string", "pattern": "^authority/[a-z][a-z0-9-]*$" },
+        "externalDecisionReference": { "type": "string", "minLength": 1 }
+      }
+    },
+    "invocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["executable", "arguments", "workingDirectory", "declaredEnvironmentInputs"],
+      "properties": {
+        "executable": { "type": "string", "minLength": 1 },
+        "arguments": { "type": "array", "items": { "type": "string" } },
+        "workingDirectory": { "type": "string", "minLength": 1 },
+        "declaredEnvironmentInputs": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Z_][A-Z0-9_]*$" } }
+      }
+    },
+    "toolchain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["digest"],
+      "properties": {
+        "digest": { "$ref": "#/$defs/digest" },
+        "immutableReference": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

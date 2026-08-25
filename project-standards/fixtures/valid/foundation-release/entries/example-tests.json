@@ -1,0 +1,96 @@
+{
+  "$schema": "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-entry.schema.json",
+  "schemaVersion": "1.0.0",
+  "id": "entry/capability/example-tests",
+  "family": "capability",
+  "kind": "example-tests",
+  "version": "1.0.0",
+  "scopeKinds": ["workload"],
+  "cardinality": "multiple",
+  "authorityClasses": [
+    {
+      "id": "authority/project-policy",
+      "description": "May accept project-policy risk for the exact governed decision.",
+      "resolution": "named-identity"
+    }
+  ],
+  "choices": [],
+  "rules": [
+    {
+      "id": "rule/example-tests/direct-tests",
+      "statement": "Critical paths have direct behavioral tests.",
+      "applicability": {
+        "kind": "entry-selected",
+        "entryId": "entry/workload/example-service"
+      },
+      "requirementIds": ["requirement/example-tests/direct-tests"],
+      "waiverPolicy": {
+        "kind": "governed",
+        "reasonClasses": ["temporary-tooling-gap"],
+        "authorityClass": "authority/project-policy",
+        "independence": "not-author",
+        "maximumDurationDays": 14,
+        "compensatingControlRequirementIds": [
+          "requirement/example-tests/direct-tests"
+        ],
+        "renewalConditions": {
+          "freshEvidence": true,
+          "freshApproval": true
+        }
+      }
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "artifact/example-tests/test-command",
+      "locatorTemplate": "{workload.root}/package.json#scripts.test",
+      "ownership": "structured-fragment",
+      "compositionContract": "composition/package-json"
+    }
+  ],
+  "checks": [
+    {
+      "id": "check/example-tests/test-command",
+      "executable": "pnpm",
+      "arguments": ["test"],
+      "scope": { "kind": "owning-layer" },
+      "prerequisiteCheckIds": [],
+      "toolchain": { "name": "pnpm", "version": "11.22.0" },
+      "timeoutMs": 120000,
+      "network": "forbidden",
+      "secrets": "forbidden",
+      "retryPolicy": { "maximumAttempts": 1, "retryableResults": [] },
+      "passCriteria": "exit-zero"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "requirement/example-tests/direct-tests",
+      "ruleId": "rule/example-tests/direct-tests",
+      "phase": "delivery",
+      "kind": "deterministic-check",
+      "checkId": "check/example-tests/test-command",
+      "independence": "none"
+    }
+  ],
+  "requires": [
+    {
+      "entryId": "entry/workload/example-service",
+      "scopeRelation": "same-workload"
+    }
+  ],
+  "refines": [
+    {
+      "ruleId": "rule/example-tests/direct-tests",
+      "refinesRuleId": "rule/core/exact-catalogue-pin",
+      "scopeRelation": "repository"
+    }
+  ],
+  "incompatibleWith": [],
+  "nestedRootContracts": [],
+  "sourceGuidanceIds": ["guidance/foundation"],
+  "supportEvidenceIds": ["support/foundation"],
+  "fixtureIds": ["fixture/configuration/valid-foundation"],
+  "migrationIds": [],
+  "extensions": {}
+}

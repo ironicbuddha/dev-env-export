@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ironicbuddha.dev/project-standards/v1/support-evidence.schema.json",
+  "title": "Catalogue Support Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schemaVersion", "id", "entryIds", "claim", "sourceGuidanceIds", "observedAt", "evidenceDigest"],
+  "properties": {
+    "$schema": { "const": "https://schemas.ironicbuddha.dev/project-standards/v1/support-evidence.schema.json" },
+    "schemaVersion": { "const": "1.0.0" },
+    "id": { "type": "string", "pattern": "^support/[a-z][a-z0-9-]*$" },
+    "entryIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^entry/(core|workload|capability)/[a-z][a-z0-9-]*$" } },
+    "claim": { "type": "string", "minLength": 1 },
+    "sourceGuidanceIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^guidance/[a-z][a-z0-9-]*$" } },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "validUntil": { "type": "string", "format": "date-time" },
+    "evidenceDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+  }
+}

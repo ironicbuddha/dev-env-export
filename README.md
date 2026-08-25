@@ -78,6 +78,7 @@ Claude, Gemini, and 1Password.
 | `mcp/` | manually applied MCP catalogue |
 | `onepassword/` | 1Password CLI usage docs and secret template examples |
 | `templates/` | starter config bundles and reusable repo scaffolds |
+| `project-standards/` | content-addressed Catalogue Release schemas, validation, and fixtures |
 | `manifest/` | install manifests and review buckets for bootstrap tooling |
 | `DEV-STACK.md` | current languages, frameworks, and hosting targets |
 | `PACKAGE-MANAGERS.md` | package-manager policy for machine and project layers |

@@ -1,0 +1,74 @@
+{
+  "$schema": "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-entry.schema.json",
+  "schemaVersion": "1.0.0",
+  "id": "entry/capability/example-conflict",
+  "family": "capability",
+  "kind": "example-conflict",
+  "version": "1.0.0",
+  "scopeKinds": ["workload"],
+  "cardinality": "singleton",
+  "authorityClasses": [],
+  "choices": [],
+  "rules": [
+    {
+      "id": "rule/example-conflict/alternate-test-gate",
+      "statement": "The alternate test gate is installed.",
+      "applicability": { "kind": "always" },
+      "requirementIds": [
+        "requirement/example-conflict/alternate-test-gate"
+      ],
+      "waiverPolicy": { "kind": "prohibited" }
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "artifact/example-conflict/alternate-test-gate",
+      "locatorTemplate": "{workload.root}/alternate-test-gate.json",
+      "ownership": "whole-file"
+    }
+  ],
+  "checks": [
+    {
+      "id": "check/example-conflict/alternate-test-gate",
+      "executable": "alternate-test-gate",
+      "arguments": ["verify"],
+      "scope": { "kind": "owning-layer" },
+      "prerequisiteCheckIds": [],
+      "toolchain": { "name": "alternate-test-gate", "version": "1.0.0" },
+      "timeoutMs": 120000,
+      "network": "forbidden",
+      "secrets": "forbidden",
+      "retryPolicy": { "maximumAttempts": 1, "retryableResults": [] },
+      "passCriteria": "exit-zero"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "requirement/example-conflict/alternate-test-gate",
+      "ruleId": "rule/example-conflict/alternate-test-gate",
+      "phase": "baseline",
+      "kind": "deterministic-check",
+      "checkId": "check/example-conflict/alternate-test-gate",
+      "independence": "none"
+    }
+  ],
+  "requires": [
+    {
+      "entryId": "entry/workload/example-service",
+      "scopeRelation": "same-workload"
+    }
+  ],
+  "refines": [],
+  "incompatibleWith": [
+    {
+      "entryId": "entry/capability/example-tests",
+      "scopeRelation": "same-workload"
+    }
+  ],
+  "nestedRootContracts": [],
+  "sourceGuidanceIds": ["guidance/foundation"],
+  "supportEvidenceIds": ["support/foundation"],
+  "fixtureIds": ["fixture/configuration/valid-foundation"],
+  "migrationIds": [],
+  "extensions": {}
+}
