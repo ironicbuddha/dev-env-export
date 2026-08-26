@@ -94,7 +94,7 @@ export type GitBoundary = Readonly<{
     | "submodule"
     | "worktree";
   path: string;
-  gitMetadataKind: "directory" | "file" | "index";
+  gitMetadataKind: "directory" | "file" | "index" | "symbolic-link";
 }>;
 
 export type GitPathState =
@@ -155,6 +155,7 @@ export interface DetectedRepositoryState {
         headCommit: null;
         headTree: null;
         indexFingerprint: null;
+        refsFingerprint: null;
         gitDirectoryFingerprint: null;
         commitCount: 0;
         headTreePathCount: 0;
@@ -174,6 +175,7 @@ export interface DetectedRepositoryState {
         headCommit: string | null;
         headTree: string | null;
         indexFingerprint: string;
+        refsFingerprint: string;
         gitDirectoryFingerprint: string;
         commitCount: number;
         headTreePathCount: number;
@@ -470,6 +472,12 @@ async function gitMetadataBoundary(
     if (metadata.isDirectory()) {
       return { kind: "nested-repository", metadataKind: "directory" };
     }
+    if (metadata.isSymbolicLink()) {
+      return {
+        kind: "external-git-directory",
+        metadataKind: "symbolic-link",
+      };
+    }
     if (metadata.isFile()) {
       const contents = await readFile(join(directory, ".git"), "utf8");
       const match = /^gitdir: (.+)$/m.exec(contents);
@@ -547,7 +555,9 @@ function recommendRunMode(
   const eligibleGitHistory =
     git.relationship === "none" ||
     git.commitCount === 0 ||
-    (git.commitCount === 1 && git.headTreePathCount === 0);
+    (git.commitCount === 1 &&
+      git.headCommit !== null &&
+      git.headTreePathCount === 0);
   const eligibleGitRelationship =
     git.relationship === "none" || git.relationship === "repository-root";
   const initializeEligible =
@@ -577,44 +587,36 @@ function recommendRunMode(
     };
   }
 
-  let evidence: RunModeRecommendationEvidence;
+  const evidenceSet: RunModeRecommendationEvidence[] = [];
   if (git.relationship === "parent-repository") {
-    evidence = "parent-git-repository";
+    evidenceSet.push("parent-git-repository");
   } else if (git.relationship === "external-git-directory") {
-    evidence = "external-git-directory-boundary";
+    evidenceSet.push("external-git-directory-boundary");
   } else if (
     git.relationship === "worktree" ||
     git.relationship === "submodule"
   ) {
-    evidence = `${git.relationship}-boundary`;
-  } else {
-    const evidenceSet: RunModeRecommendationEvidence[] = [];
-    if (scan.substantivePaths.length > 0) {
-      evidenceSet.push("substantive-content");
-    }
-    if (substantiveDirtyPaths.length > 0) {
-      evidenceSet.push("dirty-git-state");
-    }
-    if (substantiveTrackedPaths.length > 0) {
-      evidenceSet.push("tracked-content");
-    }
-    if (!eligibleGitHistory) {
-      evidenceSet.push("non-empty-git-history");
-    }
-    if (scan.hazards.length > 0) {
-      evidenceSet.push("repository-hazards");
-    }
-    evidence = evidenceSet[0] ?? "repository-hazards";
-    return {
-      mode: "adopt",
-      initializeEligible: false,
-      evidence: evidenceSet.length > 0 ? evidenceSet : [evidence],
-    };
+    evidenceSet.push(`${git.relationship}-boundary`);
+  }
+  if (scan.substantivePaths.length > 0) {
+    evidenceSet.push("substantive-content");
+  }
+  if (substantiveDirtyPaths.length > 0) {
+    evidenceSet.push("dirty-git-state");
+  }
+  if (substantiveTrackedPaths.length > 0) {
+    evidenceSet.push("tracked-content");
+  }
+  if (!eligibleGitHistory) {
+    evidenceSet.push("non-empty-git-history");
+  }
+  if (scan.hazards.length > 0) {
+    evidenceSet.push("repository-hazards");
   }
   return {
     mode: "adopt",
     initializeEligible: false,
-    evidence: [evidence],
+    evidence: evidenceSet.length > 0 ? evidenceSet : ["repository-hazards"],
   };
 }
 
@@ -839,12 +841,18 @@ async function inspectRepositoryRootUnchecked(
       ])
     )?.trim() ?? null;
     const hasCommits = headCommit !== null;
-    const commitCount = hasCommits
-      ? Number.parseInt(
-          (await gitOutput(selectedPath, ["rev-list", "--count", "HEAD"])).trim(),
-          10,
-        )
-      : 0;
+    const refsOutput = await gitOutput(selectedPath, [
+      "for-each-ref",
+      "--format=%(refname)%00%(objectname)%00",
+    ]);
+    const refsFingerprint = `sha256:${createHash("sha256")
+      .update(refsOutput)
+      .digest("hex")}`;
+    const commitCount = Number.parseInt(
+      (await gitOutput(selectedPath, ["rev-list", "--all", "--count"])).trim() ||
+        "0",
+      10,
+    );
     const headTree = hasCommits
       ? (
           await gitOutput(selectedPath, ["rev-parse", "--verify", "HEAD^{tree}"])
@@ -941,6 +949,7 @@ async function inspectRepositoryRootUnchecked(
       headCommit,
       headTree,
       indexFingerprint,
+      refsFingerprint,
       gitDirectoryFingerprint,
       commitCount,
       headTreePathCount,
@@ -980,6 +989,7 @@ async function inspectRepositoryRootUnchecked(
         headCommit: null,
         headTree: null,
         indexFingerprint: null,
+        refsFingerprint: null,
         gitDirectoryFingerprint: null,
         commitCount: 0,
         headTreePathCount: 0,

@@ -143,7 +143,9 @@
           ]
         },
         "path": { "$ref": "#/$defs/path" },
-        "gitMetadataKind": { "enum": ["directory", "file", "index"] }
+        "gitMetadataKind": {
+          "enum": ["directory", "file", "index", "symbolic-link"]
+        }
       }
     },
     "gitPathState": {
@@ -181,6 +183,7 @@
             "headCommit",
             "headTree",
             "indexFingerprint",
+            "refsFingerprint",
             "gitDirectoryFingerprint",
             "commitCount",
             "headTreePathCount",
@@ -194,6 +197,7 @@
             "headCommit": { "type": "null" },
             "headTree": { "type": "null" },
             "indexFingerprint": { "type": "null" },
+            "refsFingerprint": { "type": "null" },
             "gitDirectoryFingerprint": { "type": "null" },
             "commitCount": { "const": 0 },
             "headTreePathCount": { "const": 0 },
@@ -218,6 +222,7 @@
             "headCommit",
             "headTree",
             "indexFingerprint",
+            "refsFingerprint",
             "gitDirectoryFingerprint",
             "commitCount",
             "headTreePathCount",
@@ -240,6 +245,7 @@
             "headCommit": { "$ref": "#/$defs/gitObjectId" },
             "headTree": { "$ref": "#/$defs/gitObjectId" },
             "indexFingerprint": { "$ref": "#/$defs/fingerprint" },
+            "refsFingerprint": { "$ref": "#/$defs/fingerprint" },
             "gitDirectoryFingerprint": { "$ref": "#/$defs/fingerprint" },
             "commitCount": { "type": "integer", "minimum": 0 },
             "headTreePathCount": { "type": "integer", "minimum": 0 },

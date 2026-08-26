@@ -23,7 +23,7 @@ The public library seam is:
   document and Detected Repository State schemas;
 - `calculateCatalogueReleaseDigest(releaseDirectory)` for release authoring.
 - `inspectRepositoryRoot(root)` for an exact, fingerprinted, read-only view of
-  filesystem state, exact Git HEAD/index identities, Git relationships,
+  filesystem state, exact Git HEAD/index/ref identities, Git relationships,
   ownership boundaries, hazards, and evidence-based Initialization or Adoption
   eligibility.
 

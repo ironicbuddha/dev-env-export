@@ -10,6 +10,7 @@ import {
   readlink,
   realpath,
   symlink,
+  unlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -256,6 +257,12 @@ test("inspect keeps a selected subdirectory exact instead of redirecting to its 
     ],
   );
   assert.equal(detected.recommendation.mode, "adopt");
+  assert.deepEqual(detected.recommendation.evidence, [
+    "parent-git-repository",
+    "substantive-content",
+    "dirty-git-state",
+    "repository-hazards",
+  ]);
   assert.equal(await treeFingerprint(outer), before);
 });
 
@@ -678,6 +685,60 @@ test("inspect binds the exact HEAD and index identities into the state fingerpri
   assert.notEqual(first.stateFingerprint, second.stateFingerprint);
 });
 
+test("inspect binds every Git ref and all referenced history into eligibility evidence", async () => {
+  const root = await mkdtemp(
+    join(tmpdir(), "project-standards-inspect-ref-identity-"),
+  );
+  await runGit(root, "init", "--quiet");
+  await runGit(
+    root,
+    "-c",
+    "user.name=Project Standards Test",
+    "-c",
+    "user.email=project-standards@example.test",
+    "commit",
+    "--quiet",
+    "--allow-empty",
+    "-m",
+    "empty initial commit",
+  );
+  const emptyCommit = await gitOutput(root, "rev-parse", "HEAD");
+  await runGit(root, "switch", "--quiet", "-c", "substantive-history");
+  await writeFile(join(root, "historical.txt"), "substantive history\n");
+  await runGit(root, "add", "historical.txt");
+  await runGit(
+    root,
+    "-c",
+    "user.name=Project Standards Test",
+    "-c",
+    "user.email=project-standards@example.test",
+    "commit",
+    "--quiet",
+    "-m",
+    "substantive history on another ref",
+  );
+  await runGit(root, "switch", "--quiet", "-");
+
+  const withSubstantiveRef = await inspectRepositoryRoot(root);
+  await runGit(root, "branch", "--force", "substantive-history", emptyCommit);
+  const withEmptyRefs = await inspectRepositoryRoot(root);
+
+  assert.equal(withSubstantiveRef.git.commitCount, 2);
+  assert.equal(withEmptyRefs.git.commitCount, 1);
+  assert.notEqual(
+    withSubstantiveRef.git.refsFingerprint,
+    withEmptyRefs.git.refsFingerprint,
+  );
+  assert.notEqual(
+    withSubstantiveRef.stateFingerprint,
+    withEmptyRefs.stateFingerprint,
+  );
+  assert.deepEqual(withSubstantiveRef.recommendation.evidence, [
+    "non-empty-git-history",
+  ]);
+  assert.equal(withEmptyRefs.recommendation.initializeEligible, true);
+});
+
 test("inspect reports an arbitrary external Git directory as a boundary", async () => {
   const container = await mkdtemp(
     join(tmpdir(), "project-standards-inspect-external-git-"),
@@ -707,5 +768,42 @@ test("inspect reports an arbitrary external Git directory as a boundary", async 
       },
     ],
   );
+  assert.equal(detected.recommendation.initializeEligible, false);
+});
+
+test("inspect treats a selected root's symlinked Git metadata as an external boundary", async () => {
+  const container = await mkdtemp(
+    join(tmpdir(), "project-standards-inspect-symlinked-git-"),
+  );
+  const root = join(container, "worktree");
+  const gitDirectory = join(container, "administrative-state");
+  await execFileAsync("git", [
+    "init",
+    "--quiet",
+    "--separate-git-dir",
+    gitDirectory,
+    root,
+  ]);
+  await unlink(join(root, ".git"));
+  await symlink(gitDirectory, join(root, ".git"), "dir");
+
+  const detected = await inspectRepositoryRoot(root);
+
+  assert.equal(detected.git.relationship, "external-git-directory");
+  assert.deepEqual(detected.git.boundaries, []);
+  assert.deepEqual(
+    detected.hazards.filter(({ code }) => code === "external-git-directory"),
+    [
+      {
+        code: "external-git-directory",
+        path: ".",
+        evidence: "Selected root uses an external Git administrative directory",
+      },
+    ],
+  );
+  assert.deepEqual(detected.recommendation.evidence, [
+    "external-git-directory-boundary",
+    "repository-hazards",
+  ]);
   assert.equal(detected.recommendation.initializeEligible, false);
 });
