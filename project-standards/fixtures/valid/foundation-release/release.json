@@ -2,11 +2,12 @@
   "$schema": "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-release.schema.json",
   "schemaVersion": "1.0.0",
   "catalogueVersion": "1.0.0",
-  "catalogueDigest": "sha256:ae80f3c7cb4923abab10fa66fe64b3e30329eb525b4fb6223014a230ab167274",
+  "catalogueDigest": "sha256:db0d14c60ff4480f9881669071aedebfabf801785ed4a1a73d0aa071e420af8b",
   "schemas": [
     "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-entry.schema.json",
     "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-release.schema.json",
     "https://schemas.ironicbuddha.dev/project-standards/v1/configuration.schema.json",
+    "https://schemas.ironicbuddha.dev/project-standards/v1/detected-repository-state.schema.json",
     "https://schemas.ironicbuddha.dev/project-standards/v1/extension-registration.schema.json",
     "https://schemas.ironicbuddha.dev/project-standards/v1/fixture.schema.json",
     "https://schemas.ironicbuddha.dev/project-standards/v1/manifest.schema.json",

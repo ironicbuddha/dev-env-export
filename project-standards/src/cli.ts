@@ -5,13 +5,15 @@ import { readFile } from "node:fs/promises";
 import {
   calculateCatalogueReleaseDigest,
   CatalogueValidationError,
+  inspectRepositoryRoot,
   loadCatalogueRelease,
+  RepositoryInspectionError,
   resolveBootstrapConfiguration,
 } from "./index.js";
 
 function usage(): never {
   throw new Error(
-    "Usage: project-standards-catalogue <validate-release|calculate-digest|resolve-configuration> <release-dir> [configuration.json]",
+    "Usage: project-standards-catalogue <inspect <root>|validate-release <release-dir>|calculate-digest <release-dir>|resolve-configuration <release-dir> <configuration.json>>",
   );
 }
 
@@ -19,6 +21,15 @@ async function run(arguments_: readonly string[]): Promise<unknown> {
   const [command, releaseRoot, configurationPath, ...extra] = arguments_;
   if (command === undefined || releaseRoot === undefined || extra.length > 0) {
     usage();
+  }
+
+  if (command === "inspect") {
+    if (configurationPath !== undefined) usage();
+    return {
+      schemaVersion: "1.0.0",
+      status: "inspected",
+      detectedRepositoryState: await inspectRepositoryRoot(releaseRoot),
+    };
   }
 
   if (command === "calculate-digest") {
@@ -66,7 +77,18 @@ try {
   const output = await run(process.argv.slice(2));
   process.stdout.write(`${JSON.stringify(output)}\n`);
 } catch (error) {
-  if (error instanceof CatalogueValidationError) {
+  if (error instanceof RepositoryInspectionError) {
+    process.stderr.write(
+      `${JSON.stringify({
+        schemaVersion: "1.0.0",
+        status: "invalid",
+        code: error.code,
+        path: error.path,
+        message: error.message,
+      })}\n`,
+    );
+    process.exitCode = 2;
+  } else if (error instanceof CatalogueValidationError) {
     process.stderr.write(
       `${JSON.stringify({
         schemaVersion: "1.0.0",
