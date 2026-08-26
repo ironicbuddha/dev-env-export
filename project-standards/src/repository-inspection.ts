@@ -211,6 +211,89 @@ async function gitOutput(root: string, arguments_: readonly string[]): Promise<s
   return stdout;
 }
 
+export async function readExactGitFile(
+  root: string,
+  revision: string,
+  path: string,
+): Promise<string> {
+  return gitOutput(root, ["show", `${revision}:${path}`]);
+}
+
+export async function exactGitRepositoryIdentity(root: string): Promise<string> {
+  const remote = await optionalGitOutput(root, [
+    "config",
+    "--get",
+    "remote.origin.url",
+  ]);
+  return remote?.trim() || `file://${await realpath(root)}`;
+}
+
+export async function exactGitRevisionIsAncestor(
+  root: string,
+  revision: string,
+  descendant: string,
+): Promise<boolean> {
+  try {
+    await gitOutput(root, ["merge-base", "--is-ancestor", revision, descendant]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function exactGitChangedPaths(
+  root: string,
+  revision: string,
+  descendant: string,
+): Promise<readonly string[]> {
+  return (await gitOutput(root, ["diff", "--name-only", "-z", revision, descendant, "--"]))
+    .split("\0")
+    .filter(Boolean)
+    .sort();
+}
+
+export async function exactGitIndexEntries(
+  root: string,
+  paths: readonly string[],
+): Promise<readonly GitIndexEntry[]> {
+  const exactPaths = [...new Set(paths)].sort();
+  if (exactPaths.length === 0) return [];
+  const records = (
+    await gitOutput(root, [
+      "--literal-pathspecs",
+      "ls-files",
+      "--stage",
+      "-z",
+      "--",
+      ...exactPaths,
+    ])
+  )
+    .split("\0")
+    .filter((record) => record.length > 0);
+  return records.map((record) => {
+    const separator = record.indexOf("\t");
+    const [mode, objectId, stage] = record.slice(0, separator).split(" ");
+    if (
+      separator === -1 ||
+      mode === undefined ||
+      objectId === undefined ||
+      stage === undefined
+    ) {
+      throw new RepositoryInspectionError(
+        "git-inspection-failed",
+        root,
+        "Git returned an invalid index entry",
+      );
+    }
+    return {
+      path: record.slice(separator + 1),
+      mode,
+      objectId,
+      stage: Number.parseInt(stage, 10),
+    };
+  });
+}
+
 async function optionalGitOutput(
   root: string,
   arguments_: readonly string[],
@@ -285,7 +368,7 @@ function parseGitStatus(output: string): GitDirtyPath[] {
   return dirtyPaths;
 }
 
-type GitIndexEntry = Readonly<{
+export type GitIndexEntry = Readonly<{
   mode: string;
   objectId: string;
   stage: number;

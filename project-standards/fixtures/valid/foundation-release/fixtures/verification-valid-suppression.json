@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schemas.ironicbuddha.dev/project-standards/v1/fixture.schema.json",
+  "schemaVersion": "1.0.0",
+  "id": "fixture/verification/valid-suppression",
+  "subject": "verification",
+  "expectation": "verified",
+  "document": {
+    "binding": "exact",
+    "suppression": "matching",
+    "repetitions": 1
+  }
+}

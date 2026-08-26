@@ -48,7 +48,10 @@ The reducer accepts only closed Verification Requests and Verification Evidence.
 Evidence is content-addressed and bound to the exact rule, requirement, scope,
 repository state, resolved configuration, Catalogue Release, bootstrapper,
 schema set, declared inputs, horizon, invocation, toolchain, time, and
-secret-safe output. Each evidence digest must also match a separate
+secret-safe output. Evidence that verifies a Managed Artifact also records the
+artifact's exact stable ID, owner layer, locator, and fingerprint, so an opaque
+digest observed for one artifact cannot be substituted for another. Each
+evidence digest must also match a separate
 orchestrator-pinned authenticity binding for the exact local run or immutable
 external reference; recomputing an evidence record's self-hash cannot move that
 pin. Attributable review and Manual-State Evidence additionally
@@ -62,6 +65,46 @@ Conflict, Catalogue Incompatibility, drift, missing authority, or failed
 invariant reports `verified`. Missing, stale, errored, tampered, ambiguous, or
 unauthorized evidence fails closed. Repeating an unchanged request is a
 write-free deterministic re-verification.
+
+Governed Rule Waivers are immutable, content-addressed records for one rule and
+exact scope. The reducer enforces catalogue reason classes, authority and
+independence on the same approver, maximum duration, exact layer and state
+bindings, compensating-control evidence, lifecycle state, expiry, and version
+lineage. An active waiver must be content-identical to its orchestrator-pinned
+record at `.project-standards/waivers/<waiver-id>.json` and to the manifest's
+exact active-waiver projection. Renewal creates the next version, names the
+exact predecessor and digest, and requires fresh risk review, approval, and
+compensating-control evidence; committed evaluation authenticates that
+predecessor from its pinned Git revision. Inactive or expired records never
+provide coverage. Verified output keeps each active waiver visibly distinct
+and includes its digest, affected obligations, compensating controls,
+remediation, and expiry for Project Delivery Contract and Provenance Manifest
+projection.
+
+A Managed Suppression exists only when its Catalogue Entry declares a stable
+suppression ID, governed rule, Managed Artifact, and baseline verification
+requirement. The verification request binds the observed suppression to one
+exact active waiver version, exact scope, layer-owned artifact locator and
+fingerprint, and satisfying evidence. Missing, orphaned, over-scoped, drifted,
+or stale suppressions make the baseline incomplete. Once a waiver is inactive,
+its suppression must be absent; an inactive waiver record may remain as
+lifecycle history after the underlying rule is satisfied. The manifest schema
+stores only the exact active waiver and Managed Suppression projections.
+Committed evaluation reads `.project-standards/config.json`,
+`.project-standards/manifest.json`, `constitution.md`, and each active waiver
+from the selected exact Git root, with ambient `GIT_*` overrides scrubbed. Each
+governed live file must equal its `HEAD` blob; the request cannot substitute
+those files. Evidence binds the exact Git identity, a source revision reachable
+from `HEAD`, each relevant dirty path's state and content fingerprint, and its
+exact staged index object; rename origins remain relevant even when their
+destination is a runtime path. Only the declared atomic-promotion
+files may differ between that source revision and `HEAD`, avoiding a
+self-referential manifest commit while rejecting unrelated repository drift.
+The contract must contain exactly one visible waiver section and name every
+active waiver, affected obligation, compensating control, digest, and expiry,
+while the manifest must
+carry exactly one current entry for every selected Managed Artifact. Their
+exact fingerprints and projections must agree before the outcome is `verified`.
 
 ## Content Addressing
 
@@ -114,7 +157,7 @@ corepack pnpm exec project-standards-catalogue \
 
 corepack pnpm exec project-standards-catalogue \
   evaluate-verification fixtures/valid/foundation-release \
-  config.json verification-request.json
+  /exact/repository/root verification-request.json
 ```
 
 Inspection and validation failures emit typed JSON on stderr and exit `2`;

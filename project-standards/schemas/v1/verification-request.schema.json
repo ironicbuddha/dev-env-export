@@ -19,7 +19,12 @@
     "blockers",
     "evidence",
     "evidenceAuthenticity",
-    "waivers"
+    "waivers",
+    "waiverHistory",
+    "waiverAuthenticity",
+    "projectDeliveryContract",
+    "manifest",
+    "managedSuppressions"
   ],
   "properties": {
     "$schema": { "const": "https://schemas.ironicbuddha.dev/project-standards/v1/verification-request.schema.json" },
@@ -144,7 +149,18 @@
         }
       }
     },
-    "waivers": { "type": "array", "items": { "type": "object" } }
+    "waivers": { "type": "array", "items": { "type": "object" } },
+    "waiverHistory": { "type": "array", "items": { "type": "object" } },
+    "waiverAuthenticity": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/waiverAuthenticity" }
+    },
+    "projectDeliveryContract": { "$ref": "#/$defs/managedArtifact" },
+    "manifest": { "type": "object" },
+    "managedSuppressions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/managedSuppression" }
+    }
   },
   "allOf": [
     {
@@ -158,6 +174,8 @@
     "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
     "requirementId": { "type": "string", "pattern": "^requirement/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
     "authorityClass": { "type": "string", "pattern": "^authority/[a-z][a-z0-9-]*$" },
+    "suppressionId": { "type": "string", "pattern": "^suppression/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
+    "artifactId": { "type": "string", "pattern": "^artifact/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
     "scope": {
       "type": "object",
       "additionalProperties": false,
@@ -175,6 +193,53 @@
         "identity": { "type": "string", "minLength": 1 },
         "revision": { "type": "string", "pattern": "^[a-f0-9]{40,64}$" },
         "stateDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "managedArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "ownerLayerId", "locator", "ownership", "fingerprint", "verificationState"],
+      "properties": {
+        "artifactId": { "$ref": "#/$defs/artifactId" },
+        "ownerLayerId": { "type": "string", "minLength": 1 },
+        "locator": { "type": "string", "minLength": 1 },
+        "ownership": { "enum": ["whole-file", "structured-fragment", "link"] },
+        "fingerprint": { "$ref": "#/$defs/digest" },
+        "verificationState": { "enum": ["matching", "drifted", "missing", "ambiguous"] }
+      }
+    },
+    "managedSuppression": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "waiverId", "waiverVersion", "scope", "artifact", "verificationEvidenceId"],
+      "properties": {
+        "id": { "$ref": "#/$defs/suppressionId" },
+        "waiverId": { "type": "string", "pattern": "^waiver/[a-z][a-z0-9-]*$" },
+        "waiverVersion": { "type": "integer", "minimum": 1 },
+        "scope": { "$ref": "#/$defs/scope" },
+        "artifact": { "$ref": "#/$defs/managedArtifact" },
+        "verificationEvidenceId": { "type": "string", "pattern": "^evidence/[0-9a-f-]{36}$" }
+      }
+    },
+    "waiverAuthenticity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["waiverId", "version", "digest", "source"],
+      "properties": {
+        "waiverId": { "type": "string", "pattern": "^waiver/[a-z][a-z0-9-]*$" },
+        "version": { "type": "integer", "minimum": 1 },
+        "digest": { "$ref": "#/$defs/digest" },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "path", "revision", "repositoryStateDigest"],
+          "properties": {
+            "kind": { "const": "committed-record" },
+            "path": { "type": "string", "pattern": "^\\.project-standards/waivers/[a-z][a-z0-9-]*\\.json$" },
+            "revision": { "type": "string", "pattern": "^[a-f0-9]{40,64}$" },
+            "repositoryStateDigest": { "$ref": "#/$defs/digest" }
+          }
+        }
       }
     }
   }

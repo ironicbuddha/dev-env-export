@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile, realpath } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,13 +11,27 @@ import {
 import formatsPlugin, { type FormatsPlugin } from "ajv-formats";
 import {
   reduceVerificationRequirements,
+  type ProvenanceManifestDocument,
+  type RuleWaiverDocument,
   type VerificationRequest,
   type VerificationResult,
 } from "./verification.js";
 import { canonicalJsonDigest } from "./canonical-json.js";
+import {
+  exactGitChangedPaths,
+  exactGitIndexEntries,
+  exactGitRepositoryIdentity,
+  exactGitRevisionIsAncestor,
+  inspectRepositoryRoot,
+  readExactGitFile,
+  RepositoryInspectionError,
+} from "./repository-inspection.js";
 
 export {
   type EvidenceActor,
+  type ManagedSuppressionDocument,
+  type ManagedSuppressionEvaluation,
+  type ProvenanceManifestDocument,
   type RepositoryEvidenceBinding,
   type RequirementEvaluation,
   type RequirementEvaluationResult,
@@ -28,13 +43,18 @@ export {
   type VerificationRequest,
   type VerificationResult,
   type VerificationScope,
+  type WaiverActor,
+  type WaiverAuthenticityBinding,
+  type WaiverReference,
 } from "./verification.js";
 
 export {
+  exactGitIndexEntries,
   inspectRepositoryRoot,
   type DetectedRepositoryState,
   type GitBoundary,
   type GitDirtyPath,
+  type GitIndexEntry,
   type GitPathState,
   type RepositoryEntry,
   type RepositoryHazard,
@@ -122,6 +142,7 @@ export interface CatalogueEntryDocument {
   readonly choices: readonly ChoiceDefinition[];
   readonly rules: readonly CatalogueRule[];
   readonly artifacts: readonly CatalogueArtifact[];
+  readonly managedSuppressions: readonly ManagedSuppressionDefinition[];
   readonly checks: readonly CatalogueCheck[];
   readonly requirements: readonly VerificationRequirement[];
   readonly requires: readonly EntryRelationship[];
@@ -178,6 +199,13 @@ export interface CatalogueArtifact {
   readonly locatorTemplate: string;
   readonly ownership: "whole-file" | "structured-fragment" | "link";
   readonly compositionContract?: string;
+}
+
+export interface ManagedSuppressionDefinition {
+  readonly id: string;
+  readonly ruleId: string;
+  readonly artifactId: string;
+  readonly verificationRequirementId: string;
 }
 
 export interface CatalogueCheck {
@@ -374,14 +402,352 @@ export async function evaluateVerificationRequirements(
   );
   await validateProjectStandardsDocument("verification-request", request);
   await Promise.all([
+    validateProjectStandardsDocument("manifest", request.manifest),
     ...request.evidence.map((evidence) =>
       validateProjectStandardsDocument("verification-evidence", evidence),
     ),
     ...request.waivers.map((waiver) =>
       validateProjectStandardsDocument("rule-waiver", waiver),
     ),
+    ...request.waiverHistory.map((waiver) =>
+      validateProjectStandardsDocument("rule-waiver", waiver),
+    ),
   ]);
   return reduceVerificationRequirements(release, verifiedResolution, request);
+}
+
+function waiverRelativePath(waiverId: string): string {
+  return `.project-standards/waivers/${waiverId.slice("waiver/".length)}.json`;
+}
+
+async function containedProjectPath(
+  exactRoot: string,
+  relativePath: string,
+): Promise<string> {
+  const documentPath = await realpath(join(exactRoot, relativePath));
+  const containedPath = relative(exactRoot, documentPath);
+  if (containedPath.startsWith("..") || isAbsolute(containedPath)) {
+    throw new CatalogueValidationError(
+      "unsafe-path",
+      relativePath,
+      `${relativePath} resolves outside the selected repository root`,
+    );
+  }
+  return documentPath;
+}
+
+async function committedProjectFile(
+  exactRoot: string,
+  revision: string,
+  relativePath: string,
+): Promise<Readonly<{ committed: string; live: string; matches: boolean }>> {
+  const [committed, live] = await Promise.all([
+    readExactGitFile(exactRoot, revision, relativePath),
+    readFile(await containedProjectPath(exactRoot, relativePath), "utf8"),
+  ]);
+  return { committed, live, matches: committed === live };
+}
+
+type AuthenticatedPredecessor = Readonly<{
+  binding: VerificationRequest["waiverAuthenticity"][number];
+  waiver: RuleWaiverDocument;
+}>;
+
+async function authenticatedPredecessor(
+  exactRoot: string,
+  committedRevision: string,
+  waiver: RuleWaiverDocument,
+  request: VerificationRequest,
+): Promise<AuthenticatedPredecessor | undefined> {
+  if (waiver.version === 1) return undefined;
+  const binding = request.waiverAuthenticity.find(
+    ({ waiverId, version }) =>
+      waiverId === waiver.id && version === waiver.version - 1,
+  );
+  if (binding === undefined) return undefined;
+  try {
+    if (
+      !(await exactGitRevisionIsAncestor(
+        exactRoot,
+        binding.source.revision,
+        committedRevision,
+      ))
+    ) {
+      return undefined;
+    }
+    const predecessor = JSON.parse(
+      await readExactGitFile(
+        exactRoot,
+        binding.source.revision,
+        binding.source.path,
+      ),
+    ) as RuleWaiverDocument;
+    await validateProjectStandardsDocument("rule-waiver", predecessor);
+    const { digest, ...content } = predecessor;
+    return predecessor.id === binding.waiverId &&
+      predecessor.version === binding.version &&
+      digest === binding.digest &&
+      digest === canonicalJsonDigest(content)
+      ? { binding, waiver: predecessor }
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function contractWaiversAgree(
+  contract: string,
+  waivers: readonly RuleWaiverDocument[],
+): boolean {
+  const comments = [...contract.matchAll(/<!--[\s\S]*?-->/gu)];
+  if (
+    comments.some(({ 0: comment }) =>
+      /(?:Active Rule Waivers|waiver\/)/u.test(comment),
+    )
+  ) {
+    return false;
+  }
+  const visibleContract = contract.replace(/<!--[\s\S]*?-->/gu, "");
+  const headings = [...visibleContract.matchAll(/^## Active Rule Waivers\s*$/gmu)];
+  if (headings.length !== 1) return false;
+  const heading = headings[0]!;
+  const remainder = visibleContract.slice(
+    (heading.index ?? 0) + heading[0].length,
+  );
+  const nextHeading = remainder.search(/^## /mu);
+  const section = nextHeading === -1 ? remainder : remainder.slice(0, nextHeading);
+  const expected =
+    waivers.length === 0
+      ? "None."
+      : waivers
+          .map((waiver) =>
+            [
+              `- ${waiver.id}@${waiver.version}`,
+              `  - Digest: ${waiver.digest}`,
+              `  - Affected obligations: ${waiver.requirementIds.join(", ")}`,
+              `  - Compensating controls: ${waiver.compensatingControls
+                .map(({ requirementId }) => requirementId)
+                .join(", ")}`,
+              `  - Expires: ${waiver.validity.expiresAt}`,
+            ].join("\n"),
+          )
+          .join("\n");
+  return section?.trim() === expected;
+}
+
+function parseCommittedJson(
+  source: string,
+  relativePath: string,
+): unknown {
+  try {
+    return JSON.parse(source) as unknown;
+  } catch (error) {
+    throw new CatalogueValidationError(
+      "json-invalid",
+      relativePath,
+      `Cannot parse committed ${relativePath}: ${String(error)}`,
+    );
+  }
+}
+
+function isPromotionPath(path: string): boolean {
+  return (
+    path === "constitution.md" ||
+    path === ".project-standards/config.json" ||
+    path === ".project-standards/manifest.json" ||
+    path.startsWith(".project-standards/waivers/")
+  );
+}
+
+function isRuntimePath(path: string): boolean {
+  return path.startsWith(".project-standards/run/");
+}
+
+export async function evaluateCommittedVerificationRequirements(
+  release: ValidatedCatalogueRelease,
+  request: VerificationRequest,
+  repositoryRoot: string,
+): Promise<VerificationResult> {
+  await validateProjectStandardsDocument("verification-request", request);
+  const detected = await inspectRepositoryRoot(repositoryRoot);
+  const exactRoot = detected.root.realPath;
+  if (
+    detected.git.relationship === "none" ||
+    detected.git.root !== exactRoot ||
+    !detected.git.hasCommits ||
+    detected.git.headCommit === null
+  ) {
+    throw new RepositoryInspectionError(
+      "git-inspection-failed",
+      exactRoot,
+      "Committed verification requires the selected exact Git root with a HEAD commit",
+    );
+  }
+  const committedRevision = detected.git.headCommit;
+  const repositoryIdentity = await exactGitRepositoryIdentity(exactRoot);
+  const sourceRevisionAuthentic = await exactGitRevisionIsAncestor(
+    exactRoot,
+    request.repository.revision,
+    committedRevision,
+  );
+  const promotedPaths = sourceRevisionAuthentic
+    ? await exactGitChangedPaths(
+        exactRoot,
+        request.repository.revision,
+        committedRevision,
+      )
+    : [];
+  const filesystemEntries = new Map(
+    detected.filesystem.entries.map((entry) => [entry.path, entry]),
+  );
+  const relevantDirtyPaths = detected.git.dirtyPaths
+    .filter(
+      ({ path, originalPath }) =>
+        !isRuntimePath(path) ||
+        (originalPath !== undefined && !isRuntimePath(originalPath)),
+    )
+    .map(({ path, indexState, worktreeState, originalPath }) => ({
+      path,
+      indexState,
+      worktreeState,
+      fingerprint: filesystemEntries.get(path)?.fingerprint ?? "absent",
+      ...(originalPath === undefined ? {} : { originalPath }),
+    }));
+  const relevantIndexEntries = await exactGitIndexEntries(
+    exactRoot,
+    relevantDirtyPaths.flatMap(({ path, originalPath }) => [
+      path,
+      ...(originalPath === undefined ? [] : [originalPath]),
+    ]),
+  );
+  const expectedRepositoryStateDigest = canonicalJsonDigest({
+    identity: repositoryIdentity,
+    revision: request.repository.revision,
+    relevantDirtyPaths,
+    relevantIndexEntries,
+  });
+  const repositoryBindingValid =
+    request.repository.identity === repositoryIdentity &&
+    sourceRevisionAuthentic &&
+    promotedPaths.every(isPromotionPath) &&
+    request.repository.stateDigest === expectedRepositoryStateDigest;
+  const configurationFile = await committedProjectFile(
+    exactRoot,
+    committedRevision,
+    ".project-standards/config.json",
+  );
+  const configuration = parseCommittedJson(
+    configurationFile.committed,
+    ".project-standards/config.json",
+  );
+  const resolved = await resolveBootstrapConfiguration(release, configuration);
+  const manifestRelativePath = ".project-standards/manifest.json";
+  const manifestFile = await committedProjectFile(
+    exactRoot,
+    committedRevision,
+    manifestRelativePath,
+  );
+  const manifestValue = parseCommittedJson(
+    manifestFile.committed,
+    manifestRelativePath,
+  );
+  await validateProjectStandardsDocument("manifest", manifestValue);
+  const manifest = manifestValue as ProvenanceManifestDocument;
+  const committedWaivers = await Promise.all(
+    manifest.activeWaivers.map(async (reference) => {
+      const relativePath = waiverRelativePath(reference.waiverId);
+      const file = await committedProjectFile(
+        exactRoot,
+        committedRevision,
+        relativePath,
+      );
+      const waiverValue = parseCommittedJson(file.committed, relativePath);
+      await validateProjectStandardsDocument("rule-waiver", waiverValue);
+      return { waiver: waiverValue as RuleWaiverDocument, matches: file.matches };
+    }),
+  );
+  const waivers = committedWaivers.map(({ waiver }) => waiver);
+  const constitution = await committedProjectFile(
+    exactRoot,
+    committedRevision,
+    "constitution.md",
+  );
+  const contractFingerprint = `sha256:${createHash("sha256").update(constitution.live).digest("hex")}`;
+  const contractVisible = contractWaiversAgree(constitution.live, waivers);
+  const projectDeliveryContract = {
+    artifactId: "artifact/core/project-delivery-contract",
+    ownerLayerId: "core",
+    locator: "constitution.md",
+    ownership: "whole-file" as const,
+    fingerprint: contractFingerprint,
+    verificationState:
+      constitution.matches && contractVisible
+        ? ("matching" as const)
+        : ("drifted" as const),
+  };
+  const predecessors = (
+    await Promise.all(
+      waivers.map((waiver) =>
+        authenticatedPredecessor(
+          exactRoot,
+          committedRevision,
+          waiver,
+          request,
+        ),
+      ),
+    )
+  ).filter((predecessor) => predecessor !== undefined);
+  const committedRequest: VerificationRequest = {
+    ...request,
+    waivers,
+    waiverHistory: predecessors.map(({ waiver }) => waiver),
+    waiverAuthenticity: [
+      ...committedWaivers.flatMap(({ waiver, matches }) =>
+        matches
+          ? [
+              {
+                waiverId: waiver.id,
+                version: waiver.version,
+                digest: waiver.digest,
+                source: {
+                  kind: "committed-record" as const,
+                  path: waiverRelativePath(waiver.id),
+                  revision: committedRevision,
+                  repositoryStateDigest: request.repository.stateDigest,
+                },
+              },
+            ]
+          : [],
+      ),
+      ...predecessors.map(({ binding }) => binding),
+    ],
+    projectDeliveryContract,
+    manifest,
+    blockers: [
+      ...request.blockers,
+      ...(!configurationFile.matches || !manifestFile.matches
+        ? [
+            {
+              kind: "drift" as const,
+              id: "blocker/committed-project-standards-drift",
+              message:
+                "Committed configuration or manifest differs from the selected working tree",
+            },
+          ]
+        : []),
+      ...(!repositoryBindingValid
+        ? [
+            {
+              kind: "drift" as const,
+              id: "blocker/repository-binding-drift",
+              message:
+                "Verification evidence does not bind the selected repository source state",
+            },
+          ]
+        : []),
+    ],
+  };
+  return evaluateVerificationRequirements(release, resolved, committedRequest);
 }
 
 function releaseReferences(
@@ -659,6 +1025,7 @@ function validateCatalogueSemantics(
   const entryIds = new Set(entries.keys());
   const ruleIds = new Set<string>();
   const artifactIds = new Set<string>();
+  const suppressionIds = new Set<string>();
   const checkIds = new Set<string>();
   const requirementIds = new Set<string>();
   const choiceIds = new Set<string>();
@@ -705,6 +1072,12 @@ function validateCatalogueSemantics(
     assertUniqueIds(entry, entry.choices, "choice", choiceIds);
     assertUniqueIds(entry, entry.rules, "rule", ruleIds);
     assertUniqueIds(entry, entry.artifacts, "artifact", artifactIds);
+    assertUniqueIds(
+      entry,
+      entry.managedSuppressions,
+      "suppression",
+      suppressionIds,
+    );
     assertUniqueIds(entry, entry.checks, "check", checkIds);
     assertUniqueIds(
       entry,
@@ -811,6 +1184,38 @@ function validateCatalogueSemantics(
         semanticError(
           entry.id,
           `Manual-State Requirement ${requirement.id} references missing Catalogue Check ${requirement.manualState.checkId}`,
+        );
+      }
+    }
+    for (const suppression of entry.managedSuppressions) {
+      const rule = entry.rules.find(({ id }) => id === suppression.ruleId);
+      const artifact = entry.artifacts.find(
+        ({ id }) => id === suppression.artifactId,
+      );
+      const requirement = entry.requirements.find(
+        ({ id }) => id === suppression.verificationRequirementId,
+      );
+      if (rule?.waiverPolicy.kind !== "governed") {
+        semanticError(
+          entry.id,
+          `Managed Suppression ${suppression.id} must reference a governed Catalogue Rule`,
+        );
+      }
+      if (artifact === undefined || artifact.ownership === "link") {
+        semanticError(
+          entry.id,
+          `Managed Suppression ${suppression.id} references an invalid Managed Artifact ${suppression.artifactId}`,
+        );
+      }
+      if (
+        requirement === undefined ||
+        requirement.kind !== "deterministic-check" ||
+        requirement.phase !== "baseline" ||
+        requirement.ruleId !== suppression.ruleId
+      ) {
+        semanticError(
+          entry.id,
+          `Managed Suppression ${suppression.id} references an invalid deterministic Verification Requirement ${suppression.verificationRequirementId}`,
         );
       }
     }

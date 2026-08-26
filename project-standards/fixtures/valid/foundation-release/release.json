@@ -2,7 +2,7 @@
   "$schema": "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-release.schema.json",
   "schemaVersion": "1.0.0",
   "catalogueVersion": "1.0.0",
-  "catalogueDigest": "sha256:d2d0c9a3cdb48f272c4a6d957bfbbc39616dd713cad0fb1fe30f93f8eb5c3010",
+  "catalogueDigest": "sha256:2de6ec7ed2978c9308170566606d59869ad20f2893c6d92ada7884e1fe48efc8",
   "schemas": [
     "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-entry.schema.json",
     "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-release.schema.json",
@@ -28,7 +28,11 @@
   "fixtures": [
     "fixtures/invalid-capability-composition.json",
     "fixtures/invalid-exact-pin.json",
-    "fixtures/valid-configuration.json"
+    "fixtures/valid-configuration.json",
+    "fixtures/verification-invalid-binding.json",
+    "fixtures/verification-no-op.json",
+    "fixtures/verification-suppression-drift.json",
+    "fixtures/verification-valid-suppression.json"
   ],
   "sourceGuidance": ["source-guidance/foundation.json"],
   "supportEvidence": ["support-evidence/foundation.json"],

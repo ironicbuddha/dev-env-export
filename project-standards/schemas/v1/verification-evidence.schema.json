@@ -20,6 +20,7 @@
     "bootstrapperDigest",
     "schemaDigests",
     "declaredInputsDigest",
+    "artifactObservations",
     "verificationHorizon",
     "invocation",
     "toolchain",
@@ -50,6 +51,11 @@
       "additionalProperties": { "$ref": "#/$defs/digest" }
     },
     "declaredInputsDigest": { "$ref": "#/$defs/digest" },
+    "artifactObservations": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/artifactObservation" }
+    },
     "verificationHorizon": { "enum": ["baseline", "delivery"] },
     "invocation": { "$ref": "#/$defs/invocation" },
     "toolchain": { "$ref": "#/$defs/toolchain" },
@@ -119,6 +125,17 @@
     "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
     "ruleId": { "type": "string", "pattern": "^rule/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
     "requirementId": { "type": "string", "pattern": "^requirement/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
+    "artifactObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "ownerLayerId", "locator", "fingerprint"],
+      "properties": {
+        "artifactId": { "type": "string", "pattern": "^artifact/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
+        "ownerLayerId": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "locator": { "type": "string", "minLength": 1 },
+        "fingerprint": { "$ref": "#/$defs/digest" }
+      }
+    },
     "scope": {
       "type": "object",
       "additionalProperties": false,

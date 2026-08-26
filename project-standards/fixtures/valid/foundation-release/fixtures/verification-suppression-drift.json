@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schemas.ironicbuddha.dev/project-standards/v1/fixture.schema.json",
+  "schemaVersion": "1.0.0",
+  "id": "fixture/verification/suppression-drift",
+  "subject": "verification",
+  "expectation": "incomplete",
+  "document": {
+    "binding": "exact",
+    "suppression": "drifted",
+    "repetitions": 1
+  }
+}

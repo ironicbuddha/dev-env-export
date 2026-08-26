@@ -38,6 +38,7 @@
       "compositionContract": "composition/package-json"
     }
   ],
+  "managedSuppressions": [],
   "checks": [
     {
       "id": "check/example-service/package",

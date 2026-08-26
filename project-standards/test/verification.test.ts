@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -13,7 +13,10 @@ import canonicalizeModule from "canonicalize";
 import {
   type BootstrapConfiguration,
   CatalogueValidationError,
+  evaluateCommittedVerificationRequirements,
   evaluateVerificationRequirements,
+  exactGitIndexEntries,
+  inspectRepositoryRoot,
   loadCatalogueRelease,
   resolveBootstrapConfiguration,
   type RuleWaiverDocument,
@@ -26,6 +29,45 @@ const execFileAsync = promisify(execFile);
 const canonicalize = canonicalizeModule as unknown as (
   value: unknown,
 ) => string | undefined;
+
+function projectDeliveryContractContent(
+  waivers: readonly RuleWaiverDocument[],
+): string {
+  const visibleWaivers = waivers.map(
+    (waiver) =>
+      [
+        `- ${waiver.id}@${waiver.version}`,
+        `  - Digest: ${waiver.digest}`,
+        `  - Affected obligations: ${waiver.requirementIds.join(", ")}`,
+        `  - Compensating controls: ${waiver.compensatingControls
+          .map(({ requirementId }) => requirementId)
+          .join(", ")}`,
+        `  - Expires: ${waiver.validity.expiresAt}`,
+      ].join("\n"),
+  );
+  return [
+    "# Project Delivery Contract",
+    "",
+    "## Active Rule Waivers",
+    ...(visibleWaivers.length === 0 ? ["None."] : visibleWaivers),
+    "",
+  ].join("\n");
+}
+
+function projectDeliveryContractFor(
+  waivers: readonly RuleWaiverDocument[],
+): VerificationRequest["projectDeliveryContract"] {
+  return {
+    artifactId: "artifact/core/project-delivery-contract",
+    ownerLayerId: "core",
+    locator: "constitution.md",
+    ownership: "whole-file",
+    fingerprint: `sha256:${createHash("sha256")
+      .update(projectDeliveryContractContent(waivers))
+      .digest("hex")}`,
+    verificationState: "matching",
+  };
+}
 
 function execFileResult(
   file: string,
@@ -108,6 +150,20 @@ async function capabilityVerificationFixture(): Promise<{
       declaredEnvironmentInputs: [],
     },
     toolchain: { name: "pnpm", version: "11.22.0" },
+    artifactObservations: [
+      {
+        artifactId: "artifact/example-tests/test-command",
+        ownerLayerId: "service-tests",
+        locator: "services/api/package.json#scripts.test",
+        fingerprint: `sha256:${"d".repeat(64)}`,
+      },
+      {
+        artifactId: "artifact/example-tests/direct-tests-suppression",
+        ownerLayerId: "service-tests",
+        locator: "services/api/eslint.config.mjs#direct-tests-waiver",
+        fingerprint: `sha256:${"d".repeat(64)}`,
+      },
+    ],
   });
   const reviewEvidence = makeEvidence({
     id: "evidence/018f47ac-10d2-7c85-bd62-0c742b1f2451",
@@ -130,6 +186,7 @@ async function capabilityVerificationFixture(): Promise<{
         conclusion: "accepted",
       },
     ],
+    artifactObservations: [],
   });
   const manualEvidence = makeEvidence({
     id: "evidence/018f47ac-10d2-7c85-bd62-0c742b1f2452",
@@ -155,6 +212,7 @@ async function capabilityVerificationFixture(): Promise<{
       declaredEnvironmentInputs: [],
     },
     toolchain: { name: "pnpm", version: "11.22.0" },
+    artifactObservations: [],
   });
   const evidence = [...baseEvidence, gateEvidence, reviewEvidence, manualEvidence];
   return {
@@ -187,6 +245,34 @@ async function capabilityVerificationFixture(): Promise<{
       ],
       evidence,
       evidenceAuthenticity: authenticityFor(evidence),
+      manifest: {
+        ...base.request.manifest,
+        configurationDigest,
+        artifacts: [
+          ...base.request.manifest.artifacts.map((artifact) =>
+            artifact.artifactId === "artifact/core/configuration"
+              ? { ...artifact, fingerprint: configurationDigest }
+              : artifact,
+          ),
+          {
+            artifactId: "artifact/example-tests/test-command",
+            ownerLayerId: "service-tests",
+            locator: "services/api/package.json#scripts.test",
+            ownership: "structured-fragment" as const,
+            fingerprint: gateEvidence.declaredInputsDigest,
+            verificationState: "matching" as const,
+          },
+          {
+            artifactId: "artifact/example-tests/direct-tests-suppression",
+            ownerLayerId: "service-tests",
+            locator: "services/api/eslint.config.mjs#direct-tests-waiver",
+            ownership: "structured-fragment" as const,
+            fingerprint: gateEvidence.declaredInputsDigest,
+            verificationState: "matching" as const,
+          },
+        ],
+        evidence: manifestEvidenceFor(evidence),
+      },
     },
   };
 }
@@ -214,6 +300,90 @@ function authenticityFor(
   }));
 }
 
+function manifestEvidenceFor(
+  evidence: readonly VerificationEvidenceDocument[],
+): VerificationRequest["manifest"]["evidence"] {
+  return evidence.map((item) => ({
+    evidenceId: item.id,
+    digest: item.evidenceDigest,
+    result: item.result,
+    observedAt: item.observedAt,
+    ...(item.validUntil === undefined ? {} : { validUntil: item.validUntil }),
+    ...(item.output.immutableReference === undefined
+      ? {}
+      : { immutableReference: item.output.immutableReference }),
+  }));
+}
+
+function withWaiverState(
+  request: VerificationRequest,
+  waivers: readonly RuleWaiverDocument[],
+  managedSuppressions: VerificationRequest["managedSuppressions"] = [],
+  predecessorWaivers: readonly RuleWaiverDocument[] = [],
+): VerificationRequest {
+  const evaluatedAt = Date.parse(request.evaluatedAt);
+  const activeWaivers = waivers.filter(
+    (waiver) =>
+      waiver.status === "active" &&
+      Date.parse(waiver.validity.startsAt) <= evaluatedAt &&
+      Date.parse(waiver.validity.expiresAt) > evaluatedAt,
+  );
+  const projectDeliveryContract = projectDeliveryContractFor(activeWaivers);
+  const suppressionArtifacts = managedSuppressions.map(
+    ({ artifact }) => artifact,
+  );
+  return {
+    ...request,
+    waivers,
+    waiverHistory: predecessorWaivers,
+    waiverAuthenticity: [...waivers, ...predecessorWaivers].map((waiver) => ({
+      waiverId: waiver.id,
+      version: waiver.version,
+      digest: waiver.digest,
+      source: {
+        kind: "committed-record",
+        path: `.project-standards/waivers/${waiver.id.slice("waiver/".length)}.json`,
+        revision: request.repository.revision,
+        repositoryStateDigest: waiver.validity.repositoryStateDigest,
+      },
+    })),
+    managedSuppressions,
+    projectDeliveryContract,
+    manifest: {
+      ...request.manifest,
+      artifacts: [
+        ...request.manifest.artifacts.filter(
+          (artifact) =>
+            artifact.artifactId !==
+              "artifact/core/project-delivery-contract" &&
+            !suppressionArtifacts.some(
+              (suppressionArtifact) =>
+                suppressionArtifact.artifactId === artifact.artifactId &&
+                suppressionArtifact.ownerLayerId === artifact.ownerLayerId &&
+                suppressionArtifact.locator === artifact.locator,
+            ),
+        ),
+        projectDeliveryContract,
+        ...suppressionArtifacts,
+      ],
+      activeWaivers: activeWaivers.map((waiver) => ({
+        waiverId: waiver.id,
+        version: waiver.version,
+        digest: waiver.digest,
+      })),
+      managedSuppressions: managedSuppressions.map((suppression) => ({
+        suppressionId: suppression.id,
+        waiverId: suppression.waiverId,
+        waiverVersion: suppression.waiverVersion,
+        artifactId: suppression.artifact.artifactId,
+        ownerLayerId: suppression.artifact.ownerLayerId,
+        locator: suppression.artifact.locator,
+        fingerprint: suppression.artifact.fingerprint,
+      })),
+    },
+  };
+}
+
 function withEvidence(
   request: VerificationRequest,
   evidence: readonly VerificationEvidenceDocument[],
@@ -222,6 +392,10 @@ function withEvidence(
     ...request,
     evidence,
     evidenceAuthenticity: authenticityFor(evidence),
+    manifest: {
+      ...request.manifest,
+      evidence: manifestEvidenceFor(evidence),
+    },
   };
 }
 
@@ -285,6 +459,7 @@ async function verificationFixture(): Promise<{
     bootstrapperDigest: `sha256:${"8".repeat(64)}`,
     schemaDigests: release.schemaDigests,
     declaredInputsDigest: `sha256:${"6".repeat(64)}`,
+    artifactObservations: [],
     verificationHorizon: "baseline",
     invocation: {
       executable: "project-standards-catalogue",
@@ -317,6 +492,14 @@ async function verificationFixture(): Promise<{
     requirementId: "requirement/example-service/package-check",
     scope: { kind: "workload", id: "service" } as const,
     declaredInputsDigest: `sha256:${"a".repeat(64)}`,
+    artifactObservations: [
+      {
+        artifactId: "artifact/example-service/package",
+        ownerLayerId: "service",
+        locator: "services/api/package.json",
+        fingerprint: `sha256:${"a".repeat(64)}`,
+      },
+    ],
     invocation: {
       executable: "pnpm",
       arguments: ["test"],
@@ -329,6 +512,7 @@ async function verificationFixture(): Promise<{
     ...serviceEvidenceWithoutDigest,
     evidenceDigest: digest(serviceEvidenceWithoutDigest),
   };
+  const projectDeliveryContract = projectDeliveryContractFor([]);
   const request: VerificationRequest = {
     $schema:
       "https://schemas.ironicbuddha.dev/project-standards/v1/verification-request.schema.json",
@@ -360,8 +544,223 @@ async function verificationFixture(): Promise<{
     evidence: [evidence, serviceEvidence],
     evidenceAuthenticity: authenticityFor([evidence, serviceEvidence]),
     waivers: [],
+    waiverHistory: [],
+    waiverAuthenticity: [],
+    projectDeliveryContract,
+    manifest: {
+      $schema:
+        "https://schemas.ironicbuddha.dev/project-standards/v1/manifest.schema.json",
+      schemaVersion: "1.0.0",
+      configurationDigest: digest(resolved.configuration),
+      catalogueVersion: release.document.catalogueVersion,
+      catalogueDigest: release.document.catalogueDigest,
+      bootstrapperVersion: "0.1.0",
+      bootstrapperDigest: `sha256:${"8".repeat(64)}`,
+      schemaDigests: release.schemaDigests,
+      artifacts: [
+        {
+          artifactId: "artifact/core/configuration",
+          ownerLayerId: "core",
+          locator: ".project-standards/config.json",
+          ownership: "whole-file",
+          fingerprint: digest(resolved.configuration),
+          verificationState: "matching",
+        },
+        projectDeliveryContract,
+        {
+          artifactId: "artifact/example-service/package",
+          ownerLayerId: "service",
+          locator: "services/api/package.json",
+          ownership: "structured-fragment",
+          fingerprint: serviceEvidence.declaredInputsDigest,
+          verificationState: "matching",
+        },
+      ],
+      evidence: manifestEvidenceFor([evidence, serviceEvidence]),
+      activeWaivers: [],
+      managedSuppressions: [],
+    },
+    managedSuppressions: [],
   };
   return { request, release, resolved };
+}
+
+async function writeCommittedVerificationFixture(
+  root: string,
+  configuration: BootstrapConfiguration,
+  request: VerificationRequest,
+): Promise<string> {
+  const standardsRoot = join(root, ".project-standards");
+  const waiverRoot = join(standardsRoot, "waivers");
+  const runRoot = join(standardsRoot, "run");
+  await Promise.all([
+    mkdir(waiverRoot, { recursive: true }),
+    mkdir(runRoot, { recursive: true }),
+  ]);
+  const requestPath = join(runRoot, "verification-request.json");
+  await Promise.all([
+    writeFile(
+      join(standardsRoot, "config.json"),
+      `${JSON.stringify(configuration, null, 2)}\n`,
+    ),
+    writeFile(
+      join(standardsRoot, "manifest.json"),
+      `${JSON.stringify(request.manifest, null, 2)}\n`,
+    ),
+    writeFile(requestPath, `${JSON.stringify(request, null, 2)}\n`),
+    writeFile(
+      join(root, "constitution.md"),
+      projectDeliveryContractContent(request.waivers),
+    ),
+    ...request.waivers.map((waiver) =>
+      writeFile(
+        join(waiverRoot, `${waiver.id.slice("waiver/".length)}.json`),
+        `${JSON.stringify(waiver, null, 2)}\n`,
+      ),
+    ),
+  ]);
+  return requestPath;
+}
+
+async function initializeGitFixture(root: string): Promise<void> {
+  await execFileAsync("git", ["init", root]);
+  await execFileAsync("git", [
+    "-C",
+    root,
+    "config",
+    "user.email",
+    "tests@example.com",
+  ]);
+  await execFileAsync("git", [
+    "-C",
+    root,
+    "config",
+    "user.name",
+    "Project Standards Tests",
+  ]);
+  await execFileAsync("git", [
+    "-C",
+    root,
+    "commit",
+    "--allow-empty",
+    "-m",
+    "source state",
+  ]);
+}
+
+async function commitGitFixture(root: string, message: string): Promise<string> {
+  await execFileAsync("git", [
+    "-C",
+    root,
+    "add",
+    "-A",
+    "--",
+    ".project-standards",
+    "constitution.md",
+    ":(exclude).project-standards/run",
+  ]);
+  await execFileAsync("git", [
+    "-C",
+    root,
+    "commit",
+    "--only",
+    "-m",
+    message,
+    "--",
+    ".project-standards",
+    "constitution.md",
+    ":(exclude).project-standards/run",
+  ]);
+  const { stdout } = await execFileAsync("git", [
+    "-C",
+    root,
+    "rev-parse",
+    "HEAD",
+  ]);
+  return stdout.trim();
+}
+
+async function bindVerificationRequestToGitSource(
+  root: string,
+  request: VerificationRequest,
+): Promise<VerificationRequest> {
+  const { stdout } = await execFileAsync("git", [
+    "-C",
+    root,
+    "rev-parse",
+    "HEAD",
+  ]);
+  const detected = await inspectRepositoryRoot(root);
+  const entries = new Map(
+    detected.filesystem.entries.map((entry) => [entry.path, entry]),
+  );
+  const relevantDirtyPaths = detected.git.dirtyPaths
+    .filter(
+      ({ path, originalPath }) =>
+        !path.startsWith(".project-standards/run/") ||
+        (originalPath !== undefined &&
+          !originalPath.startsWith(".project-standards/run/")),
+    )
+    .map(({ path, indexState, worktreeState, originalPath }) => ({
+      path,
+      indexState,
+      worktreeState,
+      fingerprint: entries.get(path)?.fingerprint ?? "absent",
+      ...(originalPath === undefined ? {} : { originalPath }),
+    }));
+  const relevantIndexEntries = await exactGitIndexEntries(
+    root,
+    relevantDirtyPaths.flatMap(({ path, originalPath }) => [
+      path,
+      ...(originalPath === undefined ? [] : [originalPath]),
+    ]),
+  );
+  const repository = {
+    identity: `file://${await realpath(root)}`,
+    revision: stdout.trim(),
+    stateDigest: digest({
+      identity: `file://${await realpath(root)}`,
+      revision: stdout.trim(),
+      relevantDirtyPaths,
+      relevantIndexEntries,
+    }),
+  };
+  const evidence = request.evidence.map((item) =>
+    redigestEvidence(item, { repository }),
+  );
+  const waiverHistory = request.waiverHistory;
+  const waivers = request.waivers.map((waiver) => {
+    const predecessor = waiverHistory.find(
+      ({ id, version }) => id === waiver.id && version === waiver.version - 1,
+    );
+    const content = {
+      ...waiver,
+      ...(predecessor === undefined
+        ? {}
+        : { supersedesDigest: predecessor.digest }),
+      validity: {
+        ...waiver.validity,
+        repositoryStateDigest: repository.stateDigest,
+      },
+    };
+    const { digest: _digest, ...withoutDigest } = content;
+    return { ...withoutDigest, digest: digest(withoutDigest) };
+  });
+  return withWaiverState(
+    {
+      ...request,
+      repository,
+      evidence,
+      evidenceAuthenticity: authenticityFor(evidence),
+      manifest: {
+        ...request.manifest,
+        evidence: manifestEvidenceFor(evidence),
+      },
+    },
+    waivers,
+    request.managedSuppressions,
+    waiverHistory,
+  );
 }
 
 test("exact-bound passing deterministic evidence verifies the baseline", async () => {
@@ -399,6 +798,38 @@ test("exact-bound passing deterministic evidence verifies the baseline", async (
     },
   ]);
   assert.deepEqual(result.waivers, []);
+
+  const incompleteManifest = await evaluateVerificationRequirements(
+    release,
+    resolved,
+    {
+      ...request,
+      manifest: {
+        ...request.manifest,
+        artifacts: request.manifest.artifacts.filter(
+          ({ artifactId }) => artifactId !== "artifact/example-service/package",
+        ),
+      },
+    },
+  );
+  assert.equal(incompleteManifest.outcome, "incomplete");
+
+  const falseArtifactFingerprint = await evaluateVerificationRequirements(
+    release,
+    resolved,
+    {
+      ...request,
+      manifest: {
+        ...request.manifest,
+        artifacts: request.manifest.artifacts.map((artifact) =>
+          artifact.artifactId === "artifact/example-service/package"
+            ? { ...artifact, fingerprint: `sha256:${"f".repeat(64)}` }
+            : artifact,
+        ),
+      },
+    },
+  );
+  assert.equal(falseArtifactFingerprint.outcome, "incomplete");
 });
 
 test("failed, errored, missing, stale, and tampered evidence fail closed", async (t) => {
@@ -1124,6 +1555,7 @@ test("baseline verification proves a delivery gate but delivery requires fresh c
     id: "evidence/018f47ac-10d2-7c85-bd62-0c742b1f2453",
     requirementId: "requirement/example-tests/direct-tests",
     declaredInputsDigest: deliveryInput,
+    artifactObservations: [],
     verificationHorizon: "delivery",
   });
   const scopedDeliveryRequest = {
@@ -1252,12 +1684,15 @@ test("workload-scoped capability requirements expand once per workload", async (
     schemaVersion: "1.0.0" as const,
     id: "waiver/worker-review",
     version: 1,
+    layerId: "service-tests",
     ruleId: "rule/example-tests/direct-tests",
     scope: { kind: "workload", id: "worker" } as const,
     requirementIds: ["requirement/example-tests/direct-tests-review"],
+    managedSuppressionIds: [],
     reasonClass: "temporary-tooling-gap",
     reasonEvidence: [`sha256:${"2".repeat(64)}`],
     risk: "The worker review is temporarily unavailable.",
+    riskReviewedAt: "2026-08-26T07:10:00Z",
     compensatingControls: [
       {
         requirementId: "requirement/example-tests/test-command-gate",
@@ -1268,12 +1703,14 @@ test("workload-scoped capability requirements expand once per workload", async (
       kind: "human" as const,
       identity: "author@example.com",
       authorityClass: "authority/project-policy",
+      actedAt: "2026-08-26T07:00:00Z",
     },
     approvals: [
       {
         kind: "human" as const,
         identity: "reviewer@example.com",
         authorityClass: "authority/project-policy",
+        actedAt: "2026-08-26T07:10:00Z",
       },
     ],
     remediation: "Obtain and record the worker review.",
@@ -1291,7 +1728,7 @@ test("workload-scoped capability requirements expand once per workload", async (
     ...workerWaiverWithoutDigest,
     digest: digest(workerWaiverWithoutDigest),
   };
-  const request: VerificationRequest = {
+  const requestWithoutWaiver: VerificationRequest = {
     ...fixture.request,
     requirementInputs: evidence.map((item) => ({
       requirementId: item.requirementId,
@@ -1304,8 +1741,13 @@ test("workload-scoped capability requirements expand once per workload", async (
     })),
     evidence,
     evidenceAuthenticity: authenticityFor(evidence),
-    waivers: [workerWaiver],
+    manifest: {
+      ...fixture.request.manifest,
+      configurationDigest,
+      evidence: manifestEvidenceFor(evidence),
+    },
   };
+  const request = withWaiverState(requestWithoutWaiver, [workerWaiver]);
   const result = await evaluateVerificationRequirements(
     release,
     resolved,
@@ -1359,12 +1801,15 @@ test("an exact active governed waiver remains visible and distinct from satisfac
     schemaVersion: "1.0.0" as const,
     id: "waiver/direct-tests-review",
     version: 1,
+    layerId: "service-tests",
     ruleId: "rule/example-tests/direct-tests",
     scope: { kind: "workload", id: "service" } as const,
     requirementIds: [reviewRequirement],
+    managedSuppressionIds: [],
     reasonClass: "temporary-tooling-gap",
     reasonEvidence: [`sha256:${"2".repeat(64)}`],
     risk: "A human review is temporarily unavailable.",
+    riskReviewedAt: "2026-08-26T07:10:00Z",
     compensatingControls: [
       {
         requirementId: "requirement/example-tests/test-command-gate",
@@ -1375,12 +1820,14 @@ test("an exact active governed waiver remains visible and distinct from satisfac
       kind: "human" as const,
       identity: "author@example.com",
       authorityClass: "authority/project-policy",
+      actedAt: "2026-08-26T07:00:00Z",
     },
     approvals: [
       {
         kind: "human" as const,
         identity: "reviewer@example.com",
         authorityClass: "authority/project-policy",
+        actedAt: "2026-08-26T07:10:00Z",
       },
     ],
     remediation: "Obtain and record the attributable review.",
@@ -1398,16 +1845,17 @@ test("an exact active governed waiver remains visible and distinct from satisfac
     ...waiverWithoutDigest,
     digest: digest(waiverWithoutDigest),
   };
+  const activeWaiverRequest = withWaiverState(
+    withEvidence(
+      fixture.request,
+      fixture.request.evidence.filter(({ id }) => id !== reviewEvidence.id),
+    ),
+    [waiver],
+  );
   const result = await evaluateVerificationRequirements(
     fixture.release,
     fixture.resolved,
-    {
-      ...withEvidence(
-        fixture.request,
-        fixture.request.evidence.filter(({ id }) => id !== reviewEvidence.id),
-      ),
-      waivers: [waiver],
-    },
+    activeWaiverRequest,
   );
 
   assert.equal(result.outcome, "verified");
@@ -1416,11 +1864,206 @@ test("an exact active governed waiver remains visible and distinct from satisfac
     {
       waiverId: "waiver/direct-tests-review",
       version: 1,
-      requirementId: reviewRequirement,
+      digest: waiver.digest,
+      ruleId: "rule/example-tests/direct-tests",
       scope: { kind: "workload", id: "service" },
+      requirementIds: [reviewRequirement],
+      compensatingControlRequirementIds: [
+        "requirement/example-tests/test-command-gate",
+      ],
+      managedSuppressionIds: [],
+      risk: "A human review is temporarily unavailable.",
+      remediation: "Obtain and record the attributable review.",
       expiresAt: "2026-08-27T07:00:00Z",
     },
   ]);
+
+  for (const [name, invalidRequest] of [
+    [
+      "missing committed-record binding",
+      { ...activeWaiverRequest, waiverAuthenticity: [] },
+    ],
+    [
+      "wrong committed-record path",
+      {
+        ...activeWaiverRequest,
+        waiverAuthenticity: activeWaiverRequest.waiverAuthenticity.map(
+          (binding) => ({
+            ...binding,
+            source: {
+              ...binding.source,
+              path: ".project-standards/waivers/different-waiver.json",
+            },
+          }),
+        ),
+      },
+    ],
+    [
+      "missing manifest reference",
+      {
+        ...activeWaiverRequest,
+        manifest: { ...activeWaiverRequest.manifest, activeWaivers: [] },
+      },
+    ],
+  ] as const) {
+    const invalidResult = await evaluateVerificationRequirements(
+      fixture.release,
+      fixture.resolved,
+      invalidRequest,
+    );
+    assert.equal(invalidResult.outcome, "incomplete", name);
+  }
+
+  const committedRoot = await mkdtemp(join(tmpdir(), "committed-waiver-"));
+  await initializeGitFixture(committedRoot);
+  const committedActiveWaiverRequest =
+    await bindVerificationRequestToGitSource(
+      committedRoot,
+      activeWaiverRequest,
+    );
+  await writeCommittedVerificationFixture(
+    committedRoot,
+    fixture.resolved.configuration,
+    committedActiveWaiverRequest,
+  );
+  await commitGitFixture(committedRoot, "active waiver");
+  assert.equal(
+    (
+      await evaluateCommittedVerificationRequirements(
+        fixture.release,
+        committedActiveWaiverRequest,
+        committedRoot,
+      )
+    ).outcome,
+    "verified",
+  );
+  const { digest: _committedWaiverDigest, ...committedWaiverContent } =
+    committedActiveWaiverRequest.waivers[0]!;
+  const tamperedWaiverWithoutDigest = {
+    ...committedWaiverContent,
+    risk: "A caller tried to replace the committed risk statement.",
+  };
+  await writeFile(
+    join(
+      committedRoot,
+      ".project-standards/waivers/direct-tests-review.json",
+    ),
+    `${JSON.stringify(
+      {
+        ...tamperedWaiverWithoutDigest,
+        digest: digest(tamperedWaiverWithoutDigest),
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  assert.equal(
+    (
+      await evaluateCommittedVerificationRequirements(
+        fixture.release,
+        committedActiveWaiverRequest,
+        committedRoot,
+      )
+    ).outcome,
+    "failed",
+  );
+  const hiddenContract = `${projectDeliveryContractContent(
+    committedActiveWaiverRequest.waivers,
+  )}\n<!-- stale waiver/hidden@1 -->\n`;
+  const hiddenContractArtifact = {
+    ...committedActiveWaiverRequest.projectDeliveryContract,
+    fingerprint: `sha256:${createHash("sha256")
+      .update(hiddenContract)
+      .digest("hex")}`,
+  };
+  const hiddenContractRequest: VerificationRequest = {
+    ...committedActiveWaiverRequest,
+    projectDeliveryContract: hiddenContractArtifact,
+    manifest: {
+      ...committedActiveWaiverRequest.manifest,
+      artifacts: committedActiveWaiverRequest.manifest.artifacts.map((artifact) =>
+        artifact.artifactId === "artifact/core/project-delivery-contract"
+          ? hiddenContractArtifact
+          : artifact,
+      ),
+    },
+  };
+  await writeCommittedVerificationFixture(
+    committedRoot,
+    fixture.resolved.configuration,
+    hiddenContractRequest,
+  );
+  await writeFile(join(committedRoot, "constitution.md"), hiddenContract);
+  await commitGitFixture(committedRoot, "hide stale waiver in contract comment");
+  assert.equal(
+    (
+      await evaluateCommittedVerificationRequirements(
+        fixture.release,
+        hiddenContractRequest,
+        committedRoot,
+      )
+    ).outcome,
+    "incomplete",
+  );
+  const duplicateContract = `${projectDeliveryContractContent(
+    committedActiveWaiverRequest.waivers,
+  )}\n## Active Rule Waivers\n\nNone.\n`;
+  const duplicateContractArtifact = {
+    ...committedActiveWaiverRequest.projectDeliveryContract,
+    fingerprint: `sha256:${createHash("sha256")
+      .update(duplicateContract)
+      .digest("hex")}`,
+  };
+  const duplicateContractRequest: VerificationRequest = {
+    ...committedActiveWaiverRequest,
+    projectDeliveryContract: duplicateContractArtifact,
+    manifest: {
+      ...committedActiveWaiverRequest.manifest,
+      artifacts: committedActiveWaiverRequest.manifest.artifacts.map((artifact) =>
+        artifact.artifactId === "artifact/core/project-delivery-contract"
+          ? duplicateContractArtifact
+          : artifact,
+      ),
+    },
+  };
+  await writeCommittedVerificationFixture(
+    committedRoot,
+    fixture.resolved.configuration,
+    duplicateContractRequest,
+  );
+  await writeFile(join(committedRoot, "constitution.md"), duplicateContract);
+  await commitGitFixture(committedRoot, "duplicate active waiver section");
+  assert.equal(
+    (
+      await evaluateCommittedVerificationRequirements(
+        fixture.release,
+        duplicateContractRequest,
+        committedRoot,
+      )
+    ).outcome,
+    "incomplete",
+  );
+
+  const wrongLayerWithoutDigest = {
+    ...waiverWithoutDigest,
+    layerId: "other-tests",
+  };
+  const wrongLayer: RuleWaiverDocument = {
+    ...wrongLayerWithoutDigest,
+    digest: digest(wrongLayerWithoutDigest),
+  };
+  const wrongLayerResult = await evaluateVerificationRequirements(
+    fixture.release,
+    fixture.resolved,
+    withWaiverState(
+      withEvidence(
+        fixture.request,
+        fixture.request.evidence.filter(({ id }) => id !== reviewEvidence.id),
+      ),
+      [wrongLayer],
+    ),
+  );
+  assert.equal(wrongLayerResult.outcome, "incomplete");
 
   const gateWaiverWithoutDigest = {
     ...waiverWithoutDigest,
@@ -1436,7 +2079,7 @@ test("an exact active governed waiver remains visible and distinct from satisfac
   const gateWaiverResult = await evaluateVerificationRequirements(
     fixture.release,
     fixture.resolved,
-    { ...fixture.request, waivers: [gateWaiver] },
+    withWaiverState(fixture.request, [gateWaiver]),
   );
   assert.equal(gateWaiverResult.outcome, "incomplete");
   assert.equal(
@@ -1461,7 +2104,7 @@ test("an exact active governed waiver remains visible and distinct from satisfac
   const deliveryWaiverResult = await evaluateVerificationRequirements(
     fixture.release,
     fixture.resolved,
-    { ...fixture.request, waivers: [deliveryWaiver] },
+    withWaiverState(fixture.request, [deliveryWaiver]),
   );
   assert.equal(deliveryWaiverResult.outcome, "verified");
   assert.equal(
@@ -1514,8 +2157,9 @@ test("an exact active governed waiver remains visible and distinct from satisfac
   const externalResult = await evaluateVerificationRequirements(
     externalRelease,
     fixture.resolved,
-    {
-      ...withEvidence(fixture.request, externalEvidence),
+    withWaiverState(
+      {
+        ...withEvidence(fixture.request, externalEvidence),
       authorities: [
         {
           authorityClass: "authority/project-policy",
@@ -1523,10 +2167,53 @@ test("an exact active governed waiver remains visible and distinct from satisfac
           externalDecisionReferences: ["decision/waiver-123"],
         },
       ],
-      waivers: [externalWaiver],
-    },
+      },
+      [externalWaiver],
+    ),
   );
   assert.equal(externalResult.outcome, "verified");
+
+  const splitAuthorityWithoutDigest = {
+    ...waiverWithoutDigest,
+    approvals: [
+      {
+        ...waiverWithoutDigest.approvals[0]!,
+        identity: waiverWithoutDigest.requester.identity,
+      },
+      {
+        ...waiverWithoutDigest.approvals[0]!,
+        identity: "unauthorized-reviewer@example.com",
+      },
+    ],
+  };
+  const splitAuthorityWaiver: RuleWaiverDocument = {
+    ...splitAuthorityWithoutDigest,
+    digest: digest(splitAuthorityWithoutDigest),
+  };
+  const splitAuthorityResult = await evaluateVerificationRequirements(
+    fixture.release,
+    fixture.resolved,
+    withWaiverState(
+      {
+        ...withEvidence(
+        fixture.request,
+        fixture.request.evidence.filter(({ id }) => id !== reviewEvidence.id),
+      ),
+      authorities: [
+        {
+          authorityClass: "authority/project-policy",
+          identities: [
+            waiverWithoutDigest.requester.identity,
+            "reviewer@example.com",
+          ],
+          externalDecisionReferences: [],
+        },
+      ],
+      },
+      [splitAuthorityWaiver],
+    ),
+  );
+  assert.equal(splitAuthorityResult.outcome, "incomplete");
 
   const excessiveWithoutDigest = {
     ...waiverWithoutDigest,
@@ -1542,13 +2229,13 @@ test("an exact active governed waiver remains visible and distinct from satisfac
   const excessiveResult = await evaluateVerificationRequirements(
     fixture.release,
     fixture.resolved,
-    {
-      ...withEvidence(
+    withWaiverState(
+      withEvidence(
         fixture.request,
         fixture.request.evidence.filter(({ id }) => id !== reviewEvidence.id),
       ),
-      waivers: [excessive],
-    },
+      [excessive],
+    ),
   );
   assert.equal(excessiveResult.outcome, "incomplete");
   assert.equal(
@@ -1572,61 +2259,749 @@ test("an exact active governed waiver remains visible and distinct from satisfac
   const unsupportedResult = await evaluateVerificationRequirements(
     fixture.release,
     fixture.resolved,
-    {
-      ...withEvidence(
+    withWaiverState(
+      withEvidence(
         fixture.request,
         fixture.request.evidence.filter(({ id }) => id !== reviewEvidence.id),
       ),
-      waivers: [unsupported],
-    },
+      [unsupported],
+    ),
   );
   assert.equal(unsupportedResult.outcome, "incomplete");
 
+  const predecessorGateEvidence = fixture.request.evidence.find(
+    ({ requirementId }) =>
+      requirementId === "requirement/example-tests/test-command-gate",
+  );
+  assert.ok(predecessorGateEvidence);
+  const renewalGateEvidence = redigestEvidence(predecessorGateEvidence, {
+    id: "evidence/018f47ac-10d2-7c85-bd62-0c742b1f2470",
+    observedAt: "2026-08-26T07:35:00Z",
+  });
+  const renewalEvidence = [
+    ...fixture.request.evidence.filter(
+      ({ id }) =>
+        id !== reviewEvidence.id && id !== predecessorGateEvidence.id,
+    ),
+    renewalGateEvidence,
+  ];
   const renewalWithoutDigest = {
     ...waiverWithoutDigest,
     version: 2,
     supersedes: `${waiverWithoutDigest.id}@1`,
+    supersedesDigest: waiver.digest,
+    riskReviewedAt: "2026-08-26T07:35:00Z",
+    requester: {
+      ...waiverWithoutDigest.requester,
+      actedAt: "2026-08-26T07:30:00Z",
+    },
+    approvals: waiverWithoutDigest.approvals.map((approval) => ({
+      ...approval,
+      actedAt: "2026-08-26T07:40:00Z",
+    })),
+    compensatingControls: [
+      {
+        requirementId: "requirement/example-tests/test-command-gate",
+        evidenceIds: [renewalGateEvidence.id],
+      },
+    ],
+    validity: {
+      ...waiverWithoutDigest.validity,
+      startsAt: "2026-08-26T07:30:00Z",
+    },
   };
   const renewal: RuleWaiverDocument = {
     ...renewalWithoutDigest,
     digest: digest(renewalWithoutDigest),
   };
+  const renewalRequest = withWaiverState(
+    withEvidence(fixture.request, renewalEvidence),
+    [renewal],
+    [],
+    [waiver],
+  );
   const renewalResult = await evaluateVerificationRequirements(
     fixture.release,
     fixture.resolved,
-    {
-      ...withEvidence(
+    renewalRequest,
+  );
+  assert.equal(renewalResult.outcome, "verified");
+  assert.equal(
+    evaluationFor(renewalResult, reviewRequirement).evaluation,
+    "waived",
+  );
+  assert.equal(renewalResult.waivers[0]?.version, 2);
+
+  const reusedEvidenceWithoutDigest = {
+    ...renewalWithoutDigest,
+    compensatingControls: waiverWithoutDigest.compensatingControls,
+  };
+  const reusedEvidence: RuleWaiverDocument = {
+    ...reusedEvidenceWithoutDigest,
+    digest: digest(reusedEvidenceWithoutDigest),
+  };
+  assert.equal(
+    (
+      await evaluateVerificationRequirements(
+        fixture.release,
+        fixture.resolved,
+        withWaiverState(
+          withEvidence(
+            fixture.request,
+            fixture.request.evidence.filter(
+              ({ id }) => id !== reviewEvidence.id,
+            ),
+          ),
+          [reusedEvidence],
+          [],
+          [waiver],
+        ),
+      )
+    ).outcome,
+    "incomplete",
+  );
+
+  const renewalRoot = await mkdtemp(join(tmpdir(), "committed-renewal-"));
+  await initializeGitFixture(renewalRoot);
+  const committedPredecessorRequest = await bindVerificationRequestToGitSource(
+    renewalRoot,
+    withWaiverState(
+      withEvidence(
         fixture.request,
         fixture.request.evidence.filter(({ id }) => id !== reviewEvidence.id),
       ),
-      waivers: [renewal],
+      [waiver],
+    ),
+  );
+  await writeCommittedVerificationFixture(
+    renewalRoot,
+    fixture.resolved.configuration,
+    committedPredecessorRequest,
+  );
+  const predecessorRevision = await commitGitFixture(renewalRoot, "waiver v1");
+  assert.equal(predecessorRevision.length, 40);
+  const committedRenewalRequest = await bindVerificationRequestToGitSource(
+    renewalRoot,
+    {
+      ...renewalRequest,
+      waiverHistory: [committedPredecessorRequest.waivers[0]!],
     },
   );
-  assert.equal(renewalResult.outcome, "incomplete");
+  await writeCommittedVerificationFixture(
+    renewalRoot,
+    fixture.resolved.configuration,
+    committedRenewalRequest,
+  );
+  await commitGitFixture(renewalRoot, "waiver v2");
   assert.equal(
-    evaluationFor(renewalResult, reviewRequirement).evaluation,
+    (
+      await evaluateCommittedVerificationRequirements(
+        fixture.release,
+        committedRenewalRequest,
+        renewalRoot,
+      )
+    ).outcome,
+    "verified",
+  );
+  const unauthenticatedPredecessorRequest: VerificationRequest = {
+    ...committedRenewalRequest,
+    waiverAuthenticity: committedRenewalRequest.waiverAuthenticity.map(
+      (binding) =>
+        binding.version === 1
+          ? {
+              ...binding,
+              source: {
+                ...binding.source,
+                revision: "f".repeat(40),
+              },
+            }
+          : binding,
+    ),
+  };
+  assert.equal(
+    (
+      await evaluateCommittedVerificationRequirements(
+        fixture.release,
+        unauthenticatedPredecessorRequest,
+        renewalRoot,
+      )
+    ).outcome,
     "incomplete",
   );
+
+  const predecessorTree = (
+    await execFileAsync("git", [
+      "-C",
+      renewalRoot,
+      "rev-parse",
+      `${predecessorRevision}^{tree}`,
+    ])
+  ).stdout.trim();
+  const unreachablePredecessorRevision = (
+    await execFileAsync("git", [
+      "-C",
+      renewalRoot,
+      "commit-tree",
+      predecessorTree,
+      "-m",
+      "unreachable waiver predecessor",
+    ])
+  ).stdout.trim();
+  const unreachablePredecessorRequest: VerificationRequest = {
+    ...committedRenewalRequest,
+    waiverAuthenticity: committedRenewalRequest.waiverAuthenticity.map(
+      (binding) =>
+        binding.version === 1
+          ? {
+              ...binding,
+              source: {
+                ...binding.source,
+                revision: unreachablePredecessorRevision,
+              },
+            }
+          : binding,
+    ),
+  };
+  assert.equal(
+    (
+      await evaluateCommittedVerificationRequirements(
+        fixture.release,
+        unreachablePredecessorRequest,
+        renewalRoot,
+      )
+    ).outcome,
+    "incomplete",
+  );
+
+  const staleApprovalWithoutDigest = {
+    ...renewalWithoutDigest,
+    approvals: renewalWithoutDigest.approvals.map((approval) => ({
+      ...approval,
+      actedAt: "2026-08-26T07:20:00Z",
+    })),
+  };
+  const staleApproval: RuleWaiverDocument = {
+    ...staleApprovalWithoutDigest,
+    digest: digest(staleApprovalWithoutDigest),
+  };
+  const staleApprovalResult = await evaluateVerificationRequirements(
+    fixture.release,
+    fixture.resolved,
+    withWaiverState(
+      withEvidence(fixture.request, renewalEvidence),
+      [staleApproval],
+      [],
+      [waiver],
+    ),
+  );
+  assert.equal(staleApprovalResult.outcome, "incomplete");
+
+  const staleControlWithoutDigest = {
+    ...renewalWithoutDigest,
+    riskReviewedAt: "2026-08-26T08:00:01Z",
+    requester: {
+      ...renewalWithoutDigest.requester,
+      actedAt: "2026-08-26T08:00:01Z",
+    },
+    approvals: renewalWithoutDigest.approvals.map((approval) => ({
+      ...approval,
+      actedAt: "2026-08-26T08:00:01Z",
+    })),
+    validity: {
+      ...renewalWithoutDigest.validity,
+      startsAt: "2026-08-26T08:00:01Z",
+      expiresAt: "2026-08-27T08:00:01Z",
+    },
+  };
+  const staleControl: RuleWaiverDocument = {
+    ...staleControlWithoutDigest,
+    digest: digest(staleControlWithoutDigest),
+  };
+  const staleControlResult = await evaluateVerificationRequirements(
+    fixture.release,
+    fixture.resolved,
+    withWaiverState(
+      withEvidence(fixture.request, renewalEvidence),
+      [staleControl],
+      [],
+      [waiver],
+    ),
+  );
+  assert.equal(staleControlResult.outcome, "incomplete");
+
+  const brokenLineageWithoutDigest = {
+    ...renewalWithoutDigest,
+    supersedes: `${waiverWithoutDigest.id}@7`,
+  };
+  const brokenLineage: RuleWaiverDocument = {
+    ...brokenLineageWithoutDigest,
+    digest: digest(brokenLineageWithoutDigest),
+  };
+  const brokenLineageResult = await evaluateVerificationRequirements(
+    fixture.release,
+    fixture.resolved,
+    withWaiverState(
+      withEvidence(fixture.request, renewalEvidence),
+      [brokenLineage],
+      [],
+      [waiver],
+    ),
+  );
+  assert.equal(brokenLineageResult.outcome, "incomplete");
+  assert.equal(
+    evaluationFor(brokenLineageResult, reviewRequirement).evaluation,
+    "incomplete",
+  );
+
+  const wrongPredecessorDigestWithoutDigest = {
+    ...renewalWithoutDigest,
+    supersedesDigest: `sha256:${"f".repeat(64)}`,
+  };
+  const wrongPredecessorDigest: RuleWaiverDocument = {
+    ...wrongPredecessorDigestWithoutDigest,
+    digest: digest(wrongPredecessorDigestWithoutDigest),
+  };
+  const wrongPredecessorDigestResult =
+    await evaluateVerificationRequirements(
+      fixture.release,
+      fixture.resolved,
+      withWaiverState(
+        withEvidence(fixture.request, renewalEvidence),
+        [wrongPredecessorDigest],
+        [],
+        [waiver],
+      ),
+    );
+  assert.equal(wrongPredecessorDigestResult.outcome, "incomplete");
+});
+
+test("Managed Suppressions derive exact authority from one active Rule Waiver", async (t) => {
+  const fixture = await capabilityVerificationFixture();
+  const suppressionId = "suppression/example-tests/direct-tests-exclusion";
+  const artifactId = "artifact/example-tests/direct-tests-suppression";
+  const reviewRequirement = "requirement/example-tests/direct-tests-review";
+  const gateRequirement = "requirement/example-tests/test-command-gate";
+  const gateEvidence = fixture.request.evidence.find(
+    ({ requirementId }) => requirementId === gateRequirement,
+  );
+  assert.ok(gateEvidence);
+  const release = fixture.release;
+  const configurationDigest = digest(fixture.resolved.configuration);
+  const waiverWithoutDigest = {
+    $schema:
+      "https://schemas.ironicbuddha.dev/project-standards/v1/rule-waiver.schema.json",
+    schemaVersion: "1.0.0" as const,
+    id: "waiver/direct-tests-suppression",
+    version: 1,
+    layerId: "service-tests",
+    ruleId: "rule/example-tests/direct-tests",
+    scope: { kind: "workload", id: "service" } as const,
+    requirementIds: [reviewRequirement],
+    managedSuppressionIds: [suppressionId],
+    reasonClass: "temporary-tooling-gap",
+    reasonEvidence: [`sha256:${"2".repeat(64)}`],
+    risk: "Direct-test review is temporarily suppressed.",
+    riskReviewedAt: "2026-08-26T07:10:00Z",
+    compensatingControls: [
+      {
+        requirementId: gateRequirement,
+        evidenceIds: [gateEvidence.id],
+      },
+    ],
+    requester: {
+      kind: "human" as const,
+      identity: "author@example.com",
+      authorityClass: "authority/project-policy",
+      actedAt: "2026-08-26T07:00:00Z",
+    },
+    approvals: [
+      {
+        kind: "human" as const,
+        identity: "reviewer@example.com",
+        authorityClass: "authority/project-policy",
+        actedAt: "2026-08-26T07:10:00Z",
+      },
+    ],
+    remediation: "Restore direct-test review and remove the suppression.",
+    validity: {
+      startsAt: "2026-08-26T07:00:00Z",
+      expiresAt: "2026-08-27T07:00:00Z",
+      repositoryStateDigest: fixture.request.repository.stateDigest,
+      configurationDigest,
+      catalogueDigest: fixture.release.document.catalogueDigest,
+    },
+    upgradeDisposition: "revalidate" as const,
+    status: "active" as const,
+  };
+  const waiver = {
+    ...waiverWithoutDigest,
+    digest: digest(waiverWithoutDigest),
+  };
+  const managedSuppression = {
+    id: suppressionId,
+    waiverId: waiver.id,
+    waiverVersion: waiver.version,
+    scope: waiver.scope,
+    artifact: {
+      artifactId,
+      ownerLayerId: "service-tests",
+      locator: "services/api/eslint.config.mjs#direct-tests-waiver",
+      ownership: "structured-fragment" as const,
+      fingerprint: gateEvidence.declaredInputsDigest,
+      verificationState: "matching" as const,
+    },
+    verificationEvidenceId: gateEvidence.id,
+  };
+  const evidence = fixture.request.evidence.filter(
+    ({ requirementId }) => requirementId !== reviewRequirement,
+  );
+  const waiverRequest = withEvidence(fixture.request, evidence);
+  const request = withWaiverState(
+    waiverRequest,
+    [waiver],
+    [managedSuppression],
+  );
+
+  const accepted = await evaluateVerificationRequirements(
+    release,
+    fixture.resolved,
+    request,
+  );
+  assert.equal(accepted.outcome, "verified");
+  assert.equal(evaluationFor(accepted, reviewRequirement).evaluation, "waived");
+  assert.deepEqual(
+    (
+      accepted as unknown as {
+        managedSuppressions: readonly Readonly<{
+          suppressionId: string;
+          evaluation: string;
+          waiverId: string;
+          waiverVersion: number;
+          artifact?: typeof managedSuppression.artifact;
+        }>[];
+      }
+    ).managedSuppressions,
+    [
+      {
+        suppressionId,
+        evaluation: "active",
+        reason: "active-waiver",
+        waiverId: waiver.id,
+        waiverVersion: 1,
+        ruleId: waiver.ruleId,
+        scope: waiver.scope,
+        artifact: managedSuppression.artifact,
+      },
+    ],
+  );
+  const conflictingGateEvidence = redigestEvidence(gateEvidence, {
+    artifactObservations: [
+      ...gateEvidence.artifactObservations,
+      {
+        ...gateEvidence.artifactObservations[0]!,
+        fingerprint: `sha256:${"f".repeat(64)}`,
+      },
+    ],
+  });
+  const conflictingObservationResult = await evaluateVerificationRequirements(
+    release,
+    fixture.resolved,
+    withEvidence(
+      request,
+      evidence.map((item) =>
+        item.id === gateEvidence.id ? conflictingGateEvidence : item,
+      ),
+    ),
+  );
+  assert.equal(conflictingObservationResult.outcome, "incomplete");
+
+  const repeated = await evaluateVerificationRequirements(
+    release,
+    fixture.resolved,
+    request,
+  );
+  assert.deepEqual(repeated, accepted);
+
+  const layeredConfiguration: BootstrapConfiguration = {
+    ...fixture.resolved.configuration,
+    capabilities: [
+      {
+        id: "other-tests",
+        kind: "example-tests",
+        scope: { kind: "workload", workloadIds: ["service"] },
+        choices: {},
+      },
+      ...fixture.resolved.configuration.capabilities,
+    ],
+  };
+  const layeredResolved = await resolveBootstrapConfiguration(
+    release,
+    layeredConfiguration,
+  );
+  const layeredConfigurationDigest = digest(layeredResolved.configuration);
+  const layeredEvidence = fixture.request.evidence.map((item) =>
+    redigestEvidence(item, {
+      configurationDigest: layeredConfigurationDigest,
+      ...(item.id === gateEvidence.id
+        ? {
+            artifactObservations: [
+              ...item.artifactObservations,
+              ...item.artifactObservations.map((observation) => ({
+                ...observation,
+                ownerLayerId: "other-tests",
+              })),
+            ],
+          }
+        : {}),
+    }),
+  );
+  const layeredWaiverWithoutDigest = {
+    ...waiverWithoutDigest,
+    validity: {
+      ...waiverWithoutDigest.validity,
+      configurationDigest: layeredConfigurationDigest,
+    },
+  };
+  const layeredWaiver = {
+    ...layeredWaiverWithoutDigest,
+    digest: digest(layeredWaiverWithoutDigest),
+  };
+  const layeredGateEvidence = layeredEvidence.find(
+    ({ id }) => id === gateEvidence.id,
+  );
+  assert.ok(layeredGateEvidence);
+  const layeredSuppression = {
+    ...managedSuppression,
+    waiverId: layeredWaiver.id,
+    waiverVersion: layeredWaiver.version,
+    verificationEvidenceId: layeredGateEvidence.id,
+    artifact: {
+      ...managedSuppression.artifact,
+      fingerprint: layeredGateEvidence.declaredInputsDigest,
+    },
+  };
+  const layeredBaseRequest = withEvidence(fixture.request, layeredEvidence);
+  const layeredRequest = withWaiverState(
+    {
+      ...layeredBaseRequest,
+      manifest: {
+        ...layeredBaseRequest.manifest,
+        configurationDigest: layeredConfigurationDigest,
+        artifacts: [
+          ...layeredBaseRequest.manifest.artifacts.map((artifact) =>
+            artifact.artifactId === "artifact/core/configuration"
+              ? { ...artifact, fingerprint: layeredConfigurationDigest }
+              : artifact,
+          ),
+          {
+            artifactId: "artifact/example-tests/test-command",
+            ownerLayerId: "other-tests",
+            locator: "services/api/package.json#scripts.test",
+            ownership: "structured-fragment" as const,
+            fingerprint: layeredGateEvidence.declaredInputsDigest,
+            verificationState: "matching" as const,
+          },
+          {
+            artifactId: "artifact/example-tests/direct-tests-suppression",
+            ownerLayerId: "other-tests",
+            locator: "services/api/eslint.config.mjs#direct-tests-waiver",
+            ownership: "structured-fragment" as const,
+            fingerprint: layeredGateEvidence.declaredInputsDigest,
+            verificationState: "matching" as const,
+          },
+        ],
+      },
+    },
+    [layeredWaiver],
+    [layeredSuppression],
+  );
+  const layeredResult = await evaluateVerificationRequirements(
+    release,
+    layeredResolved,
+    layeredRequest,
+  );
+  assert.equal(layeredResult.outcome, "verified");
+  assert.equal(layeredResult.managedSuppressions[0]?.evaluation, "active");
+
+  for (const fixtureId of [
+    "fixture/verification/valid-suppression",
+    "fixture/verification/invalid-binding",
+    "fixture/verification/suppression-drift",
+    "fixture/verification/no-op",
+  ]) {
+    const executableFixture = release.fixtures.get(fixtureId) as
+      | Readonly<{
+          expectation: "verified" | "incomplete";
+          document: Readonly<{
+            binding: "exact" | "missing";
+            suppression: "matching" | "drifted";
+            repetitions: 1 | 2;
+          }>;
+        }>
+      | undefined;
+    assert.ok(executableFixture, fixtureId);
+    const suppression =
+      executableFixture.document.suppression === "matching"
+        ? managedSuppression
+        : {
+            ...managedSuppression,
+            artifact: {
+              ...managedSuppression.artifact,
+              verificationState: "drifted" as const,
+            },
+          };
+    const boundRequest = withWaiverState(
+      waiverRequest,
+      [waiver],
+      [suppression],
+    );
+    const executableRequest =
+      executableFixture.document.binding === "exact"
+        ? boundRequest
+        : { ...boundRequest, waiverAuthenticity: [] };
+    const firstResult = await evaluateVerificationRequirements(
+      release,
+      fixture.resolved,
+      executableRequest,
+    );
+    assert.equal(firstResult.outcome, executableFixture.expectation, fixtureId);
+    for (
+      let repetition = 1;
+      repetition < executableFixture.document.repetitions;
+      repetition += 1
+    ) {
+      assert.deepEqual(
+        await evaluateVerificationRequirements(
+          release,
+          fixture.resolved,
+          executableRequest,
+        ),
+        firstResult,
+        fixtureId,
+      );
+    }
+  }
+
+  const cases = [
+    {
+      name: "missing suppression",
+      request: withWaiverState(waiverRequest, [waiver]),
+    },
+    {
+      name: "scope exceeds waiver",
+      request: withWaiverState(waiverRequest, [waiver], [
+          {
+            ...managedSuppression,
+            scope: { kind: "workload" as const, id: "worker" },
+          },
+        ]),
+    },
+    {
+      name: "managed artifact drift",
+      request: withWaiverState(waiverRequest, [waiver], [
+          {
+            ...managedSuppression,
+            artifact: {
+              ...managedSuppression.artifact,
+              verificationState: "drifted" as const,
+            },
+          },
+        ]),
+    },
+    {
+      name: "artifact evidence mismatch",
+      request: withWaiverState(waiverRequest, [waiver], [
+          {
+            ...managedSuppression,
+            artifact: {
+              ...managedSuppression.artifact,
+              fingerprint: `sha256:${"f".repeat(64)}`,
+            },
+          },
+        ]),
+    },
+    {
+      name: "orphaned suppression",
+      request: withWaiverState(waiverRequest, [], [managedSuppression]),
+    },
+    {
+      name: "expired waiver",
+      request: withWaiverState(
+        waiverRequest,
+        [
+          {
+            ...waiver,
+            status: "expired" as const,
+            digest: digest({ ...waiverWithoutDigest, status: "expired" }),
+          },
+        ],
+        [managedSuppression],
+      ),
+    },
+  ] as const;
+  for (const testCase of cases) {
+    await t.test(testCase.name, async () => {
+      const result = await evaluateVerificationRequirements(
+        release,
+        fixture.resolved,
+        testCase.request as unknown as VerificationRequest,
+      );
+      assert.equal(result.outcome, "incomplete");
+      assert.equal(
+        (
+          result as unknown as {
+            managedSuppressions: readonly Readonly<{ evaluation: string }>[];
+          }
+        ).managedSuppressions.some(
+          ({ evaluation }) => evaluation === "incomplete",
+        ),
+        true,
+      );
+    });
+  }
+
+  const expiredWithoutDigest = {
+    ...waiverWithoutDigest,
+    status: "expired" as const,
+  };
+  const restored = await evaluateVerificationRequirements(
+    release,
+    fixture.resolved,
+    withWaiverState(
+      fixture.request,
+      [
+        {
+          ...expiredWithoutDigest,
+          digest: digest(expiredWithoutDigest),
+        },
+      ],
+    ),
+  );
+  assert.equal(restored.outcome, "verified");
+  assert.deepEqual(restored.waivers, []);
+  assert.deepEqual(restored.managedSuppressions, []);
 });
 
 test("catalogue CLI independently evaluates an exact verification request", async () => {
   const fixture = await verificationFixture();
   const runRoot = await mkdtemp(join(tmpdir(), "verification-run-"));
-  const configurationPath = join(runRoot, "configuration.json");
-  const requestPath = join(runRoot, "verification-request.json");
-  await Promise.all([
-    writeFile(
-      configurationPath,
-      `${JSON.stringify(fixture.resolved.configuration, null, 2)}\n`,
-    ),
-    writeFile(requestPath, `${JSON.stringify(fixture.request, null, 2)}\n`),
-  ]);
+  await initializeGitFixture(runRoot);
+  const committedRequest = await bindVerificationRequestToGitSource(
+    runRoot,
+    fixture.request,
+  );
+  const requestPath = await writeCommittedVerificationFixture(
+    runRoot,
+    fixture.resolved.configuration,
+    committedRequest,
+  );
+  await commitGitFixture(runRoot, "verified baseline");
 
   const { stdout, stderr } = await execFileAsync(process.execPath, [
     join(packageRoot, "dist/src/cli.js"),
     "evaluate-verification",
     join(packageRoot, "fixtures/valid/foundation-release"),
-    configurationPath,
+    runRoot,
     requestPath,
   ]);
 
@@ -1634,16 +3009,236 @@ test("catalogue CLI independently evaluates an exact verification request", asyn
   const result = JSON.parse(stdout) as { outcome: string; requirements: unknown[] };
   assert.equal(result.outcome, "verified");
   assert.equal(result.requirements.length, 2);
+
+  const ambientGitOverride = await execFileAsync(
+    process.execPath,
+    [
+      join(packageRoot, "dist/src/cli.js"),
+      "evaluate-verification",
+      join(packageRoot, "fixtures/valid/foundation-release"),
+      runRoot,
+      requestPath,
+    ],
+    {
+      env: {
+        ...process.env,
+        GIT_DIR: join(runRoot, "hostile-ambient-git-directory"),
+        GIT_WORK_TREE: join(runRoot, "hostile-ambient-work-tree"),
+      },
+    },
+  );
+  assert.equal(JSON.parse(ambientGitOverride.stdout).outcome, "verified");
+
+  const forgedRepositoryRequestPath = join(
+    runRoot,
+    ".project-standards/run/forged-repository-request.json",
+  );
+  await writeFile(
+    forgedRepositoryRequestPath,
+    `${JSON.stringify(
+      {
+        ...committedRequest,
+        repository: {
+          ...committedRequest.repository,
+          revision: "f".repeat(40),
+        },
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  const forgedRepository = await execFileResult(process.execPath, [
+    join(packageRoot, "dist/src/cli.js"),
+    "evaluate-verification",
+    join(packageRoot, "fixtures/valid/foundation-release"),
+    runRoot,
+    forgedRepositoryRequestPath,
+  ]);
+  assert.equal(forgedRepository.exitCode, 1);
+  assert.equal(JSON.parse(forgedRepository.stdout).outcome, "failed");
+
+  const dirtySourcePath = join(runRoot, "notes.txt");
+  await writeFile(dirtySourcePath, "first dirty source bytes\n");
+  const dirtyBoundRequest = await bindVerificationRequestToGitSource(
+    runRoot,
+    committedRequest,
+  );
+  await writeCommittedVerificationFixture(
+    runRoot,
+    fixture.resolved.configuration,
+    dirtyBoundRequest,
+  );
+  await commitGitFixture(runRoot, "bind dirty source bytes");
+  const dirtyBound = await execFileResult(process.execPath, [
+    join(packageRoot, "dist/src/cli.js"),
+    "evaluate-verification",
+    join(packageRoot, "fixtures/valid/foundation-release"),
+    runRoot,
+    requestPath,
+  ]);
+  assert.equal(dirtyBound.exitCode, 0);
+  assert.equal(JSON.parse(dirtyBound.stdout).outcome, "verified");
+
+  await writeFile(dirtySourcePath, "different dirty source bytes\n");
+  const changedDirtyBytes = await execFileResult(process.execPath, [
+    join(packageRoot, "dist/src/cli.js"),
+    "evaluate-verification",
+    join(packageRoot, "fixtures/valid/foundation-release"),
+    runRoot,
+    requestPath,
+  ]);
+  assert.equal(changedDirtyBytes.exitCode, 1);
+  assert.equal(JSON.parse(changedDirtyBytes.stdout).outcome, "failed");
+
+  await writeFile(
+    join(runRoot, "constitution.md"),
+    "# Project Delivery Contract\n\nTampered after manifest promotion.\n",
+  );
+  const driftedContract = await execFileResult(process.execPath, [
+    join(packageRoot, "dist/src/cli.js"),
+    "evaluate-verification",
+    join(packageRoot, "fixtures/valid/foundation-release"),
+    runRoot,
+    requestPath,
+  ]);
+  assert.equal(driftedContract.exitCode, 1);
+  assert.equal(JSON.parse(driftedContract.stdout).outcome, "failed");
+});
+
+test("committed verification binds staged bytes independently of working-tree bytes", async () => {
+  const fixture = await verificationFixture();
+  const runRoot = await mkdtemp(join(tmpdir(), "verification-index-binding-"));
+  await initializeGitFixture(runRoot);
+  const trackedPath = join(runRoot, "tracked.txt");
+  await writeFile(trackedPath, "committed bytes\n");
+  await execFileAsync("git", ["-C", runRoot, "add", "tracked.txt"]);
+  await execFileAsync("git", ["-C", runRoot, "commit", "-m", "tracked source"]);
+
+  await writeFile(trackedPath, "first staged bytes\n");
+  await execFileAsync("git", ["-C", runRoot, "add", "tracked.txt"]);
+  const stableWorkingTreeBytes = "stable working-tree bytes\n";
+  await writeFile(trackedPath, stableWorkingTreeBytes);
+  const boundRequest = await bindVerificationRequestToGitSource(
+    runRoot,
+    fixture.request,
+  );
+  await writeCommittedVerificationFixture(
+    runRoot,
+    fixture.resolved.configuration,
+    boundRequest,
+  );
+  await commitGitFixture(runRoot, "promote staged-state binding");
+  assert.match(
+    (await execFileAsync("git", ["-C", runRoot, "status", "--short"])).stdout,
+    /^MM tracked\.txt$/mu,
+  );
+  assert.equal(
+    (
+      await evaluateCommittedVerificationRequirements(
+        fixture.release,
+        boundRequest,
+        runRoot,
+      )
+    ).outcome,
+    "verified",
+  );
+
+  await writeFile(trackedPath, "different staged bytes\n");
+  await execFileAsync("git", ["-C", runRoot, "add", "tracked.txt"]);
+  await writeFile(trackedPath, stableWorkingTreeBytes);
+  assert.match(
+    (await execFileAsync("git", ["-C", runRoot, "status", "--short"])).stdout,
+    /^MM tracked\.txt$/mu,
+  );
+  assert.equal(
+    (
+      await evaluateCommittedVerificationRequirements(
+        fixture.release,
+        boundRequest,
+        runRoot,
+      )
+    ).outcome,
+    "failed",
+  );
+});
+
+test("committed verification keeps relevant rename origins bound inside runtime paths", async () => {
+  const fixture = await verificationFixture();
+  const runRoot = await mkdtemp(join(tmpdir(), "verification-runtime-rename-"));
+  await initializeGitFixture(runRoot);
+  const trackedPath = join(runRoot, "tracked.txt");
+  const runtimeRoot = join(runRoot, ".project-standards/run");
+  const runtimePath = join(runtimeRoot, "tracked.txt");
+  const originalLines = Array.from(
+    { length: 100 },
+    (_, index) => `stable tracked line ${index}`,
+  );
+  await writeFile(trackedPath, `${originalLines.join("\n")}\n`);
+  await execFileAsync("git", ["-C", runRoot, "add", "tracked.txt"]);
+  await execFileAsync("git", ["-C", runRoot, "commit", "-m", "tracked source"]);
+
+  await mkdir(runtimeRoot, { recursive: true });
+  await execFileAsync("git", [
+    "-C",
+    runRoot,
+    "mv",
+    "tracked.txt",
+    ".project-standards/run/tracked.txt",
+  ]);
+  const boundRequest = await bindVerificationRequestToGitSource(
+    runRoot,
+    fixture.request,
+  );
+  await writeCommittedVerificationFixture(
+    runRoot,
+    fixture.resolved.configuration,
+    boundRequest,
+  );
+  await commitGitFixture(runRoot, "promote runtime-rename binding");
+  assert.match(
+    (await execFileAsync("git", ["-C", runRoot, "status", "--short"])).stdout,
+    /^R  tracked\.txt -> \.project-standards\/run\/tracked\.txt$/mu,
+  );
+  assert.equal(
+    (
+      await evaluateCommittedVerificationRequirements(
+        fixture.release,
+        boundRequest,
+        runRoot,
+      )
+    ).outcome,
+    "verified",
+  );
+
+  const changedLines = [...originalLines];
+  changedLines[50] = "changed staged line 50";
+  await writeFile(runtimePath, `${changedLines.join("\n")}\n`);
+  await execFileAsync("git", [
+    "-C",
+    runRoot,
+    "add",
+    ".project-standards/run/tracked.txt",
+  ]);
+  assert.match(
+    (await execFileAsync("git", ["-C", runRoot, "status", "--short"])).stdout,
+    /^R  tracked\.txt -> \.project-standards\/run\/tracked\.txt$/mu,
+  );
+  assert.equal(
+    (
+      await evaluateCommittedVerificationRequirements(
+        fixture.release,
+        boundRequest,
+        runRoot,
+      )
+    ).outcome,
+    "failed",
+  );
 });
 
 test("catalogue CLI distinguishes failed and incomplete verification outcomes", async (t) => {
   const fixture = await verificationFixture();
   const runRoot = await mkdtemp(join(tmpdir(), "verification-exit-status-"));
-  const configurationPath = join(runRoot, "configuration.json");
-  await writeFile(
-    configurationPath,
-    `${JSON.stringify(fixture.resolved.configuration, null, 2)}\n`,
-  );
+  await initializeGitFixture(runRoot);
 
   const cases = [
     {
@@ -1669,16 +3264,21 @@ test("catalogue CLI distinguishes failed and incomplete verification outcomes", 
 
   for (const testCase of cases) {
     await t.test(testCase.name, async () => {
-      const requestPath = join(runRoot, `${testCase.name}.json`);
-      await writeFile(
-        requestPath,
-        `${JSON.stringify(testCase.request, null, 2)}\n`,
+      const committedRequest = await bindVerificationRequestToGitSource(
+        runRoot,
+        testCase.request,
       );
+      const requestPath = await writeCommittedVerificationFixture(
+        runRoot,
+        fixture.resolved.configuration,
+        committedRequest,
+      );
+      await commitGitFixture(runRoot, `${testCase.name} verification`);
       const result = await execFileResult(process.execPath, [
         join(packageRoot, "dist/src/cli.js"),
         "evaluate-verification",
         join(packageRoot, "fixtures/valid/foundation-release"),
-        configurationPath,
+        runRoot,
         requestPath,
       ]);
 

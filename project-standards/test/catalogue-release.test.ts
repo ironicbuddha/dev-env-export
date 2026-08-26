@@ -115,6 +115,7 @@ function validVerificationEvidence(): Record<string, unknown> {
         `sha256:${"9".repeat(64)}`,
     },
     declaredInputsDigest: `sha256:${"6".repeat(64)}`,
+    artifactObservations: [],
     verificationHorizon: "baseline",
     invocation: {
       executable: "project-standards-catalogue",
@@ -226,7 +227,7 @@ test("Catalogue Release loads an atomic, content-addressed entry set", async () 
   const fixtureRoot = join(packageRoot, "fixtures/valid/foundation-release");
   assert.equal(
     await calculateCatalogueReleaseDigest(fixtureRoot),
-    "sha256:d2d0c9a3cdb48f272c4a6d957bfbbc39616dd713cad0fb1fe30f93f8eb5c3010",
+    "sha256:2de6ec7ed2978c9308170566606d59869ad20f2893c6d92ada7884e1fe48efc8",
   );
   const release = await loadCatalogueRelease(fixtureRoot);
 
@@ -238,7 +239,7 @@ test("Catalogue Release loads an atomic, content-addressed entry set", async () 
     "entry/workload/example-service",
   ]);
   assert.equal(release.migrations.size, 1);
-  assert.equal(release.fixtures.size, 3);
+  assert.equal(release.fixtures.size, 7);
   assert.equal(release.sourceGuidance.size, 1);
   assert.equal(release.supportEvidence.size, 1);
   assert.equal(release.extensions.size, 1);
@@ -711,6 +712,105 @@ test("governed Waiver Policy requires closed renewal conditions", async () => {
   );
 });
 
+test("Catalogue Release closes Managed Suppression ownership and verification", async (t) => {
+  const cases = [
+    {
+      name: "missing Managed Artifact",
+      mutate(entry: Record<string, unknown>) {
+        const suppressions = entry.managedSuppressions as Array<{
+          artifactId: string;
+        }>;
+        suppressions[0]!.artifactId =
+          "artifact/example-tests/missing-suppression";
+      },
+      message: "invalid Managed Artifact",
+    },
+    {
+      name: "non-deterministic verification",
+      mutate(entry: Record<string, unknown>) {
+        const suppressions = entry.managedSuppressions as Array<{
+          verificationRequirementId: string;
+        }>;
+        suppressions[0]!.verificationRequirementId =
+          "requirement/example-tests/direct-tests-review";
+      },
+      message: "invalid deterministic Verification Requirement",
+    },
+    {
+      name: "non-waivable rule",
+      mutate(entry: Record<string, unknown>) {
+        const rules = entry.rules as Array<Record<string, unknown>>;
+        rules[0]!.waiverPolicy = { kind: "prohibited" };
+      },
+      message: "governed Catalogue Rule",
+    },
+  ] as const;
+
+  for (const testCase of cases) {
+    await t.test(testCase.name, async () => {
+      const releaseRoot = await mutateFoundationRelease(
+        "entries/example-tests.json",
+        testCase.mutate,
+      );
+      await assert.rejects(
+        loadCatalogueRelease(releaseRoot),
+        (error: unknown) =>
+          error instanceof CatalogueValidationError &&
+          error.code === "semantic-invalid" &&
+          error.message.includes(testCase.message),
+      );
+    });
+  }
+});
+
+test("Provenance Manifest exposes exact active waivers and Managed Suppressions", async () => {
+  const digest = `sha256:${"a".repeat(64)}`;
+  const manifest = {
+    $schema:
+      "https://schemas.ironicbuddha.dev/project-standards/v1/manifest.schema.json",
+    schemaVersion: "1.0.0",
+    configurationDigest: digest,
+    catalogueVersion: "1.0.0",
+    catalogueDigest: digest,
+    bootstrapperVersion: "0.1.0",
+    bootstrapperDigest: digest,
+    schemaDigests: {
+      "https://schemas.ironicbuddha.dev/project-standards/v1/manifest.schema.json":
+        digest,
+    },
+    artifacts: [],
+    evidence: [],
+    activeWaivers: [
+      {
+        waiverId: "waiver/direct-tests-suppression",
+        version: 1,
+        digest,
+      },
+    ],
+    managedSuppressions: [
+      {
+        suppressionId: "suppression/example-tests/direct-tests-exclusion",
+        waiverId: "waiver/direct-tests-suppression",
+        waiverVersion: 1,
+        artifactId: "artifact/example-tests/direct-tests-suppression",
+        ownerLayerId: "service-tests",
+        locator: "services/api/eslint.config.mjs#direct-tests-waiver",
+        fingerprint: digest,
+      },
+    ],
+  };
+
+  await validateProjectStandardsDocument("manifest", manifest);
+  const incomplete = structuredClone(manifest) as Record<string, unknown>;
+  delete incomplete.managedSuppressions;
+  await assert.rejects(
+    validateProjectStandardsDocument("manifest", incomplete),
+    (error: unknown) =>
+      error instanceof CatalogueValidationError &&
+      error.code === "schema-invalid",
+  );
+});
+
 test("catalogue CLI independently validates a content-addressed release", async () => {
   const { stdout, stderr } = await execFileAsync(
     process.execPath,
@@ -727,7 +827,7 @@ test("catalogue CLI independently validates a content-addressed release", async 
     status: "valid",
     catalogueVersion: "1.0.0",
     catalogueDigest:
-      "sha256:d2d0c9a3cdb48f272c4a6d957bfbbc39616dd713cad0fb1fe30f93f8eb5c3010",
+      "sha256:2de6ec7ed2978c9308170566606d59869ad20f2893c6d92ada7884e1fe48efc8",
     entryIds: [
       "entry/capability/example-conflict",
       "entry/capability/example-tests",
@@ -769,6 +869,32 @@ test("Catalogue Release configuration fixtures are executable", async () => {
       (error: unknown) =>
         error instanceof CatalogueValidationError &&
         error.code === expectedCode,
+    );
+  }
+});
+
+test("Catalogue Fixture closes subject and expectation combinations", async () => {
+  const fixture = {
+    $schema:
+      "https://schemas.ironicbuddha.dev/project-standards/v1/fixture.schema.json",
+    schemaVersion: "1.0.0",
+    id: "fixture/configuration/cross-product",
+    document: {},
+  };
+  for (const invalid of [
+    { ...fixture, subject: "configuration", expectation: "verified" },
+    {
+      ...fixture,
+      id: "fixture/verification/cross-product",
+      subject: "verification",
+      expectation: "valid",
+    },
+  ]) {
+    await assert.rejects(
+      validateProjectStandardsDocument("fixture", invalid),
+      (error: unknown) =>
+        error instanceof CatalogueValidationError &&
+        error.code === "schema-invalid",
     );
   }
 });

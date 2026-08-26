@@ -51,6 +51,20 @@
       "locatorTemplate": "{workload.root}/package.json#scripts.test",
       "ownership": "structured-fragment",
       "compositionContract": "composition/package-json"
+    },
+    {
+      "id": "artifact/example-tests/direct-tests-suppression",
+      "locatorTemplate": "{workload.root}/eslint.config.mjs#direct-tests-waiver",
+      "ownership": "structured-fragment",
+      "compositionContract": "composition/eslint-config"
+    }
+  ],
+  "managedSuppressions": [
+    {
+      "id": "suppression/example-tests/direct-tests-exclusion",
+      "ruleId": "rule/example-tests/direct-tests",
+      "artifactId": "artifact/example-tests/direct-tests-suppression",
+      "verificationRequirementId": "requirement/example-tests/test-command-gate"
     }
   ],
   "checks": [
@@ -137,7 +151,13 @@
   "nestedRootContracts": [],
   "sourceGuidanceIds": ["guidance/foundation"],
   "supportEvidenceIds": ["support/foundation"],
-  "fixtureIds": ["fixture/configuration/valid-foundation"],
+  "fixtureIds": [
+    "fixture/configuration/valid-foundation",
+    "fixture/verification/invalid-binding",
+    "fixture/verification/no-op",
+    "fixture/verification/suppression-drift",
+    "fixture/verification/valid-suppression"
+  ],
   "migrationIds": [],
   "extensions": {}
 }

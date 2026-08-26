@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 import {
   calculateCatalogueReleaseDigest,
   CatalogueValidationError,
-  evaluateVerificationRequirements,
+  evaluateCommittedVerificationRequirements,
   inspectRepositoryRoot,
   loadCatalogueRelease,
   RepositoryInspectionError,
@@ -22,19 +22,19 @@ const verificationExitCodes = {
 
 function usage(): never {
   throw new Error(
-    "Usage: project-standards-catalogue <inspect <root>|validate-release <release-dir>|calculate-digest <release-dir>|resolve-configuration <release-dir> <configuration.json>|evaluate-verification <release-dir> <configuration.json> <verification-request.json>>",
+    "Usage: project-standards-catalogue <inspect <root>|validate-release <release-dir>|calculate-digest <release-dir>|resolve-configuration <release-dir> <configuration.json>|evaluate-verification <release-dir> <repository-root> <verification-request.json>>",
   );
 }
 
 async function run(arguments_: readonly string[]): Promise<unknown> {
-  const [command, releaseRoot, configurationPath, requestPath, ...extra] =
+  const [command, releaseRoot, targetPath, requestPath, ...extra] =
     arguments_;
   if (command === undefined || releaseRoot === undefined || extra.length > 0) {
     usage();
   }
 
   if (command === "inspect") {
-    if (configurationPath !== undefined || requestPath !== undefined) usage();
+    if (targetPath !== undefined || requestPath !== undefined) usage();
     return {
       schemaVersion: "1.0.0",
       status: "inspected",
@@ -43,7 +43,7 @@ async function run(arguments_: readonly string[]): Promise<unknown> {
   }
 
   if (command === "calculate-digest") {
-    if (configurationPath !== undefined || requestPath !== undefined) usage();
+    if (targetPath !== undefined || requestPath !== undefined) usage();
     return {
       schemaVersion: "1.0.0",
       catalogueDigest: await calculateCatalogueReleaseDigest(releaseRoot),
@@ -52,7 +52,7 @@ async function run(arguments_: readonly string[]): Promise<unknown> {
 
   const release = await loadCatalogueRelease(releaseRoot);
   if (command === "validate-release") {
-    if (configurationPath !== undefined || requestPath !== undefined) usage();
+    if (targetPath !== undefined || requestPath !== undefined) usage();
     return {
       schemaVersion: "1.0.0",
       status: "valid",
@@ -67,20 +67,20 @@ async function run(arguments_: readonly string[]): Promise<unknown> {
     command === "evaluate-verification"
   ) {
     if (
-      configurationPath === undefined ||
+      targetPath === undefined ||
       (command === "resolve-configuration" && requestPath !== undefined) ||
       (command === "evaluate-verification" && requestPath === undefined)
     ) {
       usage();
     }
-    const configuration = JSON.parse(
-      await readFile(configurationPath, "utf8"),
-    ) as unknown;
-    const resolved = await resolveBootstrapConfiguration(
-      release,
-      configuration,
-    );
     if (command === "resolve-configuration") {
+      const configuration = JSON.parse(
+        await readFile(targetPath, "utf8"),
+      ) as unknown;
+      const resolved = await resolveBootstrapConfiguration(
+        release,
+        configuration,
+      );
       return {
         schemaVersion: "1.0.0",
         status: "valid",
@@ -93,7 +93,11 @@ async function run(arguments_: readonly string[]): Promise<unknown> {
     const request = JSON.parse(
       await readFile(requestPath, "utf8"),
     ) as VerificationRequest;
-    return evaluateVerificationRequirements(release, resolved, request);
+    return evaluateCommittedVerificationRequirements(
+      release,
+      request,
+      targetPath,
+    );
   }
 
   usage();

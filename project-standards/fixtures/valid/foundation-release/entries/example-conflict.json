@@ -27,6 +27,7 @@
       "ownership": "whole-file"
     }
   ],
+  "managedSuppressions": [],
   "checks": [
     {
       "id": "check/example-conflict/alternate-test-gate",
