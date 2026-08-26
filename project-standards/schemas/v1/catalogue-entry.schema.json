@@ -334,7 +334,7 @@
     "requirement": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "ruleId", "phase", "kind", "independence"],
+      "required": ["id", "ruleId", "phase", "kind", "independence", "freshness"],
       "properties": {
         "id": { "$ref": "#/$defs/requirementId" },
         "ruleId": { "$ref": "#/$defs/ruleId" },
@@ -342,8 +342,91 @@
         "kind": { "enum": ["deterministic-check", "attributable-review", "manual-state"] },
         "checkId": { "$ref": "#/$defs/checkId" },
         "authorityClass": { "type": "string", "pattern": "^authority/[a-z][a-z0-9-]*$" },
-        "independence": { "enum": ["none", "not-author", "separate-authority"] }
-      }
+        "independence": { "enum": ["none", "not-author", "separate-authority"] },
+        "freshness": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind"],
+              "properties": { "kind": { "const": "until-input-change" } }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "maximumAgeSeconds"],
+              "properties": {
+                "kind": { "const": "maximum-age" },
+                "maximumAgeSeconds": { "type": "integer", "minimum": 1 }
+              }
+            }
+          ]
+        },
+        "questions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "prompt"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^question/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
+              "prompt": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "manualState": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["target", "observableState", "instructions", "assurance"],
+          "properties": {
+            "target": { "type": "string", "minLength": 1 },
+            "observableState": { "type": "string", "minLength": 1 },
+            "instructions": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+            "assurance": { "enum": ["machine-readback", "named-attestation"] },
+            "checkId": { "$ref": "#/$defs/checkId" }
+          }
+        },
+        "baselineGateRequirementId": { "$ref": "#/$defs/requirementId" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "deterministic-check" } } },
+          "then": {
+            "required": ["checkId"],
+            "properties": { "checkId": { "$ref": "#/$defs/checkId" } }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "attributable-review" } } },
+          "then": {
+            "required": ["authorityClass", "questions"],
+            "properties": {
+              "authorityClass": { "$ref": "#/$defs/authorityClassId" },
+              "questions": { "type": "array", "minItems": 1 }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "manual-state" } } },
+          "then": {
+            "required": ["authorityClass", "manualState"],
+            "properties": {
+              "authorityClass": { "$ref": "#/$defs/authorityClassId" },
+              "manualState": { "type": "object" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "phase": { "const": "delivery" } } },
+          "then": {
+            "required": ["baselineGateRequirementId"],
+            "properties": {
+              "baselineGateRequirementId": { "$ref": "#/$defs/requirementId" }
+            }
+          }
+        }
+      ]
     },
     "entryRelationship": {
       "type": "object",

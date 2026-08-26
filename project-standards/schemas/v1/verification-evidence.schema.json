@@ -8,6 +8,7 @@
     "$schema",
     "schemaVersion",
     "id",
+    "evidenceDigest",
     "ruleId",
     "requirementId",
     "scope",
@@ -15,7 +16,11 @@
     "configurationDigest",
     "catalogueVersion",
     "catalogueDigest",
+    "bootstrapperVersion",
+    "bootstrapperDigest",
+    "schemaDigests",
     "declaredInputsDigest",
+    "verificationHorizon",
     "invocation",
     "toolchain",
     "kind",
@@ -28,6 +33,7 @@
     "$schema": { "const": "https://schemas.ironicbuddha.dev/project-standards/v1/verification-evidence.schema.json" },
     "schemaVersion": { "const": "1.0.0" },
     "id": { "type": "string", "pattern": "^evidence/[0-9a-f-]{36}$" },
+    "evidenceDigest": { "$ref": "#/$defs/digest" },
     "ruleId": { "$ref": "#/$defs/ruleId" },
     "requirementId": { "$ref": "#/$defs/requirementId" },
     "scope": { "$ref": "#/$defs/scope" },
@@ -35,7 +41,16 @@
     "configurationDigest": { "$ref": "#/$defs/digest" },
     "catalogueVersion": { "$ref": "#/$defs/version" },
     "catalogueDigest": { "$ref": "#/$defs/digest" },
+    "bootstrapperVersion": { "$ref": "#/$defs/version" },
+    "bootstrapperDigest": { "$ref": "#/$defs/digest" },
+    "schemaDigests": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "format": "uri" },
+      "additionalProperties": { "$ref": "#/$defs/digest" }
+    },
     "declaredInputsDigest": { "$ref": "#/$defs/digest" },
+    "verificationHorizon": { "enum": ["baseline", "delivery"] },
     "invocation": { "$ref": "#/$defs/invocation" },
     "toolchain": { "$ref": "#/$defs/toolchain" },
     "kind": { "enum": ["deterministic-check", "attributable-review", "manual-state"] },
@@ -44,6 +59,24 @@
     "observedAt": { "type": "string", "format": "date-time" },
     "validUntil": { "type": "string", "format": "date-time" },
     "actor": { "$ref": "#/$defs/actor" },
+    "reviewedMaterialDigest": { "$ref": "#/$defs/digest" },
+    "rationale": { "type": "string", "minLength": 1 },
+    "findings": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "dispositions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "questionConclusions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["questionId", "conclusion"],
+        "properties": {
+          "questionId": { "type": "string", "pattern": "^question/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
+          "conclusion": { "enum": ["accepted", "changes-required", "unable-to-conclude"] }
+        }
+      }
+    },
+    "manualState": { "$ref": "#/$defs/manualState" },
     "output": { "$ref": "#/$defs/output" }
   },
   "allOf": [
@@ -56,9 +89,14 @@
     {
       "if": { "properties": { "kind": { "const": "attributable-review" } } },
       "then": {
-        "required": ["actor"],
+        "required": ["actor", "reviewedMaterialDigest", "rationale", "findings", "dispositions", "questionConclusions"],
         "properties": {
           "actor": { "$ref": "#/$defs/actor" },
+          "reviewedMaterialDigest": { "$ref": "#/$defs/digest" },
+          "rationale": { "type": "string", "minLength": 1 },
+          "findings": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "dispositions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "questionConclusions": { "type": "array", "minItems": 1 },
           "result": { "enum": ["accepted", "changes-required", "unable-to-conclude"] }
         }
       }
@@ -66,10 +104,12 @@
     {
       "if": { "properties": { "kind": { "const": "manual-state" } } },
       "then": {
-        "required": ["actor"],
+        "required": ["actor", "rationale", "manualState"],
         "properties": {
           "actor": { "$ref": "#/$defs/actor" },
-          "result": { "enum": ["verified", "not-verified", "attested"] }
+          "rationale": { "type": "string", "minLength": 1 },
+          "manualState": { "$ref": "#/$defs/manualState" },
+          "result": { "enum": ["verified", "not-verified", "attested", "error"] }
         }
       }
     }
@@ -101,8 +141,9 @@
     "actor": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["identity", "authorityClass"],
+      "required": ["kind", "identity", "authorityClass"],
       "properties": {
+        "kind": { "enum": ["human", "provider"] },
         "identity": { "type": "string", "minLength": 1 },
         "authorityClass": { "type": "string", "pattern": "^authority/[a-z][a-z0-9-]*$" },
         "externalDecisionReference": { "type": "string", "minLength": 1 }
@@ -136,6 +177,16 @@
       "properties": {
         "digest": { "$ref": "#/$defs/digest" },
         "immutableReference": { "type": "string", "minLength": 1 }
+      }
+    },
+    "manualState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "stateDigest", "assurance"],
+      "properties": {
+        "target": { "type": "string", "minLength": 1 },
+        "stateDigest": { "$ref": "#/$defs/digest" },
+        "assurance": { "enum": ["machine-readback", "named-attestation"] }
       }
     }
   }

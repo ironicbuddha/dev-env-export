@@ -60,7 +60,8 @@
       "phase": "baseline",
       "kind": "deterministic-check",
       "checkId": "check/example-service/package",
-      "independence": "none"
+      "independence": "none",
+      "freshness": { "kind": "until-input-change" }
     }
   ],
   "requires": [

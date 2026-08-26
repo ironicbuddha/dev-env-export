@@ -23,7 +23,12 @@
         "kind": "entry-selected",
         "entryId": "entry/workload/example-service"
       },
-      "requirementIds": ["requirement/example-tests/direct-tests"],
+      "requirementIds": [
+        "requirement/example-tests/test-command-gate",
+        "requirement/example-tests/direct-tests-review",
+        "requirement/example-tests/manual-assurance",
+        "requirement/example-tests/direct-tests"
+      ],
       "waiverPolicy": {
         "kind": "governed",
         "reasonClasses": ["temporary-tooling-gap"],
@@ -31,7 +36,7 @@
         "independence": "not-author",
         "maximumDurationDays": 14,
         "compensatingControlRequirementIds": [
-          "requirement/example-tests/direct-tests"
+          "requirement/example-tests/test-command-gate"
         ],
         "renewalConditions": {
           "freshEvidence": true,
@@ -65,12 +70,54 @@
   ],
   "requirements": [
     {
+      "id": "requirement/example-tests/test-command-gate",
+      "ruleId": "rule/example-tests/direct-tests",
+      "phase": "baseline",
+      "kind": "deterministic-check",
+      "checkId": "check/example-tests/test-command",
+      "independence": "none",
+      "freshness": { "kind": "until-input-change" }
+    },
+    {
+      "id": "requirement/example-tests/direct-tests-review",
+      "ruleId": "rule/example-tests/direct-tests",
+      "phase": "baseline",
+      "kind": "attributable-review",
+      "authorityClass": "authority/project-policy",
+      "independence": "not-author",
+      "freshness": { "kind": "maximum-age", "maximumAgeSeconds": 86400 },
+      "questions": [
+        {
+          "id": "question/example-tests/direct-tests",
+          "prompt": "Do the declared tests directly exercise every critical path in scope?"
+        }
+      ]
+    },
+    {
+      "id": "requirement/example-tests/manual-assurance",
+      "ruleId": "rule/example-tests/direct-tests",
+      "phase": "baseline",
+      "kind": "manual-state",
+      "authorityClass": "authority/project-policy",
+      "independence": "none",
+      "freshness": { "kind": "maximum-age", "maximumAgeSeconds": 86400 },
+      "manualState": {
+        "target": "services/api test gate",
+        "observableState": "The required test gate is enabled for the selected Workload.",
+        "instructions": ["Inspect and record the exact test-gate state."],
+        "assurance": "machine-readback",
+        "checkId": "check/example-tests/test-command"
+      }
+    },
+    {
       "id": "requirement/example-tests/direct-tests",
       "ruleId": "rule/example-tests/direct-tests",
       "phase": "delivery",
       "kind": "deterministic-check",
       "checkId": "check/example-tests/test-command",
-      "independence": "none"
+      "independence": "none",
+      "freshness": { "kind": "until-input-change" },
+      "baselineGateRequirementId": "requirement/example-tests/test-command-gate"
     }
   ],
   "requires": [

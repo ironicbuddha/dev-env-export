@@ -96,6 +96,7 @@ function validVerificationEvidence(): Record<string, unknown> {
       "https://schemas.ironicbuddha.dev/project-standards/v1/verification-evidence.schema.json",
     schemaVersion: "1.0.0",
     id: "evidence/018f47ac-10d2-7c85-bd62-0c742b1f24f8",
+    evidenceDigest: `sha256:${"8".repeat(64)}`,
     ruleId: "rule/core/exact-catalogue-pin",
     requirementId: "requirement/core/exact-catalogue-pin",
     scope: { kind: "repository", id: "repository" },
@@ -107,7 +108,14 @@ function validVerificationEvidence(): Record<string, unknown> {
     configurationDigest: `sha256:${"4".repeat(64)}`,
     catalogueVersion: "1.0.0",
     catalogueDigest: `sha256:${"5".repeat(64)}`,
+    bootstrapperVersion: "0.1.0",
+    bootstrapperDigest: `sha256:${"8".repeat(64)}`,
+    schemaDigests: {
+      "https://schemas.ironicbuddha.dev/project-standards/v1/verification-evidence.schema.json":
+        `sha256:${"9".repeat(64)}`,
+    },
     declaredInputsDigest: `sha256:${"6".repeat(64)}`,
+    verificationHorizon: "baseline",
     invocation: {
       executable: "project-standards-catalogue",
       arguments: ["validate-release"],
@@ -218,7 +226,7 @@ test("Catalogue Release loads an atomic, content-addressed entry set", async () 
   const fixtureRoot = join(packageRoot, "fixtures/valid/foundation-release");
   assert.equal(
     await calculateCatalogueReleaseDigest(fixtureRoot),
-    "sha256:db0d14c60ff4480f9881669071aedebfabf801785ed4a1a73d0aa071e420af8b",
+    "sha256:d2d0c9a3cdb48f272c4a6d957bfbbc39616dd713cad0fb1fe30f93f8eb5c3010",
   );
   const release = await loadCatalogueRelease(fixtureRoot);
 
@@ -237,6 +245,11 @@ test("Catalogue Release loads an atomic, content-addressed entry set", async () 
   assert.ok(
     release.document.schemas.includes(
       "https://schemas.ironicbuddha.dev/project-standards/v1/verification-evidence.schema.json",
+    ),
+  );
+  assert.ok(
+    release.document.schemas.includes(
+      "https://schemas.ironicbuddha.dev/project-standards/v1/verification-request.schema.json",
     ),
   );
   assert.match(release.document.catalogueDigest, /^sha256:[a-f0-9]{64}$/);
@@ -714,7 +727,7 @@ test("catalogue CLI independently validates a content-addressed release", async 
     status: "valid",
     catalogueVersion: "1.0.0",
     catalogueDigest:
-      "sha256:db0d14c60ff4480f9881669071aedebfabf801785ed4a1a73d0aa071e420af8b",
+      "sha256:d2d0c9a3cdb48f272c4a6d957bfbbc39616dd713cad0fb1fe30f93f8eb5c3010",
     entryIds: [
       "entry/capability/example-conflict",
       "entry/capability/example-tests",

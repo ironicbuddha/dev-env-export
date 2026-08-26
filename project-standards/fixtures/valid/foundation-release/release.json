@@ -2,7 +2,7 @@
   "$schema": "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-release.schema.json",
   "schemaVersion": "1.0.0",
   "catalogueVersion": "1.0.0",
-  "catalogueDigest": "sha256:db0d14c60ff4480f9881669071aedebfabf801785ed4a1a73d0aa071e420af8b",
+  "catalogueDigest": "sha256:d2d0c9a3cdb48f272c4a6d957bfbbc39616dd713cad0fb1fe30f93f8eb5c3010",
   "schemas": [
     "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-entry.schema.json",
     "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-release.schema.json",
@@ -15,7 +15,8 @@
     "https://schemas.ironicbuddha.dev/project-standards/v1/rule-waiver.schema.json",
     "https://schemas.ironicbuddha.dev/project-standards/v1/source-guidance.schema.json",
     "https://schemas.ironicbuddha.dev/project-standards/v1/support-evidence.schema.json",
-    "https://schemas.ironicbuddha.dev/project-standards/v1/verification-evidence.schema.json"
+    "https://schemas.ironicbuddha.dev/project-standards/v1/verification-evidence.schema.json",
+    "https://schemas.ironicbuddha.dev/project-standards/v1/verification-request.schema.json"
   ],
   "entries": [
     "entries/core.json",

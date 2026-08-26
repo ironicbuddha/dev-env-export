@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { readFile, realpath } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,7 +8,27 @@ import {
   type ErrorObject,
 } from "ajv/dist/2020.js";
 import formatsPlugin, { type FormatsPlugin } from "ajv-formats";
-import canonicalizeModule from "canonicalize";
+import {
+  reduceVerificationRequirements,
+  type VerificationRequest,
+  type VerificationResult,
+} from "./verification.js";
+import { canonicalJsonDigest } from "./canonical-json.js";
+
+export {
+  type EvidenceActor,
+  type RepositoryEvidenceBinding,
+  type RequirementEvaluation,
+  type RequirementEvaluationResult,
+  type RuleWaiverDocument,
+  type VerificationEvidenceDocument,
+  type VerificationHorizon,
+  type VerificationOutcome,
+  type VerificationReason,
+  type VerificationRequest,
+  type VerificationResult,
+  type VerificationScope,
+} from "./verification.js";
 
 export {
   inspectRepositoryRoot,
@@ -72,6 +91,7 @@ export interface CatalogueReleaseDocument {
 export interface ValidatedCatalogueRelease {
   readonly root: string;
   readonly document: CatalogueReleaseDocument;
+  readonly schemaDigests: Readonly<Record<string, string>>;
   readonly entries: ReadonlyMap<string, CatalogueEntryDocument>;
   readonly migrations: ReadonlyMap<string, IdentifiedDocument>;
   readonly fixtures: ReadonlyMap<string, IdentifiedDocument>;
@@ -192,6 +212,18 @@ export interface VerificationRequirement {
   readonly checkId?: string;
   readonly authorityClass?: string;
   readonly independence: "none" | "not-author" | "separate-authority";
+  readonly freshness:
+    | Readonly<{ kind: "until-input-change" }>
+    | Readonly<{ kind: "maximum-age"; maximumAgeSeconds: number }>;
+  readonly questions?: readonly Readonly<{ id: string; prompt: string }>[];
+  readonly manualState?: Readonly<{
+    target: string;
+    observableState: string;
+    instructions: readonly string[];
+    assurance: "machine-readback" | "named-attestation";
+    checkId?: string;
+  }>;
+  readonly baselineGateRequirementId?: string;
 }
 
 export interface EntryRelationship {
@@ -266,18 +298,17 @@ export type ProjectStandardsDocumentKind =
   | "rule-waiver"
   | "source-guidance"
   | "support-evidence"
-  | "verification-evidence";
+  | "verification-evidence"
+  | "verification-request";
 
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 const schemaDirectory = join(moduleDirectory, "../../schemas/v1");
 const addFormats = formatsPlugin as unknown as FormatsPlugin;
-const canonicalize = canonicalizeModule as unknown as (
-  value: unknown,
-) => string | undefined;
 const firstPartyCheckArgumentCounts = new Map([
   ["validate-release", 2],
   ["calculate-digest", 2],
   ["resolve-configuration", 3],
+  ["evaluate-verification", 4],
 ]);
 
 function createSchemaValidator(): Ajv2020 {
@@ -330,6 +361,27 @@ export async function validateProjectStandardsDocument(
       validate.errors ?? [],
     );
   }
+}
+
+export async function evaluateVerificationRequirements(
+  release: ValidatedCatalogueRelease,
+  resolved: ResolvedBootstrapConfiguration,
+  request: VerificationRequest,
+): Promise<VerificationResult> {
+  const verifiedResolution = await resolveBootstrapConfiguration(
+    release,
+    resolved.configuration,
+  );
+  await validateProjectStandardsDocument("verification-request", request);
+  await Promise.all([
+    ...request.evidence.map((evidence) =>
+      validateProjectStandardsDocument("verification-evidence", evidence),
+    ),
+    ...request.waivers.map((waiver) =>
+      validateProjectStandardsDocument("rule-waiver", waiver),
+    ),
+  ]);
+  return reduceVerificationRequirements(release, verifiedResolution, request);
 }
 
 function releaseReferences(
@@ -435,15 +487,15 @@ function catalogueDigest(
   documents: readonly ReferencedDocument[],
 ): string {
   const { catalogueDigest: _declaredDigest, ...releaseIdentity } = release;
-  const canonicalPayload = canonicalize({
+  const digest = canonicalJsonDigest({
     documents,
     release: releaseIdentity,
   });
-  if (canonicalPayload === undefined) {
+  if (digest === undefined) {
     throw new TypeError("Catalogue Release contains non-JSON content");
   }
 
-  return `sha256:${createHash("sha256").update(canonicalPayload).digest("hex")}`;
+  return digest;
 }
 
 function semanticError(documentPath: string, message: string): never {
@@ -593,6 +645,7 @@ function validateCatalogueSemantics(
     "source-guidance",
     "support-evidence",
     "verification-evidence",
+    "verification-request",
   ].map(
     (name) =>
       `https://schemas.ironicbuddha.dev/project-standards/v1/${name}.schema.json`,
@@ -734,6 +787,30 @@ function validateCatalogueSemantics(
         semanticError(
           entry.id,
           `Verification Requirement ${requirement.id} references undeclared Authority Class ${requirement.authorityClass}`,
+        );
+      }
+      if (requirement.phase === "delivery") {
+        const baselineGate = entry.requirements.find(
+          ({ id }) => id === requirement.baselineGateRequirementId,
+        );
+        if (
+          baselineGate === undefined ||
+          baselineGate.phase !== "baseline" ||
+          baselineGate.ruleId !== requirement.ruleId
+        ) {
+          semanticError(
+            entry.id,
+            `Delivery Verification Requirement ${requirement.id} references an invalid Baseline gate ${String(requirement.baselineGateRequirementId)}`,
+          );
+        }
+      }
+      if (
+        requirement.manualState?.checkId !== undefined &&
+        !entryCheckIds.has(requirement.manualState.checkId)
+      ) {
+        semanticError(
+          entry.id,
+          `Manual-State Requirement ${requirement.id} references missing Catalogue Check ${requirement.manualState.checkId}`,
         );
       }
     }
@@ -992,6 +1069,16 @@ export async function loadCatalogueRelease(
 
   const typedRelease = releaseDocument as CatalogueReleaseDocument;
   const schemaDocuments = await loadTrustedSchemas(typedRelease.schemas);
+  const schemaDigests = Object.fromEntries(
+    schemaDocuments.map(({ value }) => {
+      const schemaId = (value as { $id: string }).$id;
+      const digest = canonicalJsonDigest(value);
+      if (digest === undefined) {
+        throw new TypeError(`Schema ${schemaId} contains non-JSON content`);
+      }
+      return [schemaId, digest];
+    }),
+  );
   const referencedDocuments = await loadReferencedDocuments(
     releaseRoot,
     typedRelease,
@@ -1094,6 +1181,7 @@ export async function loadCatalogueRelease(
   return {
     root: releaseRoot,
     document: typedRelease,
+    schemaDigests,
     entries,
     migrations,
     fixtures,

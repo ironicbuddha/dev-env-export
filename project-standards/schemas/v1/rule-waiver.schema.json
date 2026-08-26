@@ -40,10 +40,12 @@
     "actor": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["identity", "authorityClass"],
+      "required": ["kind", "identity", "authorityClass"],
       "properties": {
+        "kind": { "const": "human" },
         "identity": { "type": "string", "minLength": 1 },
-        "authorityClass": { "type": "string", "pattern": "^authority/[a-z][a-z0-9-]*$" }
+        "authorityClass": { "type": "string", "pattern": "^authority/[a-z][a-z0-9-]*$" },
+        "externalDecisionReference": { "type": "string", "minLength": 1 }
       }
     },
     "control": {

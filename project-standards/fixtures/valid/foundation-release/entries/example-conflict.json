@@ -49,7 +49,8 @@
       "phase": "baseline",
       "kind": "deterministic-check",
       "checkId": "check/example-conflict/alternate-test-gate",
-      "independence": "none"
+      "independence": "none",
+      "freshness": { "kind": "until-input-change" }
     }
   ],
   "requires": [

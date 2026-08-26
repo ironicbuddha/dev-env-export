@@ -1,9 +1,11 @@
 # Project Standards Catalogue Foundation
 
-This package owns the catalogue and exact-root inspection foundations for the
+This package owns the catalogue, exact-root inspection, and shared verification
+foundations for the
 successor Project Standards Bootstrapper. It validates immutable Catalogue
 Releases, resolves closed Bootstrap Configurations against their exact
-catalogue version and digest, and produces read-only Detected Repository State.
+catalogue version and digest, produces read-only Detected Repository State, and
+reduces exact-bound evidence to fail-closed Requirement Evaluations.
 
 The fixture Catalogue Entries are deliberately illustrative. They prove the
 foundation contracts without pretending to be the complete first Catalogue
@@ -26,6 +28,10 @@ The public library seam is:
   filesystem state, exact Git HEAD/index/ref identities, Git relationships,
   ownership boundaries, hazards, and evidence-based Initialization or Adoption
   eligibility.
+- `evaluateVerificationRequirements(release, resolvedConfiguration, request)`
+  for deterministic `satisfied`, `waived`, `failed`, or `incomplete`
+  Requirement Evaluations and a `verified`, `failed`, or `incomplete` run
+  outcome.
 
 Inspection never redirects a selected subdirectory to its parent Git root,
 follows a symlink, selects a run mode, infers durable policy or scope, or reads
@@ -38,10 +44,24 @@ redirect inspection away from the selected root. Conventional placeholders and
 ignorable OS/editor metadata may support an Initialization recommendation, but
 remain untouched.
 
-This foundation reports only catalogue validity or an `inspected` snapshot. It
-cannot report a Verified Baseline. The shared evidence and acceptance reducer
-is a later slice, so failure, Conflict, drift, missing authority, or absent
-evidence has no path to a success claim here.
+The reducer accepts only closed Verification Requests and Verification Evidence.
+Evidence is content-addressed and bound to the exact rule, requirement, scope,
+repository state, resolved configuration, Catalogue Release, bootstrapper,
+schema set, declared inputs, horizon, invocation, toolchain, time, and
+secret-safe output. Each evidence digest must also match a separate
+orchestrator-pinned authenticity binding for the exact local run or immutable
+external reference; recomputing an evidence record's self-hash cannot move that
+pin. Attributable review and Manual-State Evidence additionally
+enforce the catalogue's Authority Class, independence, assurance, and freshness
+declarations. A Baseline run proves a Delivery Requirement's declared gate; a
+Delivery run names the exact affected requirement scopes, reuses still-valid
+Baseline Evidence, and requires fresh Delivery Evidence only for those changes.
+
+Only a complete set of `satisfied` or visibly `waived` evaluations with no
+Conflict, Catalogue Incompatibility, drift, missing authority, or failed
+invariant reports `verified`. Missing, stale, errored, tampered, ambiguous, or
+unauthorized evidence fails closed. Repeating an unchanged request is a
+write-free deterministic re-verification.
 
 ## Content Addressing
 
@@ -91,10 +111,16 @@ corepack pnpm exec project-standards-catalogue \
 
 corepack pnpm exec project-standards-catalogue \
   resolve-configuration fixtures/valid/foundation-release config.json
+
+corepack pnpm exec project-standards-catalogue \
+  evaluate-verification fixtures/valid/foundation-release \
+  config.json verification-request.json
 ```
 
 Inspection and validation failures emit typed JSON on stderr and exit `2`;
 usage errors exit `64`. `inspect` emits the closed
 `detected-repository-state` schema with an `initialize` or `adopt`
 recommendation plus its evidence. The recommendation is not a selected mode or
-authorization to mutate the root.
+authorization to mutate the root. `evaluate-verification` emits the reducer's
+machine-readable result and uses the exact same engine as the public library
+seam.

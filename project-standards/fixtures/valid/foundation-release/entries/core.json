@@ -62,7 +62,8 @@
       "phase": "baseline",
       "kind": "deterministic-check",
       "checkId": "check/core/configuration-valid",
-      "independence": "none"
+      "independence": "none",
+      "freshness": { "kind": "until-input-change" }
     }
   ],
   "requires": [],

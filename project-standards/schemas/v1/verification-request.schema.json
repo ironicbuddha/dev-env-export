@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ironicbuddha.dev/project-standards/v1/verification-request.schema.json",
+  "title": "Verification Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "horizon",
+    "evaluatedAt",
+    "repository",
+    "bootstrapper",
+    "schemaDigests",
+    "affectedRequirements",
+    "requirementInputs",
+    "authorities",
+    "subjects",
+    "blockers",
+    "evidence",
+    "evidenceAuthenticity",
+    "waivers"
+  ],
+  "properties": {
+    "$schema": { "const": "https://schemas.ironicbuddha.dev/project-standards/v1/verification-request.schema.json" },
+    "schemaVersion": { "const": "1.0.0" },
+    "horizon": { "enum": ["baseline", "delivery"] },
+    "evaluatedAt": { "type": "string", "format": "date-time" },
+    "repository": { "$ref": "#/$defs/repository" },
+    "bootstrapper": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "digest"],
+      "properties": {
+        "version": { "$ref": "#/$defs/version" },
+        "digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "schemaDigests": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "format": "uri" },
+      "additionalProperties": { "$ref": "#/$defs/digest" }
+    },
+    "affectedRequirements": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["requirementId", "scope"],
+        "properties": {
+          "requirementId": { "$ref": "#/$defs/requirementId" },
+          "scope": { "$ref": "#/$defs/scope" }
+        }
+      }
+    },
+    "requirementInputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["requirementId", "scope", "digest"],
+        "properties": {
+          "requirementId": { "$ref": "#/$defs/requirementId" },
+          "scope": { "$ref": "#/$defs/scope" },
+          "digest": { "$ref": "#/$defs/digest" }
+        }
+      }
+    },
+    "authorities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["authorityClass", "identities", "externalDecisionReferences"],
+        "properties": {
+          "authorityClass": { "$ref": "#/$defs/authorityClass" },
+          "identities": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+          "externalDecisionReferences": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    },
+    "subjects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["requirementId", "scope", "authorIdentities", "authorityClasses"],
+        "properties": {
+          "requirementId": { "$ref": "#/$defs/requirementId" },
+          "scope": { "$ref": "#/$defs/scope" },
+          "authorIdentities": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+          "authorityClasses": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/authorityClass" } }
+        }
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "id", "message"],
+        "properties": {
+          "kind": { "enum": ["conflict", "catalogue-incompatibility", "drift", "missing-authority", "invariant-failed"] },
+          "id": { "type": "string", "minLength": 1 },
+          "message": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "evidence": { "type": "array", "items": { "type": "object" } },
+    "evidenceAuthenticity": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["evidenceId", "evidenceDigest", "source"],
+        "properties": {
+          "evidenceId": { "type": "string", "pattern": "^evidence/[0-9a-f-]{36}$" },
+          "evidenceDigest": { "$ref": "#/$defs/digest" },
+          "source": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["kind", "runId", "bootstrapperDigest"],
+                "properties": {
+                  "kind": { "const": "local-execution" },
+                  "runId": { "type": "string", "pattern": "^[0-9a-f-]{36}$" },
+                  "bootstrapperDigest": { "$ref": "#/$defs/digest" }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["kind", "reference"],
+                "properties": {
+                  "kind": { "const": "immutable-reference" },
+                  "reference": { "type": "string", "minLength": 1 }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "waivers": { "type": "array", "items": { "type": "object" } }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "horizon": { "const": "baseline" } } },
+      "then": { "properties": { "affectedRequirements": { "type": "array", "maxItems": 0 } } },
+      "else": { "properties": { "affectedRequirements": { "type": "array", "minItems": 1 } } }
+    }
+  ],
+  "$defs": {
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "requirementId": { "type": "string", "pattern": "^requirement/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
+    "authorityClass": { "type": "string", "pattern": "^authority/[a-z][a-z0-9-]*$" },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "enum": ["repository", "workload", "cross-workload", "artifact", "interface-boundary"] },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "revision", "stateDigest"],
+      "properties": {
+        "identity": { "type": "string", "minLength": 1 },
+        "revision": { "type": "string", "pattern": "^[a-f0-9]{40,64}$" },
+        "stateDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}
