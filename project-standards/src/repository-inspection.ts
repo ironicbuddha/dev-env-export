@@ -196,10 +196,17 @@ function digest(value: unknown): string {
   return `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;
 }
 
+function gitInspectionEnvironment(): NodeJS.ProcessEnv {
+  const environment = Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
+  );
+  return { ...environment, GIT_OPTIONAL_LOCKS: "0" };
+}
+
 async function gitOutput(root: string, arguments_: readonly string[]): Promise<string> {
   const { stdout } = await execFileAsync("git", ["-C", root, ...arguments_], {
     encoding: "utf8",
-    env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" },
+    env: gitInspectionEnvironment(),
   });
   return stdout;
 }

@@ -33,8 +33,10 @@ file contents into output. Regular-file contents and link targets contribute
 only fingerprints. Worktrees, submodules (including deinitialized gitlinks),
 nested repositories, and arbitrary external Git directories remain explicit
 boundaries. Git is invoked with optional locks disabled so inspection does not
-refresh the index. Conventional placeholders and ignorable OS/editor metadata
-may support an Initialization recommendation, but remain untouched.
+refresh the index, and ambient `GIT_*` variables are scrubbed so they cannot
+redirect inspection away from the selected root. Conventional placeholders and
+ignorable OS/editor metadata may support an Initialization recommendation, but
+remain untouched.
 
 This foundation reports only catalogue validity or an `inspected` snapshot. It
 cannot report a Verified Baseline. The shared evidence and acceptance reducer

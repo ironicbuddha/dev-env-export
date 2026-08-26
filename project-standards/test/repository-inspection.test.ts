@@ -20,6 +20,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 import {
+  type DetectedRepositoryState,
   inspectRepositoryRoot,
   RepositoryInspectionError,
   validateProjectStandardsDocument,
@@ -575,6 +576,41 @@ test("CLI inspect exposes the same read-only state and typed failure outcomes", 
         !JSON.stringify(failure).toLowerCase().includes("verified")
       );
     },
+  );
+});
+
+test("inspect ignores ambient Git environment that redirects repository state", async () => {
+  const selectedRoot = await mkdtemp(
+    join(tmpdir(), "project-standards-inspect-selected-env-"),
+  );
+  const externalRoot = await mkdtemp(
+    join(tmpdir(), "project-standards-inspect-external-env-"),
+  );
+  await runGit(externalRoot, "init", "--quiet");
+  await writeFile(join(externalRoot, "external.txt"), "external state\n");
+  await runGit(externalRoot, "add", "external.txt");
+  const cliPath = join(packageRoot, "dist", "src", "cli.js");
+
+  const { stdout } = await execFileAsync(
+    process.execPath,
+    [cliPath, "inspect", selectedRoot],
+    {
+      env: {
+        ...process.env,
+        GIT_DIR: join(externalRoot, ".git"),
+        GIT_WORK_TREE: selectedRoot,
+        GIT_INDEX_FILE: join(externalRoot, ".git", "index"),
+      },
+    },
+  );
+  const output = JSON.parse(stdout) as {
+    detectedRepositoryState: DetectedRepositoryState;
+  };
+
+  assert.equal(output.detectedRepositoryState.git.relationship, "none");
+  assert.equal(
+    output.detectedRepositoryState.recommendation.initializeEligible,
+    true,
   );
 });
 
