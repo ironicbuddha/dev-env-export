@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schemas.ironicbuddha.dev/project-standards/v1/fixture.schema.json",
+  "schemaVersion": "1.0.0",
+  "id": "fixture/configuration/valid-foundation",
+  "subject": "configuration",
+  "expectation": "valid",
+  "document": {
+    "$schema": "https://schemas.ironicbuddha.dev/project-standards/v1/configuration.schema.json",
+    "schemaVersion": "1.0.0",
+    "catalogueVersion": "1.0.0",
+    "catalogueDigest": "__CATALOGUE_DIGEST__",
+    "core": { "kind": "core", "choices": {} },
+    "workloads": [
+      {
+        "id": "service",
+        "kind": "example-service",
+        "root": "services/api",
+        "choices": {}
+      }
+    ],
+    "capabilities": [
+      {
+        "id": "service-tests",
+        "kind": "example-tests",
+        "scope": { "kind": "workload", "workloadIds": ["service"] },
+        "choices": {}
+      }
+    ],
+    "extensions": {}
+  }
+}

@@ -49,3 +49,7 @@ bugs/
 *.zip
 *.tar.gz
 *.tgz
+
+# Project-local Node build output
+node_modules/
+dist/

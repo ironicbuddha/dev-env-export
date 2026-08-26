@@ -1,0 +1,77 @@
+{
+  "$schema": "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-entry.schema.json",
+  "schemaVersion": "1.0.0",
+  "id": "entry/workload/example-service",
+  "family": "workload",
+  "kind": "example-service",
+  "version": "1.0.0",
+  "scopeKinds": ["workload"],
+  "cardinality": "multiple",
+  "authorityClasses": [],
+  "choices": [
+    {
+      "id": "choice/example-service/shape",
+      "valueType": "string",
+      "required": true,
+      "allowedValues": ["worker", "http-service"],
+      "default": "worker"
+    }
+  ],
+  "rules": [
+    {
+      "id": "rule/example-service/package-check",
+      "statement": "The selected service package check passes.",
+      "applicability": {
+        "kind": "choice-equals",
+        "choiceId": "choice/example-service/shape",
+        "value": "worker"
+      },
+      "requirementIds": ["requirement/example-service/package-check"],
+      "waiverPolicy": { "kind": "prohibited" }
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "artifact/example-service/package",
+      "locatorTemplate": "{workload.root}/package.json",
+      "ownership": "structured-fragment",
+      "compositionContract": "composition/package-json"
+    }
+  ],
+  "checks": [
+    {
+      "id": "check/example-service/package",
+      "executable": "pnpm",
+      "arguments": ["test"],
+      "scope": { "kind": "owning-layer" },
+      "prerequisiteCheckIds": [],
+      "toolchain": { "name": "pnpm", "version": "11.22.0" },
+      "timeoutMs": 120000,
+      "network": "forbidden",
+      "secrets": "forbidden",
+      "retryPolicy": { "maximumAttempts": 1, "retryableResults": [] },
+      "passCriteria": "exit-zero"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "requirement/example-service/package-check",
+      "ruleId": "rule/example-service/package-check",
+      "phase": "baseline",
+      "kind": "deterministic-check",
+      "checkId": "check/example-service/package",
+      "independence": "none"
+    }
+  ],
+  "requires": [
+    { "entryId": "entry/core/core", "scopeRelation": "repository" }
+  ],
+  "refines": [],
+  "incompatibleWith": [],
+  "nestedRootContracts": [],
+  "sourceGuidanceIds": ["guidance/foundation"],
+  "supportEvidenceIds": ["support/foundation"],
+  "fixtureIds": ["fixture/configuration/valid-foundation"],
+  "migrationIds": [],
+  "extensions": {}
+}

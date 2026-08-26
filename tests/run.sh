@@ -117,6 +117,11 @@ run_suite \
     "$REPO_ROOT/tests/skill_hub_contract_test.sh"
 
 run_suite \
+    "package" \
+    "Project Standards catalogue foundation tests" \
+    "$REPO_ROOT/tests/project_standards_catalogue_contract_test.sh"
+
+run_suite \
     "step" \
     "project standards contract tests" \
     "$REPO_ROOT/tests/project_standards_contract_test.sh"

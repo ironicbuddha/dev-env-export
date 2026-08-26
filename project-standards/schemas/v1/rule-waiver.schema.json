@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ironicbuddha.dev/project-standards/v1/rule-waiver.schema.json",
+  "title": "Rule Waiver",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schemaVersion", "id", "version", "digest", "ruleId", "scope", "requirementIds", "reasonClass", "reasonEvidence", "risk", "compensatingControls", "requester", "approvals", "remediation", "validity", "upgradeDisposition", "status"],
+  "properties": {
+    "$schema": { "const": "https://schemas.ironicbuddha.dev/project-standards/v1/rule-waiver.schema.json" },
+    "schemaVersion": { "const": "1.0.0" },
+    "id": { "type": "string", "pattern": "^waiver/[a-z][a-z0-9-]*$" },
+    "version": { "type": "integer", "minimum": 1 },
+    "digest": { "$ref": "#/$defs/digest" },
+    "ruleId": { "type": "string", "pattern": "^rule/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
+    "scope": { "$ref": "#/$defs/scope" },
+    "requirementIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^requirement/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" } },
+    "reasonClass": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "reasonEvidence": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/digest" } },
+    "risk": { "type": "string", "minLength": 1 },
+    "compensatingControls": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/control" } },
+    "requester": { "$ref": "#/$defs/actor" },
+    "approvals": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/actor" } },
+    "remediation": { "type": "string", "minLength": 1 },
+    "validity": { "$ref": "#/$defs/validity" },
+    "upgradeDisposition": { "enum": ["revalidate", "retire", "replace"] },
+    "status": { "enum": ["proposed", "active", "expired", "revoked", "invalidated", "superseded"] },
+    "supersedes": { "type": "string", "pattern": "^waiver/[a-z][a-z0-9-]*@[1-9][0-9]*$" }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "enum": ["repository", "workload", "artifact", "interface-boundary"] },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "authorityClass"],
+      "properties": {
+        "identity": { "type": "string", "minLength": 1 },
+        "authorityClass": { "type": "string", "pattern": "^authority/[a-z][a-z0-9-]*$" }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requirementId", "evidenceIds"],
+      "properties": {
+        "requirementId": { "type": "string", "pattern": "^requirement/[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$" },
+        "evidenceIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^evidence/[0-9a-f-]{36}$" } }
+      }
+    },
+    "validity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startsAt", "expiresAt", "repositoryStateDigest", "configurationDigest", "catalogueDigest"],
+      "properties": {
+        "startsAt": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time" },
+        "repositoryStateDigest": { "$ref": "#/$defs/digest" },
+        "configurationDigest": { "$ref": "#/$defs/digest" },
+        "catalogueDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

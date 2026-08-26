@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schemas.ironicbuddha.dev/project-standards/v1/source-guidance.schema.json",
+  "schemaVersion": "1.0.0",
+  "id": "guidance/foundation",
+  "sourceType": "specification",
+  "title": "Project Standards Bootstrapper Build-Ready Specification",
+  "locator": "https://github.com/ironicbuddha/skills-hub/blob/048d33d908a80bc919dd808d5a3eb816f705733e/docs/project-standards-bootstrapper-spec.md",
+  "revision": "048d33d908a80bc919dd808d5a3eb816f705733e",
+  "contentDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "retrievedAt": "2026-08-25T00:00:00Z",
+  "disposition": "adapt",
+  "rationale": "Foundation fixture preserves the closed-world catalogue contract."
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schemas.ironicbuddha.dev/project-standards/v1/support-evidence.schema.json",
+  "schemaVersion": "1.0.0",
+  "id": "support/foundation",
+  "entryIds": [
+    "entry/capability/example-conflict",
+    "entry/core/core",
+    "entry/workload/example-service",
+    "entry/capability/example-tests"
+  ],
+  "claim": "The foundation fixture exercises atomic entries, composition, choices, and exact catalogue identity.",
+  "sourceGuidanceIds": ["guidance/foundation"],
+  "observedAt": "2026-08-25T00:00:00Z",
+  "evidenceDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+}
