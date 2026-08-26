@@ -32,6 +32,12 @@
       "type": "string",
       "pattern": "^sha256:[a-f0-9]{64}$"
     },
+    "gitObjectId": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^(?:[a-f0-9]{40}|[a-f0-9]{64})$" }
+      ]
+    },
     "path": { "type": "string", "minLength": 1 },
     "root": {
       "type": "object",
@@ -92,11 +98,10 @@
     "symbolicLink": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["path", "kind", "target", "fingerprint"],
+      "required": ["path", "kind", "fingerprint"],
       "properties": {
         "path": { "$ref": "#/$defs/path" },
         "kind": { "const": "symbolic-link" },
-        "target": { "type": "string" },
         "fingerprint": { "$ref": "#/$defs/fingerprint" }
       }
     },
@@ -129,9 +134,16 @@
       "additionalProperties": false,
       "required": ["kind", "path", "gitMetadataKind"],
       "properties": {
-        "kind": { "enum": ["nested-repository", "submodule", "worktree"] },
+        "kind": {
+          "enum": [
+            "external-git-directory",
+            "nested-repository",
+            "submodule",
+            "worktree"
+          ]
+        },
         "path": { "$ref": "#/$defs/path" },
-        "gitMetadataKind": { "enum": ["directory", "file"] }
+        "gitMetadataKind": { "enum": ["directory", "file", "index"] }
       }
     },
     "gitPathState": {
@@ -166,6 +178,10 @@
           "required": [
             "relationship",
             "hasCommits",
+            "headCommit",
+            "headTree",
+            "indexFingerprint",
+            "gitDirectoryFingerprint",
             "commitCount",
             "headTreePathCount",
             "trackedPathCount",
@@ -175,6 +191,10 @@
           "properties": {
             "relationship": { "const": "none" },
             "hasCommits": { "const": false },
+            "headCommit": { "type": "null" },
+            "headTree": { "type": "null" },
+            "indexFingerprint": { "type": "null" },
+            "gitDirectoryFingerprint": { "type": "null" },
             "commitCount": { "const": 0 },
             "headTreePathCount": { "const": 0 },
             "trackedPathCount": { "const": 0 },
@@ -195,6 +215,10 @@
             "relationship",
             "root",
             "hasCommits",
+            "headCommit",
+            "headTree",
+            "indexFingerprint",
+            "gitDirectoryFingerprint",
             "commitCount",
             "headTreePathCount",
             "trackedPathCount",
@@ -203,10 +227,20 @@
           ],
           "properties": {
             "relationship": {
-              "enum": ["repository-root", "parent-repository", "worktree", "submodule"]
+              "enum": [
+                "external-git-directory",
+                "repository-root",
+                "parent-repository",
+                "worktree",
+                "submodule"
+              ]
             },
             "root": { "$ref": "#/$defs/path" },
             "hasCommits": { "type": "boolean" },
+            "headCommit": { "$ref": "#/$defs/gitObjectId" },
+            "headTree": { "$ref": "#/$defs/gitObjectId" },
+            "indexFingerprint": { "$ref": "#/$defs/fingerprint" },
+            "gitDirectoryFingerprint": { "$ref": "#/$defs/fingerprint" },
             "commitCount": { "type": "integer", "minimum": 0 },
             "headTreePathCount": { "type": "integer", "minimum": 0 },
             "trackedPathCount": { "type": "integer", "minimum": 0 },
@@ -230,6 +264,7 @@
         "code": {
           "enum": [
             "case-collision",
+            "external-git-directory",
             "filesystem-boundary",
             "nested-repository",
             "normalization-ambiguity",
@@ -260,6 +295,7 @@
               "dirty-git-state",
               "empty-git-root",
               "empty-initial-commit",
+              "external-git-directory-boundary",
               "git-initialization-requires-confirmation",
               "ignorable-content-preserved",
               "no-substantive-content",

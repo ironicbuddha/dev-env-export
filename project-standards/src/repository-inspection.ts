@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { createReadStream } from "node:fs";
+import { createReadStream, type Stats } from "node:fs";
 import {
   lstat,
   readFile,
@@ -42,6 +42,7 @@ export class RepositoryInspectionError extends Error {
 export type RepositoryHazardCode =
   | "case-collision"
   | "filesystem-boundary"
+  | "external-git-directory"
   | "nested-repository"
   | "normalization-ambiguity"
   | "parent-git-repository"
@@ -66,7 +67,6 @@ export type RepositoryEntry =
   | Readonly<{
       path: string;
       kind: "symbolic-link";
-      target: string;
       fingerprint: string;
     }>
   | Readonly<{
@@ -88,9 +88,13 @@ export type RepositoryEntry =
     }>;
 
 export type GitBoundary = Readonly<{
-  kind: "nested-repository" | "submodule" | "worktree";
+  kind:
+    | "external-git-directory"
+    | "nested-repository"
+    | "submodule"
+    | "worktree";
   path: string;
-  gitMetadataKind: "directory" | "file";
+  gitMetadataKind: "directory" | "file" | "index";
 }>;
 
 export type GitPathState =
@@ -115,6 +119,7 @@ export type RunModeRecommendationEvidence =
   | "dirty-git-state"
   | "empty-git-root"
   | "empty-initial-commit"
+  | "external-git-directory-boundary"
   | "git-initialization-requires-confirmation"
   | "ignorable-content-preserved"
   | "no-substantive-content"
@@ -147,6 +152,10 @@ export interface DetectedRepositoryState {
     | Readonly<{
         relationship: "none";
         hasCommits: false;
+        headCommit: null;
+        headTree: null;
+        indexFingerprint: null;
+        gitDirectoryFingerprint: null;
         commitCount: 0;
         headTreePathCount: 0;
         trackedPathCount: 0;
@@ -154,19 +163,18 @@ export interface DetectedRepositoryState {
         dirtyPaths: readonly GitDirtyPath[];
       }>
     | Readonly<{
-        relationship: "repository-root" | "worktree" | "submodule";
+        relationship:
+          | "external-git-directory"
+          | "parent-repository"
+          | "repository-root"
+          | "worktree"
+          | "submodule";
         root: string;
         hasCommits: boolean;
-        commitCount: number;
-        headTreePathCount: number;
-        trackedPathCount: number;
-        boundaries: readonly GitBoundary[];
-        dirtyPaths: readonly GitDirtyPath[];
-      }>
-    | Readonly<{
-        relationship: "parent-repository";
-        root: string;
-        hasCommits: boolean;
+        headCommit: string | null;
+        headTree: string | null;
+        indexFingerprint: string;
+        gitDirectoryFingerprint: string;
         commitCount: number;
         headTreePathCount: number;
         trackedPathCount: number;
@@ -192,6 +200,24 @@ async function gitOutput(root: string, arguments_: readonly string[]): Promise<s
     env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" },
   });
   return stdout;
+}
+
+async function optionalGitOutput(
+  root: string,
+  arguments_: readonly string[],
+): Promise<string | undefined> {
+  try {
+    return await gitOutput(root, arguments_);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      error.code === 1
+    ) {
+      return undefined;
+    }
+    throw error;
+  }
 }
 
 function isNotGitRepositoryError(error: unknown): boolean {
@@ -250,25 +276,51 @@ function parseGitStatus(output: string): GitDirtyPath[] {
   return dirtyPaths;
 }
 
+type GitIndexEntry = Readonly<{
+  mode: string;
+  objectId: string;
+  stage: number;
+  path: string;
+}>;
+
+function parseGitIndex(output: string): GitIndexEntry[] {
+  return output
+    .split("\0")
+    .filter(Boolean)
+    .map((record) => {
+      const match = /^(\d{6}) ([a-f0-9]+) ([0-3])\t([\s\S]+)$/.exec(record);
+      if (match === null) {
+        throw new Error(`Malformed Git index record ${JSON.stringify(record)}`);
+      }
+      const [, mode, objectId, stage, path] = match;
+      if (
+        mode === undefined ||
+        objectId === undefined ||
+        stage === undefined ||
+        path === undefined
+      ) {
+        throw new Error(`Incomplete Git index record ${JSON.stringify(record)}`);
+      }
+      return { mode, objectId, stage: Number.parseInt(stage, 10), path };
+    });
+}
+
 function rebaseGitPaths(
   paths: readonly GitDirtyPath[],
   gitRoot: string,
   selectedRoot: string,
 ): GitDirtyPath[] {
-  const prefix = relative(gitRoot, selectedRoot);
-  if (prefix.length === 0) return [...paths];
-  const prefixWithSeparator = `${prefix}/`;
   return paths.map((dirtyPath) => ({
     ...dirtyPath,
-    path: dirtyPath.path.startsWith(prefixWithSeparator)
-      ? dirtyPath.path.slice(prefixWithSeparator.length)
-      : dirtyPath.path,
+    path: rebaseGitPath(dirtyPath.path, gitRoot, selectedRoot),
     ...(dirtyPath.originalPath === undefined
       ? {}
       : {
-          originalPath: dirtyPath.originalPath.startsWith(prefixWithSeparator)
-            ? dirtyPath.originalPath.slice(prefixWithSeparator.length)
-            : dirtyPath.originalPath,
+          originalPath: rebaseGitPath(
+            dirtyPath.originalPath,
+            gitRoot,
+            selectedRoot,
+          ),
         }),
   }));
 }
@@ -319,21 +371,18 @@ function collisionHazards(paths: readonly string[]): RepositoryHazard[] {
   return hazards;
 }
 
-async function inspectRegularFile(
-  root: string,
+function assertStableMetadata(
+  before: Stats,
+  after: Stats,
   path: string,
-): Promise<RepositoryEntry> {
-  const absolutePath = join(root, path);
-  const before = await lstat(absolutePath);
-  const hash = createHash("sha256");
-  await pipeline(createReadStream(absolutePath), hash);
-  const after = await lstat(absolutePath);
+  includeSize = false,
+): void {
   if (
     before.dev !== after.dev ||
     before.ino !== after.ino ||
     before.mode !== after.mode ||
-    before.size !== after.size ||
-    before.mtimeMs !== after.mtimeMs
+    before.mtimeMs !== after.mtimeMs ||
+    (includeSize && before.size !== after.size)
   ) {
     throw new RepositoryInspectionError(
       "repository-drift",
@@ -341,6 +390,25 @@ async function inspectRegularFile(
       `Repository state drifted while inspecting ${path}`,
     );
   }
+}
+
+async function inspectRegularFile(
+  root: string,
+  path: string,
+): Promise<RepositoryEntry> {
+  const absolutePath = join(root, path);
+  const before = await lstat(absolutePath);
+  if (!before.isFile()) {
+    throw new RepositoryInspectionError(
+      "repository-drift",
+      path,
+      `Repository state drifted while inspecting ${path}`,
+    );
+  }
+  const hash = createHash("sha256");
+  await pipeline(createReadStream(absolutePath), hash);
+  const after = await lstat(absolutePath);
+  assertStableMetadata(before, after, path, true);
   return {
     path,
     kind: "regular-file",
@@ -355,24 +423,19 @@ async function inspectSymbolicLink(
 ): Promise<RepositoryEntry> {
   const absolutePath = join(root, path);
   const before = await lstat(absolutePath);
-  const target = await readlink(absolutePath);
-  const after = await lstat(absolutePath);
-  if (
-    before.dev !== after.dev ||
-    before.ino !== after.ino ||
-    before.mode !== after.mode ||
-    before.mtimeMs !== after.mtimeMs
-  ) {
+  if (!before.isSymbolicLink()) {
     throw new RepositoryInspectionError(
       "repository-drift",
       path,
       `Repository state drifted while inspecting ${path}`,
     );
   }
+  const target = await readlink(absolutePath);
+  const after = await lstat(absolutePath);
+  assertStableMetadata(before, after, path);
   return {
     path,
     kind: "symbolic-link",
-    target,
     fingerprint: `sha256:${createHash("sha256").update(target).digest("hex")}`,
   };
 }
@@ -411,17 +474,36 @@ async function gitMetadataBoundary(
       const contents = await readFile(join(directory, ".git"), "utf8");
       const match = /^gitdir: (.+)$/m.exec(contents);
       if (match?.[1] === undefined) {
-        return { kind: "nested-repository", metadataKind: "file" };
+        return { kind: "external-git-directory", metadataKind: "file" };
       }
-      const gitDirectory = resolve(directory, match[1]);
-      const pathParts = gitDirectory.split("/");
-      if (pathParts.includes("worktrees")) {
-        return { kind: "worktree", metadataKind: "file" };
+      try {
+        const superprojectRoot = (
+          await gitOutput(directory, [
+            "rev-parse",
+            "--show-superproject-working-tree",
+          ])
+        ).trim();
+        if (superprojectRoot.length > 0) {
+          return { kind: "submodule", metadataKind: "file" };
+        }
+        const gitDirectory = await realpath(
+          (await gitOutput(directory, ["rev-parse", "--absolute-git-dir"])).trim(),
+        );
+        const commonDirectoryOutput = (
+          await gitOutput(directory, ["rev-parse", "--git-common-dir"])
+        ).trim();
+        const commonDirectory = await realpath(
+          isAbsolute(commonDirectoryOutput)
+            ? commonDirectoryOutput
+            : resolve(directory, commonDirectoryOutput),
+        );
+        if (gitDirectory !== commonDirectory) {
+          return { kind: "worktree", metadataKind: "file" };
+        }
+      } catch {
+        return { kind: "external-git-directory", metadataKind: "file" };
       }
-      if (pathParts.includes("modules")) {
-        return { kind: "submodule", metadataKind: "file" };
-      }
-      return { kind: "nested-repository", metadataKind: "file" };
+      return { kind: "external-git-directory", metadataKind: "file" };
     }
     return undefined;
   } catch (error) {
@@ -498,21 +580,36 @@ function recommendRunMode(
   let evidence: RunModeRecommendationEvidence;
   if (git.relationship === "parent-repository") {
     evidence = "parent-git-repository";
+  } else if (git.relationship === "external-git-directory") {
+    evidence = "external-git-directory-boundary";
   } else if (
     git.relationship === "worktree" ||
     git.relationship === "submodule"
   ) {
     evidence = `${git.relationship}-boundary`;
-  } else if (scan.substantivePaths.length > 0) {
-    evidence = "substantive-content";
-  } else if (substantiveDirtyPaths.length > 0) {
-    evidence = "dirty-git-state";
-  } else if (substantiveTrackedPaths.length > 0) {
-    evidence = "tracked-content";
-  } else if (!eligibleGitHistory) {
-    evidence = "non-empty-git-history";
   } else {
-    evidence = "repository-hazards";
+    const evidenceSet: RunModeRecommendationEvidence[] = [];
+    if (scan.substantivePaths.length > 0) {
+      evidenceSet.push("substantive-content");
+    }
+    if (substantiveDirtyPaths.length > 0) {
+      evidenceSet.push("dirty-git-state");
+    }
+    if (substantiveTrackedPaths.length > 0) {
+      evidenceSet.push("tracked-content");
+    }
+    if (!eligibleGitHistory) {
+      evidenceSet.push("non-empty-git-history");
+    }
+    if (scan.hazards.length > 0) {
+      evidenceSet.push("repository-hazards");
+    }
+    evidence = evidenceSet[0] ?? "repository-hazards";
+    return {
+      mode: "adopt",
+      initializeEligible: false,
+      evidence: evidenceSet.length > 0 ? evidenceSet : [evidence],
+    };
   }
   return {
     mode: "adopt",
@@ -597,6 +694,8 @@ async function scanFilesystem(
               ? "Git worktree metadata defines a separate ownership boundary"
               : gitBoundary.kind === "submodule"
                 ? "Git submodule metadata defines a separate ownership boundary"
+                : gitBoundary.kind === "external-git-directory"
+                  ? "External Git metadata defines a separate ownership boundary"
                 : "Nested Git metadata defines a separate ownership boundary",
         });
         continue;
@@ -655,18 +754,11 @@ async function scanFilesystem(
     });
   }
   const directoryAfter = await lstat(directory);
-  if (
-    directoryBefore.dev !== directoryAfter.dev ||
-    directoryBefore.ino !== directoryAfter.ino ||
-    directoryBefore.mode !== directoryAfter.mode ||
-    directoryBefore.mtimeMs !== directoryAfter.mtimeMs
-  ) {
-    throw new RepositoryInspectionError(
-      "repository-drift",
-      relative(root, directory) || ".",
-      `Repository state drifted while inspecting ${relative(root, directory) || "."}`,
-    );
-  }
+  assertStableMetadata(
+    directoryBefore,
+    directoryAfter,
+    relative(root, directory) || ".",
+  );
 }
 
 async function inspectRepositoryRootUnchecked(
@@ -738,11 +830,30 @@ async function inspectRepositoryRootUnchecked(
       await gitOutput(selectedPath, ["rev-parse", "--show-toplevel"])
     ).trim();
     const resolvedGitRoot = await realpath(gitRoot);
-    const commitCount = Number.parseInt(
-      (await gitOutput(selectedPath, ["rev-list", "--count", "--all"])).trim(),
-      10,
-    );
-    const hasCommits = commitCount > 0;
+    const headCommit = (
+      await optionalGitOutput(selectedPath, [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "HEAD",
+      ])
+    )?.trim() ?? null;
+    const hasCommits = headCommit !== null;
+    const commitCount = hasCommits
+      ? Number.parseInt(
+          (await gitOutput(selectedPath, ["rev-list", "--count", "HEAD"])).trim(),
+          10,
+        )
+      : 0;
+    const headTree = hasCommits
+      ? (
+          await gitOutput(selectedPath, ["rev-parse", "--verify", "HEAD^{tree}"])
+        ).trim()
+      : null;
+    const gitDirectory = (
+      await gitOutput(selectedPath, ["rev-parse", "--absolute-git-dir"])
+    ).trim();
+    const gitDirectoryFingerprint = digest(await realpath(gitDirectory));
     const trackedPaths = (
       await gitOutput(selectedPath, ["ls-files", "-z", "--", "."])
     )
@@ -751,6 +862,47 @@ async function inspectRepositoryRootUnchecked(
     selectedTrackedPaths = trackedPaths.map((path) =>
       rebaseGitPath(path, resolvedGitRoot, resolvedRoot),
     );
+    const indexOutput = await gitOutput(selectedPath, [
+      "ls-files",
+      "--stage",
+      "-z",
+      "--",
+      ".",
+    ]);
+    const indexFingerprint = `sha256:${createHash("sha256")
+      .update(indexOutput)
+      .digest("hex")}`;
+    const indexEntries = parseGitIndex(indexOutput).map((entry) => ({
+      ...entry,
+      path: rebaseGitPath(entry.path, resolvedGitRoot, resolvedRoot),
+    }));
+    for (const entry of indexEntries) {
+      if (entry.mode !== "160000") continue;
+      if (
+        !scan.gitBoundaries.some(
+          ({ kind, path }) => kind === "submodule" && path === entry.path,
+        )
+      ) {
+        scan.gitBoundaries.push({
+          kind: "submodule",
+          path: entry.path,
+          gitMetadataKind: "index",
+        });
+      }
+      if (
+        !scan.hazards.some(
+          ({ code, path }) => code === "submodule" && path === entry.path,
+        )
+      ) {
+        scan.hazards.push({
+          code: "submodule",
+          path: entry.path,
+          evidence: "Git index entry defines a submodule ownership boundary",
+        });
+      }
+    }
+    scan.gitBoundaries.sort(comparePath);
+    scan.hazards.sort(comparePath);
     const headTreePathCount = hasCommits
       ? (await gitOutput(selectedPath, ["ls-tree", "-r", "--name-only", "-z", "HEAD", "--", "."]))
           .split("\0")
@@ -777,13 +929,19 @@ async function inspectRepositoryRootUnchecked(
         ? "parent-repository"
         : selectedGitBoundary?.kind === "worktree"
           ? "worktree"
-          : selectedGitBoundary?.kind === "submodule"
+        : selectedGitBoundary?.kind === "submodule"
             ? "submodule"
+            : selectedGitBoundary?.kind === "external-git-directory"
+              ? "external-git-directory"
             : "repository-root";
     git = {
       relationship,
       root: resolvedGitRoot,
       hasCommits,
+      headCommit,
+      headTree,
+      indexFingerprint,
+      gitDirectoryFingerprint,
       commitCount,
       headTreePathCount,
       trackedPathCount: trackedPaths.length,
@@ -797,14 +955,20 @@ async function inspectRepositoryRootUnchecked(
         evidence: `Selected root was not redirected to parent Git root ${resolvedGitRoot}`,
       });
       scan.hazards.sort(comparePath);
-    } else if (relationship === "worktree" || relationship === "submodule") {
+    } else if (
+      relationship === "worktree" ||
+      relationship === "submodule" ||
+      relationship === "external-git-directory"
+    ) {
       scan.hazards.push({
         code: relationship,
         path: ".",
         evidence:
           relationship === "worktree"
             ? "Selected root uses external Git worktree metadata"
-            : "Selected root is a Git submodule ownership boundary",
+            : relationship === "submodule"
+              ? "Selected root is a Git submodule ownership boundary"
+              : "Selected root uses an external Git administrative directory",
       });
       scan.hazards.sort(comparePath);
     }
@@ -813,6 +977,10 @@ async function inspectRepositoryRootUnchecked(
       git = {
         relationship: "none",
         hasCommits: false,
+        headCommit: null,
+        headTree: null,
+        indexFingerprint: null,
+        gitDirectoryFingerprint: null,
         commitCount: 0,
         headTreePathCount: 0,
         trackedPathCount: 0,

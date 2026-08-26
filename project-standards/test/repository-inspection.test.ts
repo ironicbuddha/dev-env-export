@@ -168,7 +168,6 @@ test("inspect fingerprints a symlink without following or changing its external 
     {
       path: "outside-link",
       kind: "symbolic-link",
-      target: outsideFile,
       fingerprint: `sha256:${createHash("sha256").update(outsideFile).digest("hex")}`,
     },
   ]);
@@ -181,6 +180,7 @@ test("inspect fingerprints a symlink without following or changing its external 
   ]);
   assert.equal(detected.recommendation.mode, "adopt");
   assert.equal(detected.recommendation.initializeEligible, false);
+  assert.equal(JSON.stringify(detected).includes(outsideFile), false);
   assert.doesNotMatch(JSON.stringify(detected), /external secret content/);
   assert.equal(await treeFingerprint(outside), outsideBefore);
 });
@@ -227,22 +227,24 @@ test("inspect keeps a selected subdirectory exact instead of redirecting to its 
   const detected = await inspectRepositoryRoot(selectedRoot);
 
   assert.equal(detected.root.selectedPath, selectedRoot);
-  assert.deepEqual(detected.git, {
-    relationship: "parent-repository",
-    root: await realpath(outer),
-    hasCommits: false,
-    commitCount: 0,
-    headTreePathCount: 0,
-    trackedPathCount: 0,
-    boundaries: [],
-    dirtyPaths: [
-      {
-        path: "package.json",
-        indexState: "untracked",
-        worktreeState: "untracked",
-      },
-    ],
-  });
+  assert.equal(detected.git.relationship, "parent-repository");
+  assert.equal(detected.git.root, await realpath(outer));
+  assert.equal(detected.git.hasCommits, false);
+  assert.equal(detected.git.headCommit, null);
+  assert.equal(detected.git.headTree, null);
+  assert.match(detected.git.indexFingerprint, /^sha256:[a-f0-9]{64}$/);
+  assert.match(detected.git.gitDirectoryFingerprint, /^sha256:[a-f0-9]{64}$/);
+  assert.equal(detected.git.commitCount, 0);
+  assert.equal(detected.git.headTreePathCount, 0);
+  assert.equal(detected.git.trackedPathCount, 0);
+  assert.deepEqual(detected.git.boundaries, []);
+  assert.deepEqual(detected.git.dirtyPaths, [
+    {
+      path: "package.json",
+      indexState: "untracked",
+      worktreeState: "untracked",
+    },
+  ]);
   assert.deepEqual(
     detected.hazards.filter(({ code }) => code === "parent-git-repository"),
     [
@@ -292,6 +294,12 @@ test("inspect reports exact dirty Git paths as evidence without reading their co
     },
   ]);
   assert.doesNotMatch(JSON.stringify(detected), /private (modified|untracked) value/);
+  assert.deepEqual(detected.recommendation.evidence, [
+    "substantive-content",
+    "dirty-git-state",
+    "tracked-content",
+    "non-empty-git-history",
+  ]);
   assert.equal(await treeFingerprint(root), before);
 });
 
@@ -465,6 +473,21 @@ test("inspect distinguishes selected Git worktree and submodule roots as separat
     ],
   );
   assert.equal(await treeFingerprint(submodule), submoduleBefore);
+
+  await runGit(outer, "submodule", "deinit", "--force", "--", "vendor/source");
+  const deinitialized = await inspectRepositoryRoot(outer);
+  assert.deepEqual(
+    deinitialized.git.boundaries.filter(
+      ({ kind, path }) => kind === "submodule" && path === "vendor/source",
+    ),
+    [
+      {
+        kind: "submodule",
+        path: "vendor/source",
+        gitMetadataKind: "index",
+      },
+    ],
+  );
 });
 
 test("inspect fails closed for a missing root or a symlink-selected root", async () => {
@@ -608,6 +631,81 @@ test("inspect does not recommend initialization for an empty-looking root with s
   assert.deepEqual(dirty.recommendation, {
     mode: "adopt",
     initializeEligible: false,
-    evidence: ["dirty-git-state"],
+    evidence: ["dirty-git-state", "non-empty-git-history"],
   });
+});
+
+test("inspect binds the exact HEAD and index identities into the state fingerprint", async () => {
+  const root = await mkdtemp(
+    join(tmpdir(), "project-standards-inspect-head-identity-"),
+  );
+  await runGit(root, "init", "--quiet");
+  await runGit(
+    root,
+    "-c",
+    "user.name=Project Standards Test",
+    "-c",
+    "user.email=project-standards@example.test",
+    "commit",
+    "--quiet",
+    "--allow-empty",
+    "-m",
+    "first empty head",
+  );
+  const firstBranch = await gitOutput(root, "branch", "--show-current");
+  await runGit(root, "switch", "--quiet", "--orphan", "second-empty-head");
+  await runGit(
+    root,
+    "-c",
+    "user.name=Project Standards Test",
+    "-c",
+    "user.email=project-standards@example.test",
+    "commit",
+    "--quiet",
+    "--allow-empty",
+    "-m",
+    "second empty head",
+  );
+
+  await runGit(root, "switch", "--quiet", firstBranch);
+  const first = await inspectRepositoryRoot(root);
+  await runGit(root, "switch", "--quiet", "second-empty-head");
+  const second = await inspectRepositoryRoot(root);
+
+  assert.notEqual(first.git.headCommit, second.git.headCommit);
+  assert.equal(first.git.headTree, second.git.headTree);
+  assert.equal(first.git.indexFingerprint, second.git.indexFingerprint);
+  assert.notEqual(first.stateFingerprint, second.stateFingerprint);
+});
+
+test("inspect reports an arbitrary external Git directory as a boundary", async () => {
+  const container = await mkdtemp(
+    join(tmpdir(), "project-standards-inspect-external-git-"),
+  );
+  const root = join(container, "worktree");
+  const gitDirectory = join(container, "administrative-state");
+  await execFileAsync("git", [
+    "init",
+    "--quiet",
+    "--separate-git-dir",
+    gitDirectory,
+    root,
+  ]);
+
+  const detected = await inspectRepositoryRoot(root);
+
+  assert.equal(detected.git.relationship, "external-git-directory");
+  assert.match(detected.git.gitDirectoryFingerprint, /^sha256:[a-f0-9]{64}$/);
+  assert.equal(JSON.stringify(detected).includes(gitDirectory), false);
+  assert.deepEqual(
+    detected.hazards.filter(({ code }) => code === "external-git-directory"),
+    [
+      {
+        code: "external-git-directory",
+        path: ".",
+        evidence: "Selected root uses an external Git administrative directory",
+      },
+    ],
+  );
+  assert.equal(detected.recommendation.initializeEligible, false);
 });

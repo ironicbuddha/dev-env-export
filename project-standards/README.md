@@ -23,15 +23,18 @@ The public library seam is:
   document and Detected Repository State schemas;
 - `calculateCatalogueReleaseDigest(releaseDirectory)` for release authoring.
 - `inspectRepositoryRoot(root)` for an exact, fingerprinted, read-only view of
-  filesystem state, Git relationships, ownership boundaries, hazards, and
-  evidence-based Initialization or Adoption eligibility.
+  filesystem state, exact Git HEAD/index identities, Git relationships,
+  ownership boundaries, hazards, and evidence-based Initialization or Adoption
+  eligibility.
 
 Inspection never redirects a selected subdirectory to its parent Git root,
 follows a symlink, selects a run mode, infers durable policy or scope, or reads
 file contents into output. Regular-file contents and link targets contribute
-only fingerprints. Git is invoked with optional locks disabled so inspection
-does not refresh the index. Conventional placeholders and ignorable OS/editor
-metadata may support an Initialization recommendation, but remain untouched.
+only fingerprints. Worktrees, submodules (including deinitialized gitlinks),
+nested repositories, and arbitrary external Git directories remain explicit
+boundaries. Git is invoked with optional locks disabled so inspection does not
+refresh the index. Conventional placeholders and ignorable OS/editor metadata
+may support an Initialization recommendation, but remain untouched.
 
 This foundation reports only catalogue validity or an `inspected` snapshot. It
 cannot report a Verified Baseline. The shared evidence and acceptance reducer

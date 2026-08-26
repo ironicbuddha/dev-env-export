@@ -2,7 +2,7 @@
   "$schema": "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-release.schema.json",
   "schemaVersion": "1.0.0",
   "catalogueVersion": "1.0.0",
-  "catalogueDigest": "sha256:e197a878bb7e0ed530c1806867b2aaa02830bbe33933c5ded0bd1eb7932a2a9e",
+  "catalogueDigest": "sha256:17f3671c948fa9fe1bcd8be1a7ed8d7b2f491b220f18487ccac2784a7e22a824",
   "schemas": [
     "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-entry.schema.json",
     "https://schemas.ironicbuddha.dev/project-standards/v1/catalogue-release.schema.json",
