@@ -1,0 +1,279 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ironicbuddha.dev/project-standards/v1/detected-repository-state.schema.json",
+  "title": "Detected Repository State",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "root",
+    "filesystem",
+    "git",
+    "hazards",
+    "recommendation",
+    "stateFingerprint"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "detected-repository-state" },
+    "root": { "$ref": "#/$defs/root" },
+    "filesystem": { "$ref": "#/$defs/filesystem" },
+    "git": { "$ref": "#/$defs/git" },
+    "hazards": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/hazard" }
+    },
+    "recommendation": { "$ref": "#/$defs/recommendation" },
+    "stateFingerprint": { "$ref": "#/$defs/fingerprint" }
+  },
+  "$defs": {
+    "fingerprint": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "path": { "type": "string", "minLength": 1 },
+    "root": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selectedPath", "realPath", "device", "inode", "fingerprint"],
+      "properties": {
+        "selectedPath": { "$ref": "#/$defs/path" },
+        "realPath": { "$ref": "#/$defs/path" },
+        "device": { "type": "string", "pattern": "^[0-9]+$" },
+        "inode": { "type": "string", "pattern": "^[0-9]+$" },
+        "fingerprint": { "$ref": "#/$defs/fingerprint" }
+      }
+    },
+    "filesystem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entryCount",
+        "substantivePaths",
+        "ignorablePaths",
+        "emptyDirectoryPaths",
+        "entries"
+      ],
+      "properties": {
+        "entryCount": { "type": "integer", "minimum": 0 },
+        "substantivePaths": { "$ref": "#/$defs/pathArray" },
+        "ignorablePaths": { "$ref": "#/$defs/pathArray" },
+        "emptyDirectoryPaths": { "$ref": "#/$defs/pathArray" },
+        "entries": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/regularFile" },
+              { "$ref": "#/$defs/symbolicLink" },
+              { "$ref": "#/$defs/directory" },
+              { "$ref": "#/$defs/specialFile" }
+            ]
+          }
+        }
+      }
+    },
+    "pathArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/path" }
+    },
+    "regularFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "size", "fingerprint"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "kind": { "const": "regular-file" },
+        "size": { "type": "integer", "minimum": 0 },
+        "fingerprint": { "$ref": "#/$defs/fingerprint" }
+      }
+    },
+    "symbolicLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "target", "fingerprint"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "kind": { "const": "symbolic-link" },
+        "target": { "type": "string" },
+        "fingerprint": { "$ref": "#/$defs/fingerprint" }
+      }
+    },
+    "directory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "empty", "fingerprint"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "kind": { "const": "directory" },
+        "empty": { "type": "boolean" },
+        "fingerprint": { "$ref": "#/$defs/fingerprint" }
+      }
+    },
+    "specialFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "specialKind", "fingerprint"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "kind": { "const": "special-file" },
+        "specialKind": {
+          "enum": ["fifo", "socket", "block-device", "character-device", "unknown"]
+        },
+        "fingerprint": { "$ref": "#/$defs/fingerprint" }
+      }
+    },
+    "gitBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path", "gitMetadataKind"],
+      "properties": {
+        "kind": { "enum": ["nested-repository", "submodule", "worktree"] },
+        "path": { "$ref": "#/$defs/path" },
+        "gitMetadataKind": { "enum": ["directory", "file"] }
+      }
+    },
+    "gitPathState": {
+      "enum": [
+        "unchanged",
+        "modified",
+        "added",
+        "deleted",
+        "renamed",
+        "copied",
+        "unmerged",
+        "untracked",
+        "type-changed"
+      ]
+    },
+    "gitDirtyPath": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "indexState", "worktreeState"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "indexState": { "$ref": "#/$defs/gitPathState" },
+        "worktreeState": { "$ref": "#/$defs/gitPathState" },
+        "originalPath": { "$ref": "#/$defs/path" }
+      }
+    },
+    "git": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "relationship",
+            "hasCommits",
+            "commitCount",
+            "headTreePathCount",
+            "trackedPathCount",
+            "boundaries",
+            "dirtyPaths"
+          ],
+          "properties": {
+            "relationship": { "const": "none" },
+            "hasCommits": { "const": false },
+            "commitCount": { "const": 0 },
+            "headTreePathCount": { "const": 0 },
+            "trackedPathCount": { "const": 0 },
+            "boundaries": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/gitBoundary" }
+            },
+            "dirtyPaths": {
+              "type": "array",
+              "maxItems": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "relationship",
+            "root",
+            "hasCommits",
+            "commitCount",
+            "headTreePathCount",
+            "trackedPathCount",
+            "boundaries",
+            "dirtyPaths"
+          ],
+          "properties": {
+            "relationship": {
+              "enum": ["repository-root", "parent-repository", "worktree", "submodule"]
+            },
+            "root": { "$ref": "#/$defs/path" },
+            "hasCommits": { "type": "boolean" },
+            "commitCount": { "type": "integer", "minimum": 0 },
+            "headTreePathCount": { "type": "integer", "minimum": 0 },
+            "trackedPathCount": { "type": "integer", "minimum": 0 },
+            "boundaries": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/gitBoundary" }
+            },
+            "dirtyPaths": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/gitDirtyPath" }
+            }
+          }
+        }
+      ]
+    },
+    "hazard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "path", "evidence"],
+      "properties": {
+        "code": {
+          "enum": [
+            "case-collision",
+            "filesystem-boundary",
+            "nested-repository",
+            "normalization-ambiguity",
+            "parent-git-repository",
+            "special-file",
+            "submodule",
+            "symbolic-link",
+            "worktree"
+          ]
+        },
+        "path": { "$ref": "#/$defs/path" },
+        "evidence": { "type": "string", "minLength": 1 }
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "initializeEligible", "evidence"],
+      "properties": {
+        "mode": { "enum": ["initialize", "adopt"] },
+        "initializeEligible": { "type": "boolean" },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "dirty-git-state",
+              "empty-git-root",
+              "empty-initial-commit",
+              "git-initialization-requires-confirmation",
+              "ignorable-content-preserved",
+              "no-substantive-content",
+              "non-empty-git-history",
+              "parent-git-repository",
+              "repository-hazards",
+              "submodule-boundary",
+              "substantive-content",
+              "tracked-content",
+              "worktree-boundary"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

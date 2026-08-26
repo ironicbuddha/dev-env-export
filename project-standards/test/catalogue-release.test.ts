@@ -218,7 +218,7 @@ test("Catalogue Release loads an atomic, content-addressed entry set", async () 
   const fixtureRoot = join(packageRoot, "fixtures/valid/foundation-release");
   assert.equal(
     await calculateCatalogueReleaseDigest(fixtureRoot),
-    "sha256:ae80f3c7cb4923abab10fa66fe64b3e30329eb525b4fb6223014a230ab167274",
+    "sha256:e197a878bb7e0ed530c1806867b2aaa02830bbe33933c5ded0bd1eb7932a2a9e",
   );
   const release = await loadCatalogueRelease(fixtureRoot);
 
@@ -714,7 +714,7 @@ test("catalogue CLI independently validates a content-addressed release", async 
     status: "valid",
     catalogueVersion: "1.0.0",
     catalogueDigest:
-      "sha256:ae80f3c7cb4923abab10fa66fe64b3e30329eb525b4fb6223014a230ab167274",
+      "sha256:e197a878bb7e0ed530c1806867b2aaa02830bbe33933c5ded0bd1eb7932a2a9e",
     entryIds: [
       "entry/capability/example-conflict",
       "entry/capability/example-tests",

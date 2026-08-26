@@ -11,6 +11,20 @@ import {
 import formatsPlugin, { type FormatsPlugin } from "ajv-formats";
 import canonicalizeModule from "canonicalize";
 
+export {
+  inspectRepositoryRoot,
+  type DetectedRepositoryState,
+  type GitBoundary,
+  type GitDirtyPath,
+  type GitPathState,
+  type RepositoryEntry,
+  type RepositoryHazard,
+  type RepositoryHazardCode,
+  RepositoryInspectionError,
+  type RepositoryInspectionErrorCode,
+  type RunModeRecommendationEvidence,
+} from "./repository-inspection.js";
+
 export type CatalogueValidationErrorCode =
   | "catalogue-incompatibility"
   | "choice-invalid"
@@ -244,6 +258,7 @@ export type ProjectStandardsDocumentKind =
   | "catalogue-entry"
   | "catalogue-release"
   | "configuration"
+  | "detected-repository-state"
   | "extension-registration"
   | "fixture"
   | "manifest"
