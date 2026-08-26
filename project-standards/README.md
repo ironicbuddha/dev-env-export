@@ -123,4 +123,5 @@ usage errors exit `64`. `inspect` emits the closed
 recommendation plus its evidence. The recommendation is not a selected mode or
 authorization to mutate the root. `evaluate-verification` emits the reducer's
 machine-readable result and uses the exact same engine as the public library
-seam.
+seam. A `verified` result exits `0`, `failed` exits `1`, and `incomplete` exits
+`3`, so only a verified verification result is process-level success.

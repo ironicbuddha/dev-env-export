@@ -875,6 +875,16 @@ export function reduceVerificationRequirements(
     (evaluation): evaluation is RequirementEvaluationResult =>
       evaluation !== undefined,
   );
+  const consumedEvidenceIds = new Set(
+    completeEvaluations.flatMap(({ evidenceId }) =>
+      evidenceId === undefined ? [] : [evidenceId],
+    ),
+  );
+  const evidenceIds = request.evidence.map(({ id }) => id);
+  const evidenceIdsUnique = new Set(evidenceIds).size === evidenceIds.length;
+  const allEvidenceConsumed = request.evidence.every(({ id }) =>
+    consumedEvidenceIds.has(id),
+  );
 
   const failedBlocker = request.blockers.some(
     ({ kind }) => kind !== "missing-authority",
@@ -887,7 +897,9 @@ export function reduceVerificationRequirements(
             ({ evaluation }) => evaluation === "incomplete",
           ) ||
           request.blockers.length > 0 ||
-          !affectedRequirementsValid
+          !affectedRequirementsValid ||
+          !evidenceIdsUnique ||
+          !allEvidenceConsumed
         ? "incomplete"
         : "verified";
 

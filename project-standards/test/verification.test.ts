@@ -27,6 +27,21 @@ const canonicalize = canonicalizeModule as unknown as (
   value: unknown,
 ) => string | undefined;
 
+function execFileResult(
+  file: string,
+  arguments_: readonly string[],
+): Promise<Readonly<{ exitCode: number; stdout: string; stderr: string }>> {
+  return new Promise((resolve) => {
+    execFile(file, arguments_, (error, stdout, stderr) => {
+      resolve({
+        exitCode: typeof error?.code === "number" ? error.code : 0,
+        stdout,
+        stderr,
+      });
+    });
+  });
+}
+
 function digest(value: unknown): string {
   const canonical = canonicalize(value);
   assert.ok(canonical);
@@ -519,6 +534,38 @@ test("closed evidence schemas reject undeclared fields before reduction", async 
       error instanceof CatalogueValidationError &&
       error.code === "schema-invalid",
   );
+});
+
+test("unconsumed evidence prevents a Verified Baseline", async (t) => {
+  const fixture = await verificationFixture();
+  for (const [name, evidenceId] of [
+    ["with a distinct identity", "evidence/018f47ac-10d2-7c85-bd62-0c742b1f2500"],
+    ["when reusing a consumed identity", fixture.request.evidence[0]!.id],
+  ] as const) {
+    await t.test(name, async () => {
+      const unrelatedEvidence = redigestEvidence(
+        fixture.request.evidence[0]!,
+        {
+          id: evidenceId,
+          ruleId: "rule/unrelated/unknown-rule",
+          requirementId: "requirement/unrelated/unknown-requirement",
+        },
+      );
+      const evidence = [...fixture.request.evidence, unrelatedEvidence];
+      const request =
+        evidenceId === fixture.request.evidence[0]!.id
+          ? { ...fixture.request, evidence }
+          : withEvidence(fixture.request, evidence);
+
+      const result = await evaluateVerificationRequirements(
+        fixture.release,
+        fixture.resolved,
+        request,
+      );
+
+      assert.equal(result.outcome, "incomplete");
+    });
+  }
 });
 
 test("Conflict, Catalogue Incompatibility, drift, and missing authority block verification", async (t) => {
@@ -1587,4 +1634,57 @@ test("catalogue CLI independently evaluates an exact verification request", asyn
   const result = JSON.parse(stdout) as { outcome: string; requirements: unknown[] };
   assert.equal(result.outcome, "verified");
   assert.equal(result.requirements.length, 2);
+});
+
+test("catalogue CLI distinguishes failed and incomplete verification outcomes", async (t) => {
+  const fixture = await verificationFixture();
+  const runRoot = await mkdtemp(join(tmpdir(), "verification-exit-status-"));
+  const configurationPath = join(runRoot, "configuration.json");
+  await writeFile(
+    configurationPath,
+    `${JSON.stringify(fixture.resolved.configuration, null, 2)}\n`,
+  );
+
+  const cases = [
+    {
+      name: "failed",
+      exitCode: 1,
+      request: {
+        ...fixture.request,
+        blockers: [
+          {
+            kind: "conflict" as const,
+            id: "blocker/conflict",
+            message: "Conflict remains",
+          },
+        ],
+      },
+    },
+    {
+      name: "incomplete",
+      exitCode: 3,
+      request: withEvidence(fixture.request, fixture.request.evidence.slice(1)),
+    },
+  ] as const;
+
+  for (const testCase of cases) {
+    await t.test(testCase.name, async () => {
+      const requestPath = join(runRoot, `${testCase.name}.json`);
+      await writeFile(
+        requestPath,
+        `${JSON.stringify(testCase.request, null, 2)}\n`,
+      );
+      const result = await execFileResult(process.execPath, [
+        join(packageRoot, "dist/src/cli.js"),
+        "evaluate-verification",
+        join(packageRoot, "fixtures/valid/foundation-release"),
+        configurationPath,
+        requestPath,
+      ]);
+
+      assert.equal(result.stderr, "");
+      assert.equal(result.exitCode, testCase.exitCode);
+      assert.equal(JSON.parse(result.stdout).outcome, testCase.name);
+    });
+  }
 });

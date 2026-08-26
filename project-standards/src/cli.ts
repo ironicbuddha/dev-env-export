@@ -11,7 +11,14 @@ import {
   RepositoryInspectionError,
   resolveBootstrapConfiguration,
   type VerificationRequest,
+  type VerificationResult,
 } from "./index.js";
+
+const verificationExitCodes = {
+  verified: 0,
+  failed: 1,
+  incomplete: 3,
+} as const satisfies Readonly<Record<VerificationResult["outcome"], number>>;
 
 function usage(): never {
   throw new Error(
@@ -93,8 +100,13 @@ async function run(arguments_: readonly string[]): Promise<unknown> {
 }
 
 try {
-  const output = await run(process.argv.slice(2));
+  const arguments_ = process.argv.slice(2);
+  const output = await run(arguments_);
   process.stdout.write(`${JSON.stringify(output)}\n`);
+  if (arguments_[0] === "evaluate-verification") {
+    process.exitCode =
+      verificationExitCodes[(output as VerificationResult).outcome];
+  }
 } catch (error) {
   if (error instanceof RepositoryInspectionError) {
     process.stderr.write(
